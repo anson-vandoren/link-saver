@@ -29,6 +29,26 @@ async function getLinks(req, res, next) {
   }
 }
 
+async function getLink(req, res, next) {
+  try {
+    const link = await Link.findOne({
+      where: {
+        id: req.params.id,
+        UserId: req.user.id
+      },
+      include: [{ model: User, attributes: ['email'] }]
+    });
+
+    if (link) {
+      res.status(200).json(link);
+    } else {
+      res.status(404).json({ error: { message: 'Link not found' } });
+    }
+  } catch (error) {
+    next(error);
+  }
+}
+
 async function updateLink(req, res, next) {
   try {
     const { id } = req.params;
@@ -66,8 +86,10 @@ async function deleteLink(req, res, next) {
   }
 }
 
+
 module.exports = {
   createLink,
+  getLink,
   getLinks,
   updateLink,
   deleteLink,

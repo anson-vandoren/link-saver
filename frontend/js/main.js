@@ -94,9 +94,28 @@ async function addLink(linkData) {
 
 async function handleEditButtonClick(event) {
   const linkId = event.target.dataset.id;
-  // Load the link and show the edit form
-  // TODO: Implement the edit functionality
-  console.log('Edit link with id:', linkId);
+  const link = await getLink(linkId);
+
+  if (link) {
+    showEditForm(link);
+  } else {
+    console.error('Error loading link data for editing');
+  }
+}
+
+async function getLink(id) {
+  const response = await fetch(`${API_URL}/api/links/${id}`, {
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${localStorage.getItem('token')}`
+    }
+  });
+
+  if (response.ok) {
+    return await response.json();
+  } else {
+    throw new Error('Failed to load link');
+  }
 }
 
 async function handleDeleteButtonClick(event) {
@@ -106,6 +125,79 @@ async function handleDeleteButtonClick(event) {
     loadLinks();
   } catch (error) {
     console.error('Error deleting link:', error);
+  }
+}
+
+function showEditForm(link) {
+  const editForm = document.createElement('form');
+  editForm.id = 'edit-link-form';
+  editForm.innerHTML = `
+    <input type="hidden" id="edit-link-id" value="${link.id}">
+    <input type="text" class="form-control" id="edit-link-title" value="${link.title}" required>
+    <input type="url" class="form-control" id="edit-link-url" value="${link.url}" required>
+    <input type="text" class="form-control" id="edit-link-tags" value="${(link.tags ?? []).join(', ')}">
+    <select class="form-control" id="edit-link-visibility">
+      <option value="private" ${link.visibility === 'private' ? 'selected' : ''}>Private</option>
+      <option value="public" ${link.visibility === 'public' ? 'selected' : ''}>Public</option>
+    </select>
+    <button type="submit" class="btn btn-primary">Save Changes</button>
+    <button type="button" class="btn btn-secondary" id="cancel-edit">Cancel</button>
+  `;
+
+  const linkItem = document.querySelector(`[data-id="${link.id}"]`).closest('.link-item');
+  linkItem.appendChild(editForm);
+
+  editForm.addEventListener('submit', handleEditFormSubmit);
+  document.getElementById('cancel-edit').addEventListener('click', () => {
+    editForm.remove();
+  });
+}
+
+async function handleEditFormSubmit(event) {
+  event.preventDefault();
+
+  const linkId = document.getElementById('edit-link-id').value;
+  const title = document.getElementById('edit-link-title').value;
+  const url = document.getElementById('edit-link-url').value;
+  const tags = document.getElementById('edit-link-tags').value.split(',').map(tag => tag.trim());
+  const visibility = document.getElementById('edit-link-visibility').value;
+
+  try {
+    await updateLink(linkId, {
+      title,
+      url,
+      tags,
+      visibility
+    });
+
+    // Hide the edit form and reload the links
+    closeEditForm();
+    await loadLinks();
+  } catch (error) {
+    console.error('Error updating link:', error);
+    alert('Failed to update link. Please try again.');
+  }
+}
+
+function closeEditForm() {
+  const editForm = document.getElementById('edit-link-form');
+  if (editForm) {
+    editForm.remove();
+  }
+}
+
+async function updateLink(id, data) {
+  const response = await fetch(`${API_URL}/api/links/${id}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${localStorage.getItem('token')}`
+    },
+    body: JSON.stringify(data)
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to update link');
   }
 }
 
