@@ -37,6 +37,23 @@ function toggleTheme() {
   document.body.classList.toggle('dark');
 }
 
+/**
+ * @typedef {Object} Link
+ * @property {number} id
+ * @property {string} url
+ * @property {string} title
+ * @property {string[]} tags
+ * @property {boolean} isPublic
+ * @property {string} savedAt
+ * @property {number} userId
+ */
+
+/**
+ * Fetch links from the API
+ * @param {string} searchQuery optional search query to filter links
+ * @returns {Promise<Link[]>} list of links
+ * @throws {Error} if the request fails
+ */
 async function getLinks(searchQuery = '') {
   const response = await fetch(`${API_URL}/api/links?search=${encodeURIComponent(searchQuery)}`, {
     headers: {
@@ -53,6 +70,11 @@ async function getLinks(searchQuery = '') {
   }
 }
 
+/**
+ * Fetch links from the API and render them in the DOM
+ * @param {string} searchQuery optional search query to filter links
+ * @throws {Error} if the request fails
+ */
 async function loadLinks(searchQuery = '') {
   try {
     const links = await getLinks(searchQuery);
@@ -60,41 +82,116 @@ async function loadLinks(searchQuery = '') {
     linkList.innerHTML = '';
 
     links.forEach((link) => {
-      const linkItem = document.createElement('li');
-      linkItem.classList.add('list-group-item', 'link-item');
-      linkItem.dataset.id = link.id;
-
-      const title = document.createElement('span');
-      title.classList.add('link-title');
-      title.textContent = link.title;
-
-      const editButton = document.createElement('button');
-      editButton.classList.add('btn', 'btn-sm', 'btn-primary', 'ml-2');
-      editButton.textContent = 'Edit';
-      editButton.addEventListener('click', async () => {
-        try {
-          const linkData = await getLink(link.id);
-          showEditForm(linkData);
-        } catch (error) {
-          console.error('Failed to load link for editing:', error);
-        }
-      });
-
-      const deleteButton = document.createElement('button');
-      deleteButton.classList.add('btn', 'btn-sm', 'btn-danger', 'ml-2');
-      deleteButton.textContent = 'Delete';
-      deleteButton.addEventListener('click', () => {
-        deleteLink(link.id).then(() => {
-          loadLinks();
-        });
-      });
-
-      linkItem.append(title, editButton, deleteButton);
-      linkList.appendChild(linkItem);
+      const item = renderLinkItem(link);
+      linkList.appendChild(item);
     });
   } catch (error) {
     console.error('Failed to load links:', error);
   }
+}
+
+/**
+ * Create a div element with the given classes
+ * @param {string[]} classes 
+ * @returns A div element with the given classes
+ */
+function divWithClasses(classes) {
+  const div = document.createElement('div');
+  div.classList.add(...classes);
+  return div;
+}
+
+function timeAgo(date) {
+  const seconds = Math.floor((new Date() - date) / 1000);
+  let interval = Math.floor(seconds / 31536000);
+  if (interval >= 1) {
+    return interval + " years ago";
+  }
+  interval = Math.floor(seconds / 2592000);
+  if (interval >= 1) {
+    return interval + " months ago";
+  }
+  interval = Math.floor(seconds / 86400);
+  if (interval >= 1) {
+    return interval + " days ago";
+  }
+  interval = Math.floor(seconds / 3600);
+  if (interval >= 1) {
+    return interval + " hours ago";
+  }
+  interval = Math.floor(seconds / 60);
+  if (interval >= 1) {
+    return interval + " minutes ago";
+  }
+  return Math.floor(seconds) + " seconds ago";
+}
+
+/**
+ * Create a link list item element
+ * @param {Link} link One link object to render
+ * @returns Link list item element
+ */
+function renderLinkItem(link) {
+  const linkItem = divWithClasses(['link-item']);
+  linkItem.dataset.id = link.id;
+
+  // first line - link w/ page title
+  const title = divWithClasses(['link-title']);
+  const titleLink = document.createElement('a');
+  titleLink.href = link.url;
+  titleLink.target = '_blank';
+  titleLink.rel = 'noopener noreferrer';
+  titleLink.textContent = link.title;
+  title.appendChild(titleLink);
+
+  // second line - tags and description
+  const tags = divWithClasses(['link-tags']);
+  tags.textContent = link.tags.map((tag) => `#${tag}`).join(' ');
+
+  const description = divWithClasses(['link-description']);
+  description.textContent = link.description ? `| ${link.description}` : '';
+
+  const tagsAndDescription = divWithClasses(['link-tags-description']);
+  tagsAndDescription.append(tags, description);
+
+  // third line - date, edit, and delete links
+  const actionsAndDate = document.createElement('div');
+  actionsAndDate.classList.add('link-actions-date');
+
+  const date = document.createElement('span');
+  date.classList.add('link-date');
+  const dateAgo = timeAgo(new Date(link.updatedAt));
+  date.textContent = `${dateAgo} | `;
+
+  const actions = document.createElement('span');
+  actions.classList.add('link-actions');
+
+  const editLink = document.createElement('a');
+  editLink.classList.add('edit-link');
+  editLink.textContent = 'Edit';
+  editLink.addEventListener('click', async () => {
+    try {
+      const linkData = await getLink(link.id);
+      showEditForm(linkData);
+    } catch (error) {
+      console.error('Failed to load link for editing:', error);
+    }
+  });
+
+  const removeLink = document.createElement('a');
+  removeLink.classList.add('delete-link');
+  removeLink.textContent = 'Remove';
+  removeLink.addEventListener('click', () => {
+    deleteLink(link.id).then(() => {
+      loadLinks();
+    });
+  });
+
+  actions.append(editLink, removeLink);
+  actionsAndDate.append(date, actions);
+
+  linkItem.append(title, tagsAndDescription, actionsAndDate);
+  return linkItem;
 }
 
 async function handleLogoutButtonClick() {

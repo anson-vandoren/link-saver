@@ -1,4 +1,3 @@
-const { Op } = require('sequelize');
 const Link = require('../models/link');
 const User = require('../models/user');
 

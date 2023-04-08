@@ -2,7 +2,12 @@ body {
   padding: 20px;
   background-color: var(--background-color);
   color: var(--text-color);
+  font-family: -apple-system,system-ui,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",sans-serif;
+  font-size: 0.8rem;
+  text-rendering: optimizeLegibility;
+  line-height: 1.5;
 }
+
 body.dark {
   background-color: #333;
   color: #fff;
@@ -24,6 +29,121 @@ body.dark .list-group-item {
 
 /* Dark theme */
 .dark-theme {
-  --background-color: #1a1a1a;
-  --text-color: #ffffff;
+  --background-color: #161822;
+  --text-color: #b5bec8;
+}
+
+.navbar {
+  margin-bottom: 20px;
+}
+
+.link-item {
+  display: flex;
+  flex-wrap: wrap;
+  margin-bottom: 15px;
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 10px;
+  padding: 10px;
+  /* border: 1px solid #ccc;
+  border-radius: 4px; */
+}
+
+.link-title {
+  flex: 1;
+  font-weight: bold;
+}
+
+.link-title a {
+  text-decoration: none;
+  outline: none;
+  background-color: transparent;
+}
+
+.link-title a:hover {
+  text-decoration: underline;
+}
+
+.link-title a:visited {
+  color: #a8b1ff;
+}
+
+.link-tags,
+.link-description,
+.link-date,
+.link-actions {
+  margin-left: 5px;
+}
+
+.edit-link,
+.delete-link {
+  color: #007bff;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.edit-link:hover,
+.delete-link:hover {
+  text-decoration: underline;
+}
+
+.container {
+  max-width: 33%;
+  margin: 0 auto;
+  padding: 20px 0;
+}
+
+.link-tags {
+  font-size: 12px;
+  color: #777;
+}
+
+.link-description {
+  font-size: 12px;
+  color: #777;
+}
+
+.link-date {
+  font-size: 12px;
+  color: #777;
+}
+
+.link-actions {
+  font-size: 12px;
+  color: #777;
+}
+
+.edit-link,
+.delete-link {
+  color: #007bff;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.delete-link {
+  margin-left: 10px;
+}
+
+.edit-link:hover,
+.delete-link:hover {
+  text-decoration: underline;
+}
+
+/* Add dark mode styles */
+body.dark-mode {
+  background-color: #222;
+  color: #f0f0f0;
+}
+
+.dark-mode .link-item {
+  border-color: #555;
+}
+
+.dark-mode .link-title a {
+  color: #f0f0f0;
+}
+
+.dark-mode .edit-link,
+.dark-mode .delete-link {
+  color: #5bc0de;
 }
