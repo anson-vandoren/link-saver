@@ -8,23 +8,73 @@
       rel="stylesheet"
       href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"
     />
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/handlebars.js/4.7.7/handlebars.min.js"></script>
-
-    <style>
-      body {
-        padding: 20px;
-      }
-    </style>
+    <link rel="stylesheet" href="styles.css" />
   </head>
-  <body>
-    <div class="container">
-      <h1 class="mb-4">Link Saver</h1>
-
+  <body class="light-theme">
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+      <a class="navbar-brand" href="#">Link Saver</a>
+      <button
+        class="navbar-toggler"
+        type="button"
+        data-toggle="collapse"
+        data-target="#navbarNav"
+        aria-controls="navbarNav"
+        aria-expanded="false"
+        aria-label="Toggle navigation"
+      >
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav">
+          <li class="nav-item">
+            <a class="nav-link" href="#" id="add-link">Add Link</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#" id="settings">Settings</a>
+          </li>
+          <li class="nav-item mr-2">
+            <button id="theme-toggle" class="btn btn-secondary">Toggle Theme</button>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#" id="logout-btn">Logout</a>
+          </li>
+        </ul>
+      </div>
+    </nav>
+    <div class="container mt-3">
       <div class="row">
         <div class="col-md-12">
-          <form id="add-link-form">
-            <div class="form-row">
-              <div class="col">
+          <input
+            type="text"
+            class="form-control"
+            placeholder="Search links by title or tags"
+            id="search-input"
+          />
+          <button class="btn btn-primary mt-2" id="search-button">Search</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="container mt-4">
+      <h3>Saved Links</h3>
+      <ul class="list-group" id="link-list">
+        <!-- Links will be added here dynamically -->
+      </ul>
+    </div>
+
+    <!-- Add Link Modal -->
+    <div class="modal" tabindex="-1" role="dialog" id="add-link-modal">
+      <div class="modal-dialog" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Add Link</h5>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div class="modal-body">
+            <form id="add-link-form">
+              <div class="form-group">
                 <input
                   type="text"
                   class="form-control"
@@ -33,10 +83,10 @@
                   required
                 />
               </div>
-              <div class="col">
+              <div class="form-group">
                 <input type="url" class="form-control" placeholder="URL" id="link-url" required />
               </div>
-              <div class="col">
+              <div class="form-group">
                 <input
                   type="text"
                   class="form-control"
@@ -44,32 +94,18 @@
                   id="link-tags"
                 />
               </div>
-              <div class="col">
+              <div class="form-group">
                 <select class="form-control" id="link-visibility">
                   <option value="private">Private</option>
                   <option value="public">Public</option>
                 </select>
               </div>
-              <div class="col">
-                <button type="submit" class="btn btn-primary">Save Link</button>
-              </div>
-            </div>
-          </form>
-        </div>
-      </div>
-
-      <div class="row mt-4">
-        <div class="col-md-12">
-          <h3>Saved Links</h3>
-          <div id="link-list">
-            <!-- Links will be added here dynamically -->
+            </form>
           </div>
-        </div>
-      </div>
-
-      <div class="row mt-4">
-        <div class="col-md-12">
-          <button id="logout-btn" class="btn btn-danger">Logout</button>
+          <div class="modal-footer">
+            <button type="submit" class="btn btn-primary" form="add-link-form">Save Link</button>
+            <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+          </div>
         </div>
       </div>
     </div>
@@ -78,18 +114,5 @@
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
     <script src="js/main.js"></script>
-    <script id="links-list" type="text/x-handlebars-template">
-      {{#each links}}
-      <div class="link-item">
-        <h3 class="link-title">{{title}}</h3>
-        <p class="link-url"><a href="{{url}}" target="_blank">{{url}}</a></p>
-        <p class="link-tags">Tags: {{tags}}</p>
-        <div class="link-actions">
-          <button class="edit-link" data-id="{{id}}">Edit</button>
-          <button class="delete-link" data-id="{{id}}">Delete</button>
-        </div>
-      </div>
-      {{/each}}
-    </script>
   </body>
 </html>

@@ -1,0 +1,29 @@
+body {
+  padding: 20px;
+  background-color: var(--background-color);
+  color: var(--text-color);
+}
+body.dark {
+  background-color: #333;
+  color: #fff;
+}
+
+body.dark .navbar {
+  background-color: #222;
+}
+
+body.dark .list-group-item {
+  background-color: #444;
+  border-color: #555;
+}
+/* Light theme */
+.light-theme {
+  --background-color: #ffffff;
+  --text-color: #000000;
+}
+
+/* Dark theme */
+.dark-theme {
+  --background-color: #1a1a1a;
+  --text-color: #ffffff;
+}

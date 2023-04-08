@@ -6,8 +6,26 @@ const API_URL = 'http://localhost:3001';
 
 async function init() {
   if (localStorage.getItem('token')) {
+    // Event listeners
+    document.getElementById('add-link').addEventListener('click', () => {
+      $('#add-link-modal').modal('show');
+    });
+    document.getElementById('search-button').addEventListener('click', () => {
+      const searchQuery = document.getElementById('search-input').value;
+      loadLinks(searchQuery);
+    });
     document.getElementById('logout-btn').addEventListener('click', handleLogoutButtonClick);
     document.getElementById('add-link-form').addEventListener('submit', handleAddLinkFormSubmit);
+    document.getElementById('theme-toggle').addEventListener('click', () => {
+      const body = document.body;
+      if (body.classList.contains('light-theme')) {
+        body.classList.remove('light-theme');
+        body.classList.add('dark-theme');
+      } else {
+        body.classList.remove('dark-theme');
+        body.classList.add('light-theme');
+      }
+    });
 
     loadLinks();
   } else {
@@ -15,44 +33,68 @@ async function init() {
   }
 }
 
-async function getLinks() {
-  const response = await fetch(`${API_URL}/api/links`, {
+function toggleTheme() {
+  document.body.classList.toggle('dark');
+}
+
+async function getLinks(searchQuery = '') {
+  const response = await fetch(`${API_URL}/api/links?search=${encodeURIComponent(searchQuery)}`, {
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${localStorage.getItem('token')}`
-    }
+      Authorization: `Bearer ${localStorage.getItem('token')}`,
+    },
   });
 
   if (response.ok) {
-    return await response.json();
+    const res = await response.json();
+    return res.links;
   } else {
     throw new Error('Failed to load links');
   }
 }
 
-async function loadLinks() {
-  const links = await getLinks();
+async function loadLinks(searchQuery = '') {
+  try {
+    const links = await getLinks(searchQuery);
+    const linkList = document.getElementById('link-list');
+    linkList.innerHTML = '';
 
-  // Get the Handlebars template and compile it
-  const templateSource = document.getElementById('links-list').innerHTML;
-  const template = Handlebars.compile(templateSource);
+    links.forEach((link) => {
+      const linkItem = document.createElement('li');
+      linkItem.classList.add('list-group-item', 'link-item');
+      linkItem.dataset.id = link.id;
 
-  // Expand the template with the links data
-  const linksElement = document.getElementById('link-list');
-  linksElement.innerHTML = template(links);
-  console.log(links)
+      const title = document.createElement('span');
+      title.classList.add('link-title');
+      title.textContent = link.title;
 
-  // Add event listeners for edit and delete buttons
-  const editButtons = document.querySelectorAll('.edit-link');
-  const deleteButtons = document.querySelectorAll('.delete-link');
+      const editButton = document.createElement('button');
+      editButton.classList.add('btn', 'btn-sm', 'btn-primary', 'ml-2');
+      editButton.textContent = 'Edit';
+      editButton.addEventListener('click', async () => {
+        try {
+          const linkData = await getLink(link.id);
+          showEditForm(linkData);
+        } catch (error) {
+          console.error('Failed to load link for editing:', error);
+        }
+      });
 
-  editButtons.forEach((button) => {
-    button.addEventListener('click', handleEditButtonClick);
-  });
+      const deleteButton = document.createElement('button');
+      deleteButton.classList.add('btn', 'btn-sm', 'btn-danger', 'ml-2');
+      deleteButton.textContent = 'Delete';
+      deleteButton.addEventListener('click', () => {
+        deleteLink(link.id).then(() => {
+          loadLinks();
+        });
+      });
 
-  deleteButtons.forEach((button) => {
-    button.addEventListener('click', handleDeleteButtonClick);
-  });
+      linkItem.append(title, editButton, deleteButton);
+      linkList.appendChild(linkItem);
+    });
+  } catch (error) {
+    console.error('Failed to load links:', error);
+  }
 }
 
 async function handleLogoutButtonClick() {
@@ -65,7 +107,10 @@ async function handleAddLinkFormSubmit(event) {
 
   const title = document.getElementById('link-title').value;
   const url = document.getElementById('link-url').value;
-  const tags = document.getElementById('link-tags').value.split(',').map(tag => tag.trim());
+  const tags = document
+    .getElementById('link-tags')
+    .value.split(',')
+    .map((tag) => tag.trim());
   const visibility = document.getElementById('link-visibility').value;
 
   try {
@@ -82,9 +127,9 @@ async function addLink(linkData) {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${localStorage.getItem('token')}`
+      Authorization: `Bearer ${localStorage.getItem('token')}`,
     },
-    body: JSON.stringify(linkData)
+    body: JSON.stringify(linkData),
   });
 
   if (!response.ok) {
@@ -107,8 +152,8 @@ async function getLink(id) {
   const response = await fetch(`${API_URL}/api/links/${id}`, {
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${localStorage.getItem('token')}`
-    }
+      Authorization: `Bearer ${localStorage.getItem('token')}`,
+    },
   });
 
   if (response.ok) {
@@ -135,7 +180,9 @@ function showEditForm(link) {
     <input type="hidden" id="edit-link-id" value="${link.id}">
     <input type="text" class="form-control" id="edit-link-title" value="${link.title}" required>
     <input type="url" class="form-control" id="edit-link-url" value="${link.url}" required>
-    <input type="text" class="form-control" id="edit-link-tags" value="${(link.tags ?? []).join(', ')}">
+    <input type="text" class="form-control" id="edit-link-tags" value="${(link.tags ?? []).join(
+      ', '
+    )}">
     <select class="form-control" id="edit-link-visibility">
       <option value="private" ${link.visibility === 'private' ? 'selected' : ''}>Private</option>
       <option value="public" ${link.visibility === 'public' ? 'selected' : ''}>Public</option>
@@ -159,7 +206,10 @@ async function handleEditFormSubmit(event) {
   const linkId = document.getElementById('edit-link-id').value;
   const title = document.getElementById('edit-link-title').value;
   const url = document.getElementById('edit-link-url').value;
-  const tags = document.getElementById('edit-link-tags').value.split(',').map(tag => tag.trim());
+  const tags = document
+    .getElementById('edit-link-tags')
+    .value.split(',')
+    .map((tag) => tag.trim());
   const visibility = document.getElementById('edit-link-visibility').value;
 
   try {
@@ -167,7 +217,7 @@ async function handleEditFormSubmit(event) {
       title,
       url,
       tags,
-      visibility
+      visibility,
     });
 
     // Hide the edit form and reload the links
@@ -191,9 +241,9 @@ async function updateLink(id, data) {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${localStorage.getItem('token')}`
+      Authorization: `Bearer ${localStorage.getItem('token')}`,
     },
-    body: JSON.stringify(data)
+    body: JSON.stringify(data),
   });
 
   if (!response.ok) {

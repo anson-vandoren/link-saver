@@ -1,3 +1,4 @@
+const { Op } = require('sequelize');
 const Link = require('../models/link');
 const User = require('../models/user');
 
@@ -17,17 +18,25 @@ async function createLink(req, res, next) {
 async function getLinks(req, res, next) {
   try {
     const userId = req.user.id;
+    const searchQuery = req.query.search || '';
 
     const links = await Link.findAll({
       where: { userId },
       include: [{ model: User, attributes: ['email'] }],
     });
 
-    res.status(200).json({ links });
+    const filteredLinks = links.filter(link =>
+      link.title.includes(searchQuery) ||
+      link.tags.some(tag => tag.includes(searchQuery))
+    );
+
+    res.status(200).json({ links: filteredLinks });
   } catch (error) {
     next(error);
   }
 }
+
+
 
 async function getLink(req, res, next) {
   try {
