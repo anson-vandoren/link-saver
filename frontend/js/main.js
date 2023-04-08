@@ -7,9 +7,7 @@ const API_URL = 'http://localhost:3001';
 async function init() {
   if (localStorage.getItem('token')) {
     // Event listeners
-    document.getElementById('add-link').addEventListener('click', () => {
-      $('#add-link-modal').modal('show');
-    });
+    document.getElementById('add-link').addEventListener('click', showAddForm);
     document.getElementById('search-button').addEventListener('click', () => {
       const searchQuery = document.getElementById('search-input').value;
       loadLinks(searchQuery);
@@ -275,17 +273,17 @@ function showEditForm(link) {
   editForm.id = 'edit-link-form';
   editForm.innerHTML = `
     <input type="hidden" id="edit-link-id" value="${link.id}">
-    <input type="text" class="form-control" id="edit-link-title" value="${link.title}" required>
-    <input type="url" class="form-control" id="edit-link-url" value="${link.url}" required>
-    <input type="text" class="form-control" id="edit-link-tags" value="${(link.tags ?? []).join(
+    <input type="text" class="custom-input" id="edit-link-title" value="${link.title}" required>
+    <input type="url" class="custom-input" id="edit-link-url" value="${link.url}" required>
+    <input type="text" class="custom-input" id="edit-link-tags" value="${(link.tags ?? []).join(
       ', '
     )}">
-    <select class="form-control" id="edit-link-visibility">
+    <select class="custom-input" id="edit-link-visibility">
       <option value="private" ${link.visibility === 'private' ? 'selected' : ''}>Private</option>
       <option value="public" ${link.visibility === 'public' ? 'selected' : ''}>Public</option>
     </select>
-    <button type="submit" class="btn btn-primary">Save Changes</button>
-    <button type="button" class="btn btn-secondary" id="cancel-edit">Cancel</button>
+    <button type="submit" class="custom-btn custom-btn-primary">Save Changes</button>
+    <button type="button" class="custom-btn custom-btn-danger" id="cancel-edit">Cancel</button>
   `;
 
   const linkItem = document.querySelector(`[data-id="${link.id}"]`).closest('.link-item');
@@ -296,6 +294,21 @@ function showEditForm(link) {
     editForm.remove();
   });
 }
+
+function showAddForm() {
+  const addLinkModal = document.getElementById("add-link-modal");
+  addLinkModal.style.display = "block";
+
+  const addForm = document.getElementById("add-link-form");
+  addForm.addEventListener("submit", handleAddFormSubmit);
+  document.getElementById("cancel-add").addEventListener("click", () => {
+    addLinkModal.style.display = "none";
+  });
+  document.getElementById("close-add-modal").addEventListener("click", () => {
+    addLinkModal.style.display = "none";
+  });
+}
+
 
 async function handleEditFormSubmit(event) {
   event.preventDefault();
@@ -361,3 +374,11 @@ async function deleteLink(id) {
     throw new Error('Failed to delete link');
   }
 }
+
+window.addEventListener('click', (event) => {
+  // TODO: add edit form
+  const addLinkModal = document.getElementById('add-link-modal');
+  if (event.target === addLinkModal) {
+    addLinkModal.style.display = 'none';
+  }
+});
