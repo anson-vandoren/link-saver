@@ -4,60 +4,28 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Link Saver</title>
+    <link rel="stylesheet" href="https://unpkg.com/chota@latest" />
     <link rel="stylesheet" href="styles.css" />
   </head>
-  <body class="dark-theme">
+  <body class="dark">
     <div class="container">
       <header>
-        <nav class="navbar">
-          <a class="navbar-brand" href="#">Link Saver</a>
-          <ul class="nav">
-            <li class="nav-item">
-              <a class="nav-link" href="#" id="add-link">Add Link</a>
-            </li>
-            <li class="nav-item">
-              <a class="nav-link" href="#" id="settings">Settings</a>
-            </li>
-            <li class="nav-item">
-              <a class="nav-link" href="#" id="theme-toggle">Toggle Theme</a>
-            </li>
-            <li class="nav-item">
-              <a class="nav-link" href="#" id="logout-btn">Logout</a>
-            </li>
-          </ul>
+        <nav class="nav">
+          <div class="nav-left">
+            <a class="brand" href="#">Link Saver</a>
+          </div>
+          <div class="nav-right">
+            <a class="nav-link" href="#" id="add-link">Add Link</a>
+            <a class="nav-link" href="#" id="settings">Settings</a>
+            <a class="nav-link" href="#" id="theme-toggle">Toggle Theme</a>
+            <a class="nav-link" href="#" id="logout-btn">Logout</a>
+          </div>
         </nav>
       </header>
 
-      <div id="edit-link-modal" class="custom-modal">
-        <div class="custom-modal-content">
-          <!-- The modal content will be dynamically added here -->
-        </div>
-      </div>
-
-      <div class="content-area-header">
-        <h2>Bookmarks</h2>
-        <div class="spacer"></div>
-        <div class="search">
-          <div class="input-group">
-            <input
-              type="search"
-              class="form-input"
-              placeholder="Search for words or #tags"
-              autocomplete="off"
-              id="search-input"
-            />
-            <button class="btn input-group-btn" id="search-button">Search</button>
-          </div>
-        </div>
-      </div>
-
-      <ul class="list-group" id="link-list">
-        <!-- Links will be added here dynamically -->
-      </ul>
-
       <!-- Add Link Modal -->
-      <div id="add-link-modal" class="custom-modal">
-        <div class="custom-modal-content">
+      <div id="add-link-modal" class="modal card is-fixed">
+        <div class="custom-modal">
           <div class="custom-modal-header">
             <h5>Add Link</h5>
             <button type="button" id="close-add-modal">&times;</button>
@@ -102,6 +70,45 @@
           </div>
         </div>
       </div>
+
+      <div id="edit-link-modal" class="modal">
+        <div class="custom-modal-content">
+          <!-- The modal content will be dynamically added here -->
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col-2"></div>
+
+        <div class="col-8">
+          <div class="row is-vertical-align">
+            <div class="col-2">
+              <h2>Bookmarks</h2>
+            </div>
+            <div class="col"></div>
+            <div class="col-6">
+              <input
+                type="search"
+                placeholder="Search for words or #tags"
+                autocomplete="off"
+                id="search-input"
+              />
+            </div>
+            <div class="col-2">
+              <button id="search-button">Search</button>
+            </div>
+          </div>
+
+          <div class="row">
+            <ul class="list-group" id="link-list">
+              <!-- Links will be added here dynamically -->
+            </ul>
+          </div>
+        </div>
+
+        <div class="col-2"></div>
+      </div>
+
 
       <script src="js/main.js"></script>
     </div>

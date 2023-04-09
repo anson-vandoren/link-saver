@@ -15,8 +15,7 @@ async function init() {
     document.getElementById('logout-btn').addEventListener('click', handleLogoutButtonClick);
     document.getElementById('add-link-form').addEventListener('submit', handleAddLinkFormSubmit);
     document.getElementById('theme-toggle').addEventListener('click', () => {
-      document.body.classList.toggle('light-theme');
-      document.body.classList.toggle('dark-theme');
+      document.body.classList.toggle('dark');
     });
 
     loadLinks();
@@ -290,7 +289,7 @@ function showAddForm() {
   addLinkModal.style.display = "block";
 
   const addForm = document.getElementById("add-link-form");
-  addForm.addEventListener("submit", handleAddFormSubmit);
+  addForm.addEventListener("submit", handleAddLinkFormSubmit);
   document.getElementById("cancel-add").addEventListener("click", () => {
     addLinkModal.style.display = "none";
   });
