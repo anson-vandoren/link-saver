@@ -132,14 +132,29 @@ function renderLinkItem(link) {
   title.appendChild(titleLink);
 
   // second line - tags and description
-  const tags = divWithClasses(['link-tags']);
-  tags.textContent = link.tags.map((tag) => `#${tag}`).join(' ');
+  const tagsSpan = document.createElement('span');
+  tagsSpan.classList.add('link-tags');
+  let hasTags = false;
+  if (link.tags.length && link.tags[0] !== '') {
+    hasTags = true;
+    link.tags.forEach((tag) => {
+      const tagLink = document.createElement('a');
+      tagLink.href = `/?search=${encodeURIComponent(tag)}`;
+      tagLink.textContent = `#${tag} `;
+      tagsSpan.appendChild(tagLink);
+    });
+  }
 
-  const description = divWithClasses(['link-description']);
-  description.textContent = link.description ? `| ${link.description}` : '';
+  const descrSpan = document.createElement('span');
+  descrSpan.classList.add('link-description');
+  descrSpan.textContent = link.description ? link.description : '';
 
   const tagsAndDescription = divWithClasses(['link-tags-description']);
-  tagsAndDescription.append(tags, description);
+  tagsAndDescription.appendChild(tagsSpan);
+  if (hasTags) {
+    tagsAndDescription.appendChild(document.createTextNode(' | '));
+  }
+  tagsAndDescription.appendChild(descrSpan);
 
   // third line - date, edit, and delete links
   const actionsAndDate = document.createElement('div');
@@ -295,6 +310,7 @@ function showAddForm() {
   document.getElementById("cancel-add").addEventListener("click", () => {
     addLinkModal.style.display = "none";
   });
+  document.getElementById("link-url").focus();
 }
 
 

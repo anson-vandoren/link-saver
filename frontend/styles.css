@@ -9,3 +9,9 @@ body.dark {
 .modal {
   display: none;
 }
+
+.link-tags-description {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
