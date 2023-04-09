@@ -6,87 +6,104 @@
     <title>Link Saver</title>
     <link rel="stylesheet" href="styles.css" />
   </head>
-  <body class="light-theme">
-    <header>
-      <nav class="navbar">
-        <a class="navbar-brand" href="#">Link Saver</a>
-        <ul class="nav">
-          <li class="nav-item">
-            <a class="nav-link" href="#" id="add-link">Add Link</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="#" id="settings">Settings</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="#" id="theme-toggle">Toggle Theme</button>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="#" id="logout-btn">Logout</a>
-          </li>
-        </ul>
-      </nav>
-    </header>
+  <body class="dark-theme">
+    <div class="container">
+      <header>
+        <nav class="navbar">
+          <a class="navbar-brand" href="#">Link Saver</a>
+          <ul class="nav">
+            <li class="nav-item">
+              <a class="nav-link" href="#" id="add-link">Add Link</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="#" id="settings">Settings</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="#" id="theme-toggle">Toggle Theme</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="#" id="logout-btn">Logout</a>
+            </li>
+          </ul>
+        </nav>
+      </header>
 
-    <div id="edit-link-modal" class="custom-modal">
-      <div class="custom-modal-content">
-        <!-- The modal content will be dynamically added here -->
-      </div>
-    </div>
-
-    <div class="container mt-3">
-      <div class="row">
-        <div class="col-md-12">
-          <input
-            type="text"
-            class="custom-input"
-            placeholder="Search links by title or tags"
-            id="search-input"
-          />
-          <button class="custom-btn custom-btn-primary" id="search-button">Search</button>
+      <div id="edit-link-modal" class="custom-modal">
+        <div class="custom-modal-content">
+          <!-- The modal content will be dynamically added here -->
         </div>
       </div>
-    </div>
 
-    <div class="container mt-4">
-      <h3>Saved Links</h3>
+      <div class="content-area-header">
+        <h2>Bookmarks</h2>
+        <div class="spacer"></div>
+        <div class="search">
+          <div class="input-group">
+            <input
+              type="search"
+              class="form-input"
+              placeholder="Search for words or #tags"
+              autocomplete="off"
+              id="search-input"
+            />
+            <button class="btn input-group-btn" id="search-button">Search</button>
+          </div>
+        </div>
+      </div>
+
       <ul class="list-group" id="link-list">
         <!-- Links will be added here dynamically -->
       </ul>
-    </div>
 
-    <!-- Add Link Modal -->
-    <div id="add-link-modal" class="custom-modal">
-      <div class="custom-modal-content">
-        <div class="custom-modal-header">
-          <h5>Add Link</h5>
-          <button type="button" id="close-add-modal">&times;</button>
-        </div>
-        <div class="custom-modal-body">
-          <form id="add-link-form">
-            <div class="custom-form-group">
-              <input type="text" class="custom-input" placeholder="Title" id="link-title" required />
-            </div>
-            <div class="custom-form-group">
-              <input type="url" class="custom-input" placeholder="URL" id="link-url" required />
-            </div>
-            <div class="custom-form-group">
-              <input type="text" class="custom-input" placeholder="Tags (comma-separated)" id="link-tags" />
-            </div>
-            <div class="custom-form-group">
-              <select class="custom-input" id="link-visibility">
-                <option value="private">Private</option>
-                <option value="public">Public</option>
-              </select>
-            </div>
-          </form>
-        </div>
-        <div class="custom-modal-footer">
-          <button type="submit" class="custom-btn custom-btn-primary" form="add-link-form">Save Link</button>
-          <button type="button" class="custom-btn custom-btn-danger" id="cancel-add">Close</button>
+      <!-- Add Link Modal -->
+      <div id="add-link-modal" class="custom-modal">
+        <div class="custom-modal-content">
+          <div class="custom-modal-header">
+            <h5>Add Link</h5>
+            <button type="button" id="close-add-modal">&times;</button>
+          </div>
+          <div class="custom-modal-body">
+            <form id="add-link-form">
+              <div class="custom-form-group">
+                <input
+                  type="text"
+                  class="custom-input"
+                  placeholder="Title"
+                  id="link-title"
+                  required
+                />
+              </div>
+              <div class="custom-form-group">
+                <input type="url" class="custom-input" placeholder="URL" id="link-url" required />
+              </div>
+              <div class="custom-form-group">
+                <input
+                  type="text"
+                  class="custom-input"
+                  placeholder="Tags (comma-separated)"
+                  id="link-tags"
+                />
+              </div>
+              <div class="custom-form-group">
+                <select class="custom-input" id="link-visibility">
+                  <option value="private">Private</option>
+                  <option value="public">Public</option>
+                </select>
+              </div>
+            </form>
+          </div>
+          <div class="custom-modal-footer">
+            <button type="submit" class="custom-btn custom-btn-primary" form="add-link-form">
+              Save Link
+            </button>
+            <button type="button" class="custom-btn custom-btn-danger" id="cancel-add">
+              Close
+            </button>
+          </div>
         </div>
       </div>
-    </div>
 
-    <script src="js/main.js"></script>
+      <script src="js/main.js"></script>
+    </div>
   </body>
 </html>

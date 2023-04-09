@@ -15,24 +15,14 @@ async function init() {
     document.getElementById('logout-btn').addEventListener('click', handleLogoutButtonClick);
     document.getElementById('add-link-form').addEventListener('submit', handleAddLinkFormSubmit);
     document.getElementById('theme-toggle').addEventListener('click', () => {
-      const body = document.body;
-      if (body.classList.contains('light-theme')) {
-        body.classList.remove('light-theme');
-        body.classList.add('dark-theme');
-      } else {
-        body.classList.remove('dark-theme');
-        body.classList.add('light-theme');
-      }
+      document.body.classList.toggle('light-theme');
+      document.body.classList.toggle('dark-theme');
     });
 
     loadLinks();
   } else {
     window.location.href = '/login.html';
   }
-}
-
-function toggleTheme() {
-  document.body.classList.toggle('dark');
 }
 
 /**
