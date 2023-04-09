@@ -23,54 +23,6 @@
         </nav>
       </header>
 
-      <!-- Add Link Modal -->
-      <div id="add-link-modal" class="modal card is-fixed">
-        <div class="custom-modal">
-          <div class="custom-modal-header">
-            <h5>Add Link</h5>
-            <button type="button" id="close-add-modal">&times;</button>
-          </div>
-          <div class="custom-modal-body">
-            <form id="add-link-form">
-              <div class="custom-form-group">
-                <input
-                  type="text"
-                  class="custom-input"
-                  placeholder="Title"
-                  id="link-title"
-                  required
-                />
-              </div>
-              <div class="custom-form-group">
-                <input type="url" class="custom-input" placeholder="URL" id="link-url" required />
-              </div>
-              <div class="custom-form-group">
-                <input
-                  type="text"
-                  class="custom-input"
-                  placeholder="Tags (comma-separated)"
-                  id="link-tags"
-                />
-              </div>
-              <div class="custom-form-group">
-                <select class="custom-input" id="link-visibility">
-                  <option value="private">Private</option>
-                  <option value="public">Public</option>
-                </select>
-              </div>
-            </form>
-          </div>
-          <div class="custom-modal-footer">
-            <button type="submit" class="custom-btn custom-btn-primary" form="add-link-form">
-              Save Link
-            </button>
-            <button type="button" class="custom-btn custom-btn-danger" id="cancel-add">
-              Close
-            </button>
-          </div>
-        </div>
-      </div>
-
       <div id="edit-link-modal" class="modal">
         <div class="custom-modal-content">
           <!-- The modal content will be dynamically added here -->
@@ -83,7 +35,7 @@
         <div class="col-8">
           <div class="row is-vertical-align">
             <div class="col-2">
-              <h2>Bookmarks</h2>
+              <h3>Bookmarks</h3>
             </div>
             <div class="col"></div>
             <div class="col-6">
@@ -99,6 +51,39 @@
             </div>
           </div>
 
+          <!-- Add Link Modal -->
+          <div id="add-link-modal" class="modal card col-8">
+            <header>
+              <h5>Add Link</h5>
+            </header>
+            <form id="add-link-form">
+              <p>
+                <label for="link-url">URL</label>
+                <input type="url" id="link-url" required />
+              </p>
+              <p>
+                <label for="link-tags">Tags</label>
+                <input type="text" id="link-tags" />
+              </p>
+              <p>
+                <label for="link-title">Title</label>
+                <input type="text" id="link-title" required />
+              </p>
+              <p>
+                <label for="link-description">Description</label>
+                <textarea id="link-description" rows="3"></textarea>
+              </p>
+              <p class="grouped">
+                <select id="link-visibility">
+                  <option value="private">Private</option>
+                  <option value="public">Public</option>
+                </select>
+              <button type="reset" id="cancel-add">Close</button>
+              <button type="submit" form="add-link-form">Save</button>
+              </p>
+            </form>
+          </div>
+
           <div class="row">
             <ul class="list-group" id="link-list">
               <!-- Links will be added here dynamically -->
@@ -108,7 +93,6 @@
 
         <div class="col-2"></div>
       </div>
-
 
       <script src="js/main.js"></script>
     </div>

@@ -3,10 +3,10 @@ const User = require('../models/user');
 
 async function createLink(req, res, next) {
   try {
-    const { url, title, tags, isPublic } = req.body;
+    const { url, title, tags, isPublic, description } = req.body;
     const userId = req.user.id;
 
-    const newLink = await Link.create({ url, title, tags, isPublic, userId });
+    const newLink = await Link.create({ url, title, tags, isPublic, description, userId });
 
     res.status(201).json({ message: 'Link created successfully', link: newLink });
   } catch (error) {
@@ -34,8 +34,6 @@ async function getLinks(req, res, next) {
     next(error);
   }
 }
-
-
 
 async function getLink(req, res, next) {
   try {

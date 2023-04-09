@@ -191,6 +191,7 @@ async function handleAddLinkFormSubmit(event) {
 
   const title = document.getElementById('link-title').value;
   const url = document.getElementById('link-url').value;
+  const description = document.getElementById('link-description').value;
   const tags = document
     .getElementById('link-tags')
     .value.split(',')
@@ -198,8 +199,9 @@ async function handleAddLinkFormSubmit(event) {
   const visibility = document.getElementById('link-visibility').value;
 
   try {
-    await addLink({ title, url, tags, visibility });
+    await addLink({ title, url, tags, visibility, description });
     document.getElementById('add-link-form').reset();
+    closeModal('add-link-modal');
     loadLinks();
   } catch (error) {
     console.error('Error adding link:', error);
@@ -293,9 +295,6 @@ function showAddForm() {
   document.getElementById("cancel-add").addEventListener("click", () => {
     addLinkModal.style.display = "none";
   });
-  document.getElementById("close-add-modal").addEventListener("click", () => {
-    addLinkModal.style.display = "none";
-  });
 }
 
 
@@ -371,3 +370,46 @@ window.addEventListener('click', (event) => {
     addLinkModal.style.display = 'none';
   }
 });
+
+function closeModal(id) {
+  document.getElementById(id).style.display = 'none';
+}
+function establishWebSocket(token) {
+  if (!token) {
+    console.log('No token found, skipping WebSocket connection');
+    return;
+  }
+  const WSS_BASE = API_URL.replace('http', 'ws');
+  const WSS_URL = `${WSS_BASE}?token=${token}`;
+  const socket = new WebSocket(WSS_URL); // Replace with your server's address and port
+
+  socket.addEventListener('open', (event) => {
+    console.log('WebSocket connection opened:', event);
+  });
+
+  socket.addEventListener('message', (event) => {
+    const { title, description, url } = JSON.parse(event.data);
+    document.getElementById('link-title').value = title;
+    document.getElementById('link-description').value = description;
+    document.getElementById('link-url').value = url;
+  });
+
+  socket.addEventListener('close', (event) => {
+    console.log('WebSocket connection closed:', event);
+  });
+
+  socket.addEventListener('error', (event) => {
+    console.error('WebSocket error:', event);
+  });
+
+  // Add event listener to the URL input field
+  const urlInput = document.getElementById('link-url');
+  urlInput.addEventListener('focusout', (event) => {
+    const url = event.target.value;
+    if (url) {
+      socket.send(url);
+    }
+  });
+}
+
+establishWebSocket(localStorage.getItem('token'));

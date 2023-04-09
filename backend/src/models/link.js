@@ -31,6 +31,11 @@ Link.init(
         this.setDataValue('tags', JSON.stringify(value || []));
       },
     },
+    description: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      defaultValue: '',
+    },
     savedAt: {
       type: DataTypes.DATE,
       allowNull: false,
