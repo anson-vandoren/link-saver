@@ -10,7 +10,12 @@ async function init() {
     document.getElementById('add-link').addEventListener('click', showAddForm);
     document.getElementById('search-button').addEventListener('click', () => {
       const searchQuery = document.getElementById('search-input').value;
-      loadLinks(searchQuery);
+      try {
+        loadLinks(searchQuery);
+      } catch (error) {
+        console.error(error);
+        window.location.href = '/login.html';
+      }
     });
     document.getElementById('logout-btn').addEventListener('click', handleLogoutButtonClick);
     document.getElementById('add-link-form').addEventListener('submit', handleAddLinkFormSubmit);
@@ -74,6 +79,7 @@ async function loadLinks(searchQuery = '') {
     });
   } catch (error) {
     console.error('Failed to load links:', error);
+    window.location.href = '/login.html';
   }
 }
 
@@ -162,7 +168,7 @@ function renderLinkItem(link) {
 
   const date = document.createElement('span');
   date.classList.add('link-date');
-  const dateAgo = timeAgo(new Date(link.updatedAt));
+  const dateAgo = timeAgo(new Date(link.savedAt));
   date.textContent = `${dateAgo} | `;
 
   const actions = document.createElement('span');
@@ -429,3 +435,54 @@ function establishWebSocket(token) {
 }
 
 establishWebSocket(localStorage.getItem('token'));
+
+const importFileInput = document.getElementById('import-file');
+const importButton = document.getElementById('import-btn');
+
+importButton.addEventListener('click', async () => {
+  const file = importFileInput.files[0];
+  if (!file) {
+    alert('Please select a file to import.');
+    return;
+  }
+
+  try {
+    await importBookmarks(file);
+    alert('Bookmarks imported successfully.');
+  } catch (error) {
+    console.error('Failed to import bookmarks:', error);
+    alert('Failed to import bookmarks. Please try again.');
+  }
+});
+
+async function importBookmarks(file) {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const response = await fetch(`${API_URL}/api/links/import`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${localStorage.getItem('token')}`,
+    },
+    body: formData,
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to import bookmarks');
+  }
+}
+
+const settingsNav = document.getElementById('settings-nav');
+settingsNav.addEventListener('click', () => showPage('settings-page'));
+
+function showPage(pageId) {
+  const pages = [/* TODO: 'links-page', 'add-link-page', 'edit-link-page',*/ 'settings-page'];
+  pages.forEach((id) => {
+    const page = document.getElementById(id);
+    if (pageId === id) {
+      page.style.display = 'block';
+    } else {
+      page.style.display = 'none';
+    }
+  });
+}

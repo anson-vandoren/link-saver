@@ -16,7 +16,7 @@
           </div>
           <div class="nav-right">
             <a class="nav-link" href="#" id="add-link">Add Link</a>
-            <a class="nav-link" href="#" id="settings">Settings</a>
+            <a class="nav-link" href="#" id="settings-nav">Settings</a>
             <a class="nav-link" href="#" id="theme-toggle">Toggle Theme</a>
             <a class="nav-link" href="#" id="logout-btn">Logout</a>
           </div>
@@ -27,6 +27,15 @@
         <div class="custom-modal-content">
           <!-- The modal content will be dynamically added here -->
         </div>
+      </div>
+
+      <div id="settings-page" style="display: none;">
+        <h1>Settings</h1>
+        <hr />
+        <h3>Import bookmarks</h3>
+        <p>Select a Netscaep HTML format file to import bookmarks:</p>
+        <input type="file" id="import-file" />
+        <button id="import-btn">Import</button>
       </div>
 
       <div class="row">
