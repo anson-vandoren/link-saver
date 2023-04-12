@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Settings</title>
+    <!-- Include your CSS file here -->
+    <link rel="stylesheet" href="https://unpkg.com/chota@latest" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body class="dark">
+    <div class="container">
+      <header>
+        <nav class="nav">
+          <div class="nav-left">
+            <a class="brand" href="./index.html">Link Saver</a>
+          </div>
+          <div class="nav-right">
+            <a class="nav-link" href="#" id="add-link">Add Link</a>
+            <a class="nav-link" href="./settings.html" id="settings-nav">Settings</a>
+            <a class="nav-link" href="#" id="theme-toggle">Toggle Theme</a>
+            <a class="nav-link" href="#" id="logout-btn">Logout</a>
+          </div>
+        </nav>
+      </header>
+
+      <div class="row">
+        <div class="col-2"></div>
+        <h1 class="col-8">Settings</h1>
+        <div class="col-2"></div>
+      </div>
+      <div class="row">
+        <div class="col-2"></div>
+        <div class="col-8">
+          <!-- Add the import bookmarks form -->
+          <form id="import-bookmarks-form" enctype="multipart/form-data">
+            Import bookmarks from an HTML file:
+            <p class="grouped">
+              <label class="file">
+                <input type="file" id="import-bookmarks-file" accept=".html" aria-label="Choose bookmark file to import" />
+                <span class="file-custom"></span>
+              </label>
+              <button id="import-btn" class="button primary">Import</button>
+            </p>
+            <meter value="0" max="100" id="import-progress" class="is-full-width is-hidden"></meter>
+          </form>
+        </div>
+        <div class="col-2"></div>
+      </div>
+    </div>
+    <!-- Include your JavaScript file here -->
+    <script src="./js/settings.js" type="module"></script>
+  </body>
+</html>

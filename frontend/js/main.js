@@ -1,8 +1,10 @@
+import { API_URL } from './common.js';
+import { wsHandler } from './ws.js';
+
 document.addEventListener('DOMContentLoaded', () => {
   init();
 });
 
-const API_URL = 'http://localhost:3001';
 
 async function init() {
   if (localStorage.getItem('token')) {
@@ -396,93 +398,20 @@ window.addEventListener('click', (event) => {
 function closeModal(id) {
   document.getElementById(id).style.display = 'none';
 }
-function establishWebSocket(token) {
-  if (!token) {
-    console.log('No token found, skipping WebSocket connection');
-    return;
-  }
-  const WSS_BASE = API_URL.replace('http', 'ws');
-  const WSS_URL = `${WSS_BASE}?token=${token}`;
-  const socket = new WebSocket(WSS_URL); // Replace with your server's address and port
 
-  socket.addEventListener('open', (event) => {
-    console.log('WebSocket connection opened:', event);
-  });
-
-  socket.addEventListener('message', (event) => {
-    const { title, description, url } = JSON.parse(event.data);
-    document.getElementById('link-title').value = title;
-    document.getElementById('link-description').value = description;
-    document.getElementById('link-url').value = url;
-  });
-
-  socket.addEventListener('close', (event) => {
-    console.log('WebSocket connection closed:', event);
-  });
-
-  socket.addEventListener('error', (event) => {
-    console.error('WebSocket error:', event);
-  });
-
-  // Add event listener to the URL input field
-  const urlInput = document.getElementById('link-url');
-  urlInput.addEventListener('focusout', (event) => {
-    const url = event.target.value;
-    if (url) {
-      socket.send(url);
-    }
-  });
-}
-
-establishWebSocket(localStorage.getItem('token'));
-
-const importFileInput = document.getElementById('import-file');
-const importButton = document.getElementById('import-btn');
-
-importButton.addEventListener('click', async () => {
-  const file = importFileInput.files[0];
-  if (!file) {
-    alert('Please select a file to import.');
-    return;
-  }
-
-  try {
-    await importBookmarks(file);
-    alert('Bookmarks imported successfully.');
-  } catch (error) {
-    console.error('Failed to import bookmarks:', error);
-    alert('Failed to import bookmarks. Please try again.');
-  }
+// websocket
+wsHandler.on('scrapeFQDN', (data) => {
+  const { title, description, url } = data;
+  document.getElementById('link-title').value = title;
+  document.getElementById('link-description').value = description;
+  document.getElementById('link-url').value = url;
 });
 
-async function importBookmarks(file) {
-  const formData = new FormData();
-  formData.append('file', file);
-
-  const response = await fetch(`${API_URL}/api/links/import`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${localStorage.getItem('token')}`,
-    },
-    body: formData,
-  });
-
-  if (!response.ok) {
-    throw new Error('Failed to import bookmarks');
+// Add event listener to the URL input field
+const urlInput = document.getElementById('link-url');
+urlInput.addEventListener('focusout', (event) => {
+  const url = event.target.value;
+  if (url) {
+    wsHandler.send('scrapeFQDN', url);
   }
-}
-
-const settingsNav = document.getElementById('settings-nav');
-settingsNav.addEventListener('click', () => showPage('settings-page'));
-
-function showPage(pageId) {
-  const pages = [/* TODO: 'links-page', 'add-link-page', 'edit-link-page',*/ 'settings-page'];
-  pages.forEach((id) => {
-    const page = document.getElementById(id);
-    if (pageId === id) {
-      page.style.display = 'block';
-    } else {
-      page.style.display = 'none';
-    }
-  });
-}
+});

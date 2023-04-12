@@ -5,11 +5,10 @@ const userRoutes = require('./routes/user');
 const linkRoutes = require('./routes/link');
 const errorHandler = require('./middleware/errorHandler');
 const sequelize = require('./database');
-const WebSocket = require('ws');
 const http = require('http');
 const https = require('https');
-const jwt = require('jsonwebtoken');
 const { JSDOM } = require('jsdom');
+const { wsHandler } = require('./websocket');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -27,40 +26,17 @@ app.use(errorHandler);
 
 // WebSocket server
 const server = http.createServer(app);
-const wss = new WebSocket.Server({ server });
 
-wss.on('connection', (ws, req) => {
-  const token = new URL(req.url, `http://${req.headers.host}`).searchParams.get('token');
-  if (!token) {
-    console.log('Client did not provide a token');
-    ws.close();
+wsHandler.on('scrapeFQDN', async (data) => {
+  let url = data.toString();
+  try {
+    const { title, description, url: finalUrl } = await fetchTitleAndDescription(url);
+    wsHandler.send('scrapeFQDN', { title, description, url: finalUrl });
+  } catch (error) {
+    console.error('Failed to fetch title and description:', error);
+    wsHandler.send('error', `Failed to fetch title and description: ${error}`);
     return;
   }
-  console.log('Client connected', token);
-  jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
-    if (err) {
-      console.log('Client provided an invalid token', err);
-      ws.close();
-      return;
-    }
-    console.log('Client provided a valid token', decoded);
-  });
-
-  ws.on('message', async (message) => {
-    let url = message.toString();
-    try {
-      const { title, description, url: finalUrl } = await fetchTitleAndDescription(url);
-      ws.send(JSON.stringify({ title, description, url: finalUrl }));
-    } catch (error) {
-      console.error('Failed to fetch title and description:', error);
-      ws.send(JSON.stringify({ title: '', description: '', url }));
-      return;
-    }
-  });
-
-  ws.on('close', () => {
-    console.log('Client disconnected');
-  });
 });
 
 async function fetchTitleAndDescription(url) {
@@ -73,7 +49,9 @@ async function fetchTitleAndDescription(url) {
     const dom = new JSDOM(data);
     const title = dom.window.document.querySelector('head > title').textContent || '';
     const description =
-      dom.window.document.querySelector('head > meta[name="description"]')?.getAttribute('content') || '';
+      dom.window.document
+        .querySelector('head > meta[name="description"]')
+        ?.getAttribute('content') || '';
 
     return { title, description, url: finalUrl };
   } catch (error) {
@@ -90,9 +68,11 @@ async function fetchUrlData(url) {
       if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
         // Follow redirect
         const redirectUrl = new URL(res.headers.location, url).href;
-        fetchUrlData(redirectUrl).then((redirectData) => {
-          resolve({ data: redirectData.data, finalUrl: redirectData.finalUrl });
-        }).catch(reject);
+        fetchUrlData(redirectUrl)
+          .then((redirectData) => {
+            resolve({ data: redirectData.data, finalUrl: redirectData.finalUrl });
+          })
+          .catch(reject);
       } else if (res.statusCode >= 200 && res.statusCode < 300) {
         let data = '';
 
@@ -116,7 +96,6 @@ async function fetchUrlData(url) {
   });
 }
 
-
 // Start the server
 (async () => {
   try {
@@ -125,6 +104,7 @@ async function fetchUrlData(url) {
     server.listen(PORT, () => {
       console.log(`Server is running on port ${PORT}`);
     });
+    await wsHandler.listen(server);
   } catch (error) {
     console.error('Error synchronizing database:', error);
   }

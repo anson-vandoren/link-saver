@@ -1,6 +1,7 @@
 const Link = require('../models/link');
 const User = require('../models/user');
 const { JSDOM } = require('jsdom');
+const { wsHandler } = require('../websocket');
 
 async function createLink(req, res, next) {
   try {
@@ -120,7 +121,11 @@ function parseNetscapeHTML(htmlContent) {
 }
 
 async function addBookmarksToDatabase(bookmarks, userId) {
-  for (const bookmark of bookmarks) {
+  for (let i = 0; i < bookmarks.length; i++) {
+    if (i % 10 === 0) {
+      wsHandler.send('import-progress', { progress: (i / bookmarks.length) * 100 });
+    }
+    const bookmark = bookmarks[i];
     const { url, title, tags, description, addDate } = bookmark;
 
     // Add the new link to the database
@@ -133,6 +138,7 @@ async function addBookmarksToDatabase(bookmarks, userId) {
       userId,
     });
   }
+  wsHandler.send('import-progress', { progress: 100 });
 }
 
 async function importLinks(req, res, next) {
