@@ -1,5 +1,12 @@
 import { API_URL } from './common.js';
 
+/**
+ * Submits a form with the provided event, path, and error message.
+ * @param {Event} e - The form submission event.
+ * @param {string} path - The API path for the request ('login' or 'register').
+ * @param {string} errorMessage - The error message to display upon failure.
+ * @returns {Promise<void>}
+ */
 async function submitForm(e, path, errorMessage) {
   e.preventDefault();
   const email = document.getElementById(`${path}-email`).value;
@@ -22,10 +29,20 @@ async function submitForm(e, path, errorMessage) {
   }
 }
 
+/**
+ * Handles the login form submission.
+ * @param {Event} e - The form submission event.
+ * @returns {Promise<void>}
+ */
 function loginSubmit(e) {
   submitForm(e, 'login', 'Error logging in. Please check your credentials.');
 }
 
+/**
+ * Handles the register form submission.
+ * @param {Event} e - The form submission event.
+ * @returns {Promise<void>}
+ */
 function registerSubmit(e) {
   submitForm(e, 'register', 'Error registering. Please try again.');
 }
