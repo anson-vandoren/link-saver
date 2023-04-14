@@ -127,7 +127,8 @@ function timeAgo(date) {
  * @returns Link list item element
  */
 function renderLinkItem(link) {
-  const linkItem = divWithClasses(['link-item']);
+  const linkItem = document.createElement('p');
+  linkItem.classList.add('link-item');
   linkItem.dataset.id = link.id;
 
   // first line - link w/ page title

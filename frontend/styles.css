@@ -16,6 +16,10 @@ body.dark {
   text-overflow: ellipsis;
 }
 
+.link-item {
+  margin-block-end: 0px;
+}
+
 /*
  * File (from WTF Forms)
  */

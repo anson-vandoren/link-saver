@@ -57,6 +57,13 @@ class WSHandler {
 }
 
 const wsHandler = new WSHandler();
-wsHandler.connect(localStorage.getItem('token'));
+const token = localStorage.getItem('token');
+if (token) {
+  wsHandler.connect(token);
+} else {
+  // go to login page
+  window.location.href = '/login.html';
+  // TODO: handle for public view
+}
 
 export { wsHandler };
