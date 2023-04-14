@@ -29,7 +29,7 @@ git clone https://github.com/anson-vandoren/link-saver.git
 cd link-saver
 ```
 
-### Backend
+### Setup
 
 To set up and run the backend, follow these steps:
 
@@ -54,7 +54,6 @@ touch .env
 4. Add the following environment variables to the `.env` file:
 
 ```
-PORT=3001
 JWT_SECRET=someFuckingSecret
 DB_PATH=./your_db_path.sqlite3
 ```
@@ -62,28 +61,11 @@ DB_PATH=./your_db_path.sqlite3
 5. Start the backend server:
 
 ```
-npm start
+npm run dev # or npm run start if you don't need debugging
 ```
 
-The backend server should now be running at http://localhost:3001
+You can now access the service
 
-### Frontend
-
-To set up and run the frontend, follow these steps:
-
-1. Navigate to the frontend directory:
-
-```
-cd frontend
-```
-
-2. Update `js/common.js` `API_URL` to match however you configured the backend.
-
-3. Open the `index.html` file in your preferred web browser or use a local web server such as
-"Live Server" for Visual Studio Code. If using "Live Server", right-click on the `index.html` file
-and select "Open with Live Server".
-
-The frontend should now be running and accessible in your web browser.
 
 ## License
 

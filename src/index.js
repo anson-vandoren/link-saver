@@ -9,6 +9,7 @@ const http = require('http');
 const https = require('https');
 const { JSDOM } = require('jsdom');
 const { wsHandler } = require('./websocket');
+const path = require('path');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -16,10 +17,14 @@ const PORT = process.env.PORT || 3001;
 // Middleware
 app.use(cors());
 app.use(express.json());
+app.use(express.static(path.join(__dirname,'..', 'public')));
 
 // Routes
 app.use('/api/users', userRoutes);
 app.use('/api/links', linkRoutes);
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname,'..', 'public', 'index.html'));
+});
 
 // Error handler
 app.use(errorHandler);
