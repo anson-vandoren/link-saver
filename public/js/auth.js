@@ -1,50 +1,53 @@
-$(document).ready(function () {
-  const apiUrl = 'http://localhost:3001';
+import { API_URL } from './common.js';
 
-  // Login form submission handler
-  $('#login-form').submit(function (e) {
-    e.preventDefault();
-    const email = $('#login-email').val();
-    const password = $('#login-password').val();
+async function loginSubmit(e) {
+  e.preventDefault();
+  const email = document.getElementById('login-email').value;
+  const password = document.getElementById('login-password').value;
 
-    // Send login request to backend API
-    $.ajax({
-      type: 'POST',
-      url: `${apiUrl}/api/users/login`,
-      data: JSON.stringify({ email, password }),
-      contentType: 'application/json',
-      success: function (response) {
-        // Store the JWT token in localStorage and redirect to the main page
-        localStorage.setItem('token', response.token);
-        window.location.href = 'index.html';
-      },
-      error: function (error) {
-        // Handle error (e.g., show an error message)
-        alert('Error logging in. Please check your credentials.');
-      },
-    });
+  const response = await fetch(`${API_URL}/api/users/login`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ email, password }),
   });
 
-  // Registration form submission handler
-  $('#register-form').submit(function (e) {
-    e.preventDefault();
-    const email = $('#register-email').val();
-    const password = $('#register-password').val();
+  if (response.ok) {
+    const { token } = await response.json();
+    localStorage.setItem('token', token);
+    window.location.href = 'index.html';
+  } else {
+    alert('Error logging in. Please check your credentials.');
+  }
+}
 
-    // Send registration request to backend API
-    $.ajax({
-      type: 'POST',
-      url: `${apiUrl}/api/users/register`,
-      data: JSON.stringify({ email, password }),
-      contentType: 'application/json',
-      success: function (response) {
-        // Registration successful, redirect to the main page
-        window.location.href = 'index.html';
-      },
-      error: function (error) {
-        // Handle error (e.g., show an error message)
-        alert('Error registering. Please try again.');
-      },
-    });
+async function registerSubmit(e) {
+  e.preventDefault();
+  const email = document.getElementById('register-email').value;
+  const password = document.getElementById('register-password').value;
+
+  const response = await fetch(`${API_URL}/api/users/register`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ email, password }),
   });
+
+  if (response.ok) {
+    const { token } = await response.json();
+    localStorage.setItem('token', token);
+    window.location.href = 'index.html';
+  } else {
+    alert('Error registering. Please try again.');
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const loginForm = document.getElementById('login-form');
+  loginForm.addEventListener('submit', loginSubmit);
+
+  const registerForm = document.getElementById('register-form');
+  registerForm.addEventListener('submit', registerSubmit);
 });
