@@ -9,7 +9,7 @@ import { API_URL } from './common.js';
  */
 async function submitForm(e, path, errorMessage) {
   e.preventDefault();
-  const email = document.getElementById(`${path}-email`).value;
+  const username = document.getElementById(`${path}-username`).value;
   const password = document.getElementById(`${path}-password`).value;
 
   const response = await fetch(`${API_URL}/api/users/${path}`, {
@@ -17,7 +17,7 @@ async function submitForm(e, path, errorMessage) {
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify({ username, password }),
   });
 
   if (response.ok) {

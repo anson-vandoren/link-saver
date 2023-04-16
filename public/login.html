@@ -1,55 +1,60 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Link Saver - Login</title>
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-    <style>
-        body {
-            padding: 20px;
-        }
-    </style>
-</head>
-<body>
+    <link rel="stylesheet" href="https://unpkg.com/chota@latest" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
     <div class="container">
-        <h1 class="mb-4">Link Saver</h1>
+      <h1>Link Saver</h1>
 
-        <div class="row">
-            <div class="col-md-6">
-                <h3>Login</h3>
-                <form id="login-form">
-                    <div class="form-group">
-                        <label for="login-email">Email address</label>
-                        <input type="email" class="form-control" id="login-email" aria-describedby="emailHelp" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="login-password">Password</label>
-                        <input type="password" class="form-control" id="login-password" required>
-                    </div>
-                    <button type="submit" class="btn btn-primary">Login</button>
-                </form>
+      <div class="row">
+        <div class="col-6">
+          <h3>Login</h3>
+          <form id="login-form">
+            <div class="form-group">
+              <label for="login-username">Username</label>
+              <input
+                type="text"
+                class="input"
+                id="login-username"
+                aria-describedby="usernameHelp"
+                required
+              />
             </div>
-            <div class="col-md-6">
-                <h3>Register</h3>
-                <form id="register-form">
-                    <div class="form-group">
-                        <label for="register-email">Email address</label>
-                        <input type="email" class="form-control" id="register-email" aria-describedby="emailHelp" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="register-password">Password</label>
-                        <input type="password" class="form-control" id="register-password" required>
-                    </div>
-                    <button type="submit" class="btn btn-primary">Register</button>
-                </form>
+            <div class="form-group">
+              <label for="login-password">Password</label>
+              <input type="password" class="input" id="login-password" required />
             </div>
+            <button type="submit" class="button">Login</button>
+          </form>
         </div>
+        <div class="col-6">
+          <h3>Register</h3>
+          <form id="register-form">
+            <div class="form-group">
+              <label for="register-username">Username</label>
+              <input
+                type="text"
+                class="input"
+                id="register-username"
+                aria-describedby="usernameHelp"
+                required
+              />
+            </div>
+            <div class="form-group">
+              <label for="register-password">Password</label>
+              <input type="password" class="input" id="register-password" required />
+            </div>
+            <button type="submit" class="button">Register</button>
+          </form>
+        </div>
+      </div>
     </div>
 
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
-    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
     <script src="js/auth.js" type="module"></script>
-</body>
+  </body>
 </html>

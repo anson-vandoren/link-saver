@@ -23,7 +23,7 @@ async function getLinks(req, res, next) {
 
     const links = await Link.findAll({
       where: { userId },
-      include: [{ model: User, attributes: ['email'] }],
+      include: [{ model: User, attributes: ['username'] }],
     });
 
     const filteredLinks = links.filter(
@@ -44,7 +44,7 @@ async function getLink(req, res, next) {
         id: req.params.id,
         UserId: req.user.id,
       },
-      include: [{ model: User, attributes: ['email'] }],
+      include: [{ model: User, attributes: ['username'] }],
     });
 
     if (link) {
