@@ -179,7 +179,7 @@ function renderLinkItem(link) {
 
   const editLink = document.createElement('a');
   editLink.classList.add('edit-link');
-  editLink.textContent = 'Edit';
+  editLink.textContent = 'Edit ';
   editLink.addEventListener('click', async () => {
     try {
       const linkData = await getLink(link.id);

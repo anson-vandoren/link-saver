@@ -14,10 +14,29 @@ body.dark {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  font-size: calc(var(--font-size) * 0.8);
 }
 
 .link-item {
   margin-block-end: 0px;
+}
+
+.link-tags a {
+  color: #F8916D;
+}
+
+.link-actions-date {
+  font-size: calc(var(--font-size) * 0.8);
+  color: var(--color-darkGrey);
+}
+
+.link-actions a {
+  color: #4CAD7E;
+  color: var(--color-darkGrey);
+}
+
+.link-item {
+  margin-bottom: 5px;
 }
 
 /*
