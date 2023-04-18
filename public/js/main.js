@@ -10,15 +10,13 @@ async function init() {
   if (localStorage.getItem('token')) {
     // Event listeners
     document.getElementById('add-link').addEventListener('click', showAddForm);
-    document.getElementById('search-button').addEventListener('click', () => {
-      const searchQuery = document.getElementById('search-input').value;
-      try {
-        loadLinks(searchQuery);
-      } catch (error) {
-        console.error(error);
-        window.location.href = '/login.html';
+    document.getElementById('search-button').addEventListener('click', doSearch);
+    document.getElementById('search-input').addEventListener('keyup', (e) => {
+      if (e.key === 'Enter') {
+        doSearch();
       }
     });
+
     document.getElementById('logout-btn').addEventListener('click', handleLogoutButtonClick);
     document.getElementById('add-link-form').addEventListener('submit', handleAddLinkFormSubmit);
     document.getElementById('theme-toggle').addEventListener('click', () => {
@@ -27,6 +25,17 @@ async function init() {
 
     loadLinks();
   } else {
+    window.location.href = '/login.html';
+  }
+}
+
+function doSearch() {
+  const query = document.getElementById('search-input').value;
+
+  try {
+    loadLinks(query);
+  } catch (error) {
+    console.error(error);
     window.location.href = '/login.html';
   }
 }
