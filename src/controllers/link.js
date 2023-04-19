@@ -16,22 +16,40 @@ async function createLink(req, res, next) {
   }
 }
 
+const { Op } = require('sequelize');
+
 async function getLinks(req, res, next) {
   try {
     const userId = req.user.id;
     const searchQuery = req.query.search || '';
 
+    const searchTerms = searchQuery.split(' ');
+
+    const titleDescriptionFilter = searchTerms
+      .filter((term) => !term.startsWith('#'))
+      .map((term) => ({
+        [Op.or]: [
+          { title: { [Op.like]: `%${term}%` } },
+          { description: { [Op.like]: `%${term}%` } },
+        ],
+      }));
+
+    const tagsFilter = searchTerms
+      .filter((term) => term.startsWith('#'))
+      .map((term) => term.slice(1))
+      .map((tagSearch) => ({ tags: { [Op.like]: `%${tagSearch}%` } }));
+
+    const whereClause = {
+      userId,
+      [Op.and]: [...titleDescriptionFilter, ...tagsFilter],
+    };
+
     const links = await Link.findAll({
-      where: { userId },
+      where: whereClause,
       include: [{ model: User, attributes: ['username'] }],
     });
 
-    const filteredLinks = links.filter(
-      (link) =>
-        link.title.includes(searchQuery) || link.tags.some((tag) => tag.includes(searchQuery))
-    );
-
-    res.status(200).json({ links: filteredLinks });
+    res.status(200).json({ links });
   } catch (error) {
     next(error);
   }
