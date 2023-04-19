@@ -5,14 +5,14 @@ import { applyStoredTheme } from './theme.js';
 document.addEventListener('DOMContentLoaded', () => {
   applyStoredTheme();
   init();
+  setInitialSearch();
 });
-
 
 async function init() {
   if (localStorage.getItem('token')) {
     // Event listeners
     document.getElementById('add-link').addEventListener('click', showAddForm);
-    document.getElementById('search-button').addEventListener('click', doSearch);
+    document.getElementById('search-button').addEventListener('click', () => doSearch());
     document.getElementById('search-input').addEventListener('keyup', (e) => {
       if (e.key === 'Enter') {
         doSearch();
@@ -28,16 +28,44 @@ async function init() {
   }
 }
 
-function doSearch() {
-  const query = document.getElementById('search-input').value;
+function setInitialSearch() {
+  const searchQuery = new URLSearchParams(window.location.search).get('search') || '';
+  document.getElementById('search-input').value = searchQuery;
+
+  if (searchQuery) {
+    doSearch();
+  }
+}
+
+async function doSearch(append = false) {
+  append = typeof append === 'boolean' ? append : false;
+  const searchInput = document.getElementById('search-input');
+  const query = searchInput.value.trim();
+  const existingQuery = new URLSearchParams(window.location.search).get('search') || '';
+
+  let newQuery = append && existingQuery ? `${existingQuery} ${query}` : query;
+
+  if (append) {
+    const tag = searchInput.value;
+    const currentTags = existingQuery.split(' ').filter((term) => term.startsWith('#'));
+
+    if (currentTags.includes(tag)) {
+      newQuery = existingQuery; // Keep the existing query unchanged
+    }
+  }
+
+  searchInput.value = newQuery;
+  const urlPath = newQuery.length > 0 ? `/index.html?search=${encodeURIComponent(newQuery)}` : '/index.html';
+  window.history.pushState(null, '', urlPath);
 
   try {
-    loadLinks(query);
+    await loadLinks(newQuery);
   } catch (error) {
     console.error(error);
     window.location.href = '/login.html';
   }
 }
+
 
 /**
  * @typedef {Object} Link
@@ -95,7 +123,7 @@ async function loadLinks(searchQuery = '') {
 
 /**
  * Create a div element with the given classes
- * @param {string[]} classes 
+ * @param {string[]} classes
  * @returns A div element with the given classes
  */
 function divWithClasses(classes) {
@@ -108,15 +136,14 @@ function timeAgo(date) {
   const pluralizeAndConcat = (n, word) => {
     if (n > 1) word = `${word}s`;
     return `${n} ${word} ago`;
-  }
-  
+  };
 
   const seconds = Math.floor((new Date() - date) / 1000);
   let interval = Math.floor(seconds / 31536000);
   if (interval >= 1) {
     return pluralizeAndConcat(interval, 'year');
   }
-  
+
   interval = Math.floor(seconds / 2592000);
   if (interval >= 1) {
     return pluralizeAndConcat(interval, 'month');
@@ -160,12 +187,22 @@ function renderLinkItem(link) {
   const tagsSpan = document.createElement('span');
   tagsSpan.classList.add('link-tags');
   let hasTags = false;
+  const searchInput = document.getElementById('search-input');
   if (link.tags.length && link.tags[0] !== '') {
     hasTags = true;
     link.tags.forEach((tag) => {
       const tagLink = document.createElement('a');
-      tagLink.href = `/?search=${encodeURIComponent(tag)}`;
+      const tagWithHash = `#${tag}`;
+      tagLink.href = `/?search=${encodeURIComponent(tagWithHash)}`;
       tagLink.textContent = `#${tag} `;
+
+      // Add the click event listener to the tagLink
+      tagLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        searchInput.value = tagWithHash;
+        doSearch(true);
+      });
+
       tagsSpan.appendChild(tagLink);
     });
   }
@@ -327,17 +364,16 @@ function showEditForm(link) {
 }
 
 function showAddForm() {
-  const addLinkModal = document.getElementById("add-link-modal");
-  addLinkModal.style.display = "block";
+  const addLinkModal = document.getElementById('add-link-modal');
+  addLinkModal.style.display = 'block';
 
-  const addForm = document.getElementById("add-link-form");
-  addForm.addEventListener("submit", handleAddLinkFormSubmit);
-  document.getElementById("cancel-add").addEventListener("click", () => {
-    addLinkModal.style.display = "none";
+  const addForm = document.getElementById('add-link-form');
+  addForm.addEventListener('submit', handleAddLinkFormSubmit);
+  document.getElementById('cancel-add').addEventListener('click', () => {
+    addLinkModal.style.display = 'none';
   });
-  document.getElementById("link-url").focus();
+  document.getElementById('link-url').focus();
 }
-
 
 async function handleEditFormSubmit(event) {
   event.preventDefault();
