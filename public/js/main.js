@@ -1,7 +1,9 @@
 import { API_URL } from './common.js';
 import { wsHandler } from './ws.js';
+import { applyStoredTheme } from './theme.js';
 
 document.addEventListener('DOMContentLoaded', () => {
+  applyStoredTheme();
   init();
 });
 
@@ -19,9 +21,6 @@ async function init() {
 
     document.getElementById('logout-btn').addEventListener('click', handleLogoutButtonClick);
     document.getElementById('add-link-form').addEventListener('submit', handleAddLinkFormSubmit);
-    document.getElementById('theme-toggle').addEventListener('click', () => {
-      document.body.classList.toggle('dark');
-    });
 
     loadLinks();
   } else {

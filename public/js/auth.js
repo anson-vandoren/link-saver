@@ -1,4 +1,5 @@
 import { API_URL } from './common.js';
+import { applyStoredTheme } from './theme.js';
 
 /**
  * Submits a form with the provided event, path, and error message.
@@ -48,6 +49,7 @@ function registerSubmit(e) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+  applyStoredTheme();
   const loginForm = document.getElementById('login-form');
   loginForm.addEventListener('submit', loginSubmit);
 

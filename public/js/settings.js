@@ -47,3 +47,22 @@ importButton.addEventListener('click', async (e) => {
     alert('Failed to import bookmarks. Please try again.');
   }
 });
+
+function handleThemeSelect() {
+  const themeSelect = document.getElementById('theme-select');
+  const storedTheme = localStorage.getItem('theme');
+  if (storedTheme) {
+    themeSelect.value = storedTheme;
+    document.body.classList.toggle('dark', storedTheme === 'dark');
+  }
+
+  themeSelect.addEventListener('change', (e) => {
+    const theme = e.target.value;
+    localStorage.setItem('theme', theme);
+    document.body.classList.toggle('dark', theme === 'dark');
+  });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  handleThemeSelect();
+});
