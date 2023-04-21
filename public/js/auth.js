@@ -24,7 +24,7 @@ async function submitForm(e, path, errorMessage) {
   if (response.ok) {
     const { token } = await response.json();
     localStorage.setItem('token', token);
-    window.location.href = 'index.html';
+    window.location.href = 'bookmarks.html';
   } else {
     alert(errorMessage);
   }

@@ -1,3 +1,4 @@
+'use strict';
 const Link = require('../models/link');
 const User = require('../models/user');
 const { JSDOM } = require('jsdom');

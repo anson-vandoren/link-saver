@@ -55,7 +55,7 @@ async function doSearch(append = false) {
   }
 
   searchInput.value = newQuery;
-  const urlPath = newQuery.length > 0 ? `/index.html?search=${encodeURIComponent(newQuery)}` : '/index.html';
+  const urlPath = newQuery.length > 0 ? `/bookmarks.html?search=${encodeURIComponent(newQuery)}` : '/bookmarks.html';
   window.history.pushState(null, '', urlPath);
 
   try {

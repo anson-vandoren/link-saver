@@ -17,14 +17,16 @@ const PORT = process.env.PORT || 3001;
 // Middleware
 app.use(cors());
 app.use(express.json());
+// serve index.html at the root path, and other static content as needed
 app.use(express.static(path.join(__dirname,'..', 'public')));
 
 // Routes
 app.use('/api/users', userRoutes);
 app.use('/api/links', linkRoutes);
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname,'..', 'public', 'index.html'));
+app.get('/bookmarks', (_req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'public', 'bookmarks.html'));
 });
+
 
 // Error handler
 app.use(errorHandler);
