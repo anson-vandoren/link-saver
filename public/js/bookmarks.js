@@ -170,12 +170,11 @@ function timeAgo(date) {
  * @returns Link list item element
  */
 function renderLinkItem(link) {
-  const linkItem = document.createElement('p');
-  linkItem.classList.add('link-item');
+  const linkItem = divWithClasses(['is-size-7', 'link-item'])
   linkItem.dataset.id = link.id;
 
   // first line - link w/ page title
-  const title = divWithClasses(['link-title']);
+  const title = divWithClasses(['link-title', 'is-size-6']);
   const titleLink = document.createElement('a');
   titleLink.href = link.url;
   titleLink.target = '_blank';
@@ -185,13 +184,13 @@ function renderLinkItem(link) {
 
   // second line - tags and description
   const tagsSpan = document.createElement('span');
-  tagsSpan.classList.add('link-tags');
   let hasTags = false;
   const searchInput = document.getElementById('search-input');
   if (link.tags.length && link.tags[0] !== '') {
     hasTags = true;
     link.tags.forEach((tag) => {
       const tagLink = document.createElement('a');
+      tagLink.classList.add('has-text-info');
       const tagWithHash = `#${tag}`;
       tagLink.href = `/?search=${encodeURIComponent(tagWithHash)}`;
       tagLink.textContent = `#${tag} `;
@@ -208,30 +207,27 @@ function renderLinkItem(link) {
   }
 
   const descrSpan = document.createElement('span');
-  descrSpan.classList.add('link-description');
   descrSpan.textContent = link.description ? link.description : '';
 
-  const tagsAndDescription = divWithClasses(['link-tags-description']);
+  const tagsAndDescription = divWithClasses(['has-text-grey-light', 'link-tags-description']);
   tagsAndDescription.appendChild(tagsSpan);
-  if (hasTags) {
+  if (hasTags && link.description) {
     tagsAndDescription.appendChild(document.createTextNode(' | '));
   }
   tagsAndDescription.appendChild(descrSpan);
 
   // third line - date, edit, and delete links
   const actionsAndDate = document.createElement('div');
-  actionsAndDate.classList.add('link-actions-date');
+  actionsAndDate.classList.add('has-text-grey');
 
   const date = document.createElement('span');
-  date.classList.add('link-date');
   const dateAgo = timeAgo(new Date(link.savedAt));
   date.textContent = `${dateAgo} | `;
 
   const actions = document.createElement('span');
-  actions.classList.add('link-actions');
 
   const editLink = document.createElement('a');
-  editLink.classList.add('edit-link');
+  editLink.classList.add('has-text-grey');
   editLink.textContent = 'Edit ';
   editLink.addEventListener('click', async () => {
     try {
@@ -243,7 +239,7 @@ function renderLinkItem(link) {
   });
 
   const removeLink = document.createElement('a');
-  removeLink.classList.add('delete-link');
+  removeLink.classList.add('has-text-grey');
   removeLink.textContent = 'Remove';
   removeLink.addEventListener('click', () => {
     deleteLink(link.id).then(() => {
