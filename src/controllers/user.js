@@ -6,6 +6,11 @@ const jwtSecret = process.env.JWT_SECRET;
 
 async function registerUser(req, res, next) {
   try {
+    const hasOneUser = await User.findOne();
+    if (hasOneUser) {
+      return res.status(403).json({ error: { message: 'Registration is closed.' } });
+    }
+
     const { username, password } = req.body;
 
     const existingUser = await User.findOne({ where: { username } });

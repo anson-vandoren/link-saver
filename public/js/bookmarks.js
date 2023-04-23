@@ -8,6 +8,10 @@ document.addEventListener('DOMContentLoaded', () => {
   setInitialSearch();
 });
 
+function goToRoot() {
+  window.location.href = '/';
+}
+
 async function init() {
   if (localStorage.getItem('token')) {
     // Event listeners
@@ -24,7 +28,7 @@ async function init() {
 
     loadLinks();
   } else {
-    window.location.href = '/login.html';
+    goToRoot();
   }
 }
 
@@ -62,7 +66,7 @@ async function doSearch(append = false) {
     await loadLinks(newQuery);
   } catch (error) {
     console.error(error);
-    window.location.href = '/login.html';
+    goToRoot();
   }
 }
 
@@ -117,7 +121,7 @@ async function loadLinks(searchQuery = '') {
     });
   } catch (error) {
     console.error('Failed to load links:', error);
-    window.location.href = '/login.html';
+    goToRoot();
   }
 }
 
@@ -256,7 +260,7 @@ function renderLinkItem(link) {
 
 async function handleLogoutButtonClick() {
   localStorage.removeItem('token');
-  window.location.href = '/login.html';
+  window.location.href = '/';
 }
 
 async function handleAddLinkFormSubmit(event) {

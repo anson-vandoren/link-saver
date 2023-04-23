@@ -4,6 +4,7 @@ const cors = require('cors');
 const userRoutes = require('./routes/user');
 const linkRoutes = require('./routes/link');
 const errorHandler = require('./middleware/errorHandler');
+const { checkUserRegistered } = require('./middleware/checkUserRegistered');
 const sequelize = require('./database');
 const http = require('http');
 const https = require('https');
@@ -17,16 +18,16 @@ const PORT = process.env.PORT || 3001;
 // Middleware
 app.use(cors());
 app.use(express.json());
+
 // serve index.html at the root path, and other static content as needed
 app.use(express.static(path.join(__dirname,'..', 'public')));
 
 // Routes
 app.use('/api/users', userRoutes);
-app.use('/api/links', linkRoutes);
-app.get('/bookmarks', (_req, res) => {
+app.use('/api/links', checkUserRegistered, linkRoutes);
+app.get('/bookmarks', checkUserRegistered, (_req, res) => {
   res.sendFile(path.join(__dirname, '..', 'public', 'bookmarks.html'));
 });
-
 
 // Error handler
 app.use(errorHandler);

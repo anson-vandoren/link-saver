@@ -62,7 +62,7 @@ if (token) {
   wsHandler.connect(token);
 } else {
   // go to login page
-  window.location.href = '/login.html';
+  window.location.href = '/';
   // TODO: handle for public view
 }
 

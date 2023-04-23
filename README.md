@@ -1,6 +1,6 @@
-# Link Saver
+# PagePouch
 
-Link Saver is a web application for managing and organizing your bookmarks. It allows you to add,
+PagePouch is a web application for managing and organizing your bookmarks. It allows you to add,
 edit, and delete links, as well as import bookmarks from the Netscape HTML format.
 
 ## Getting Started
