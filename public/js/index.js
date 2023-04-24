@@ -1,14 +1,5 @@
 import { API_URL } from './common.js';
 
-document.addEventListener('DOMContentLoaded', () => {
-  loginDropdownHandler();
-  const loginForm = document.getElementById('login-form');
-  loginForm.addEventListener('submit', loginSubmit);
-
-  const registerForm = document.getElementById('register-form');
-  registerForm.addEventListener('submit', registerSubmit);
-});
-
 function loginDropdownHandler() {
   const loginForm = document.getElementById('login-dropdown');
   // toggle is-active class on login form when clicked
@@ -57,11 +48,8 @@ function loginSubmit(e) {
   submitForm(e, 'login', 'Error logging in. Please check your credentials.');
 }
 
-/**
- * Handles the register form submission.
- * @param {Event} e - The form submission event.
- * @returns {Promise<void>}
- */
-function registerSubmit(e) {
-  submitForm(e, 'register', 'Error registering. Please try again.');
-}
+document.addEventListener('DOMContentLoaded', () => {
+  loginDropdownHandler();
+  const loginForm = document.getElementById('login-form');
+  loginForm.addEventListener('submit', loginSubmit);
+});

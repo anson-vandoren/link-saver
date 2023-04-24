@@ -1,15 +1,56 @@
 import { API_URL } from './common.js';
 import { wsHandler } from './ws.js';
-import { applyStoredTheme } from './theme.js';
-
-document.addEventListener('DOMContentLoaded', () => {
-  applyStoredTheme();
-  init();
-  setInitialSearch();
-});
 
 function goToRoot() {
   window.location.href = '/';
+}
+
+/**
+ * Fetch links from the API and render them in the DOM
+ * @param {string} searchQuery optional search query to filter links
+ * @throws {Error} if the request fails
+ */
+async function loadLinks(searchQuery = '') {
+  try {
+    const links = await getLinks(searchQuery);
+    const linkList = document.getElementById('link-list');
+    linkList.innerHTML = '';
+
+    links.forEach((link) => {
+      const item = renderLinkItem(link);
+      linkList.appendChild(item);
+    });
+  } catch (_err) {
+    goToRoot();
+  }
+}
+
+async function doSearch(append = false) {
+  const doAppend = typeof append === 'boolean' ? append : false;
+  const searchInput = document.getElementById('search-input');
+  const query = searchInput.value.trim();
+  const existingQuery = new URLSearchParams(window.location.search).get('search') || '';
+
+  let newQuery = doAppend && existingQuery ? `${existingQuery} ${query}` : query;
+
+  if (doAppend) {
+    const tag = searchInput.value;
+    const currentTags = existingQuery.split(' ').filter((term) => term.startsWith('#'));
+
+    if (currentTags.includes(tag)) {
+      newQuery = existingQuery; // Keep the existing query unchanged
+    }
+  }
+
+  searchInput.value = newQuery;
+  const urlPath = newQuery.length > 0 ? `/bookmarks.html?search=${encodeURIComponent(newQuery)}` : '/bookmarks.html';
+  window.history.pushState(null, '', urlPath);
+
+  try {
+    await loadLinks(newQuery);
+  } catch (_err) {
+    goToRoot();
+  }
 }
 
 async function init() {
@@ -41,36 +82,6 @@ function setInitialSearch() {
   }
 }
 
-async function doSearch(append = false) {
-  append = typeof append === 'boolean' ? append : false;
-  const searchInput = document.getElementById('search-input');
-  const query = searchInput.value.trim();
-  const existingQuery = new URLSearchParams(window.location.search).get('search') || '';
-
-  let newQuery = append && existingQuery ? `${existingQuery} ${query}` : query;
-
-  if (append) {
-    const tag = searchInput.value;
-    const currentTags = existingQuery.split(' ').filter((term) => term.startsWith('#'));
-
-    if (currentTags.includes(tag)) {
-      newQuery = existingQuery; // Keep the existing query unchanged
-    }
-  }
-
-  searchInput.value = newQuery;
-  const urlPath = newQuery.length > 0 ? `/bookmarks.html?search=${encodeURIComponent(newQuery)}` : '/bookmarks.html';
-  window.history.pushState(null, '', urlPath);
-
-  try {
-    await loadLinks(newQuery);
-  } catch (error) {
-    console.error(error);
-    goToRoot();
-  }
-}
-
-
 /**
  * @typedef {Object} Link
  * @property {number} id
@@ -99,30 +110,8 @@ async function getLinks(searchQuery = '') {
   if (response.ok) {
     const res = await response.json();
     return res.links;
-  } else {
-    throw new Error('Failed to load links');
   }
-}
-
-/**
- * Fetch links from the API and render them in the DOM
- * @param {string} searchQuery optional search query to filter links
- * @throws {Error} if the request fails
- */
-async function loadLinks(searchQuery = '') {
-  try {
-    const links = await getLinks(searchQuery);
-    const linkList = document.getElementById('link-list');
-    linkList.innerHTML = '';
-
-    links.forEach((link) => {
-      const item = renderLinkItem(link);
-      linkList.appendChild(item);
-    });
-  } catch (error) {
-    console.error('Failed to load links:', error);
-    goToRoot();
-  }
+  throw new Error('Failed to load links');
 }
 
 /**
@@ -138,8 +127,9 @@ function divWithClasses(classes) {
 
 function timeAgo(date) {
   const pluralizeAndConcat = (n, word) => {
-    if (n > 1) word = `${word}s`;
-    return `${n} ${word} ago`;
+    let newWord = word;
+    if (n > 1) newWord = `${word}s`;
+    return `${n} ${newWord} ago`;
   };
 
   const seconds = Math.floor((new Date() - date) / 1000);
@@ -174,7 +164,7 @@ function timeAgo(date) {
  * @returns Link list item element
  */
 function renderLinkItem(link) {
-  const linkItem = divWithClasses(['is-size-7', 'link-item'])
+  const linkItem = divWithClasses(['is-size-7', 'link-item']);
   linkItem.dataset.id = link.id;
 
   // first line - link w/ page title
@@ -237,9 +227,7 @@ function renderLinkItem(link) {
     try {
       const linkData = await getLink(link.id);
       showEditForm(linkData);
-    } catch (error) {
-      console.error('Failed to load link for editing:', error);
-    }
+    } catch (_err) { /* do nothing */ }
   });
 
   const removeLink = document.createElement('a');
@@ -276,13 +264,15 @@ async function handleAddLinkFormSubmit(event) {
   const visibility = document.getElementById('link-visibility').value;
 
   try {
-    await addLink({ title, url, tags, visibility, description });
+    await addLink(
+      {
+        title, url, tags, visibility, description,
+      },
+    );
     document.getElementById('add-link-form').reset();
     closeModal('add-link-modal');
     loadLinks();
-  } catch (error) {
-    console.error('Error adding link:', error);
-  }
+  } catch (_err) { /* do nothing */ }
 }
 
 async function addLink(linkData) {
@@ -300,17 +290,6 @@ async function addLink(linkData) {
   }
 }
 
-async function handleEditButtonClick(event) {
-  const linkId = event.target.dataset.id;
-  const link = await getLink(linkId);
-
-  if (link) {
-    showEditForm(link);
-  } else {
-    console.error('Error loading link data for editing');
-  }
-}
-
 async function getLink(id) {
   const response = await fetch(`${API_URL}/api/links/${id}`, {
     headers: {
@@ -320,20 +299,9 @@ async function getLink(id) {
   });
 
   if (response.ok) {
-    return await response.json();
-  } else {
-    throw new Error('Failed to load link');
+    return response.json();
   }
-}
-
-async function handleDeleteButtonClick(event) {
-  const linkId = event.target.dataset.id;
-  try {
-    await deleteLink(linkId);
-    loadLinks();
-  } catch (error) {
-    console.error('Error deleting link:', error);
-  }
+  throw new Error('Failed to load link');
 }
 
 function showEditForm(link) {
@@ -344,8 +312,8 @@ function showEditForm(link) {
     <input type="text" class="custom-input" id="edit-link-title" value="${link.title}" required>
     <input type="url" class="custom-input" id="edit-link-url" value="${link.url}" required>
     <input type="text" class="custom-input" id="edit-link-tags" value="${(link.tags ?? []).join(
-      ', '
-    )}">
+    ', ',
+  )}">
     <select class="custom-input" id="edit-link-visibility">
       <option value="private" ${link.visibility === 'private' ? 'selected' : ''}>Private</option>
       <option value="public" ${link.visibility === 'public' ? 'selected' : ''}>Public</option>
@@ -399,7 +367,6 @@ async function handleEditFormSubmit(event) {
     closeEditForm();
     await loadLinks();
   } catch (error) {
-    console.error('Error updating link:', error);
     alert('Failed to update link. Please try again.');
   }
 }
@@ -467,4 +434,9 @@ urlInput.addEventListener('focusout', (event) => {
   if (url) {
     wsHandler.send('scrapeFQDN', url);
   }
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+  init();
+  setInitialSearch();
 });

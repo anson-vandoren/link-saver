@@ -1,16 +1,16 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
+const { JSDOM } = require('jsdom');
+const https = require('https');
+const http = require('http');
 const userRoutes = require('./routes/user');
 const linkRoutes = require('./routes/link');
 const errorHandler = require('./middleware/errorHandler');
 const { checkUserRegistered } = require('./middleware/checkUserRegistered');
 const sequelize = require('./database');
-const http = require('http');
-const https = require('https');
-const { JSDOM } = require('jsdom');
 const { wsHandler } = require('./websocket');
-const path = require('path');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -20,7 +20,7 @@ app.use(cors());
 app.use(express.json());
 
 // serve index.html at the root path, and other static content as needed
-app.use(express.static(path.join(__dirname,'..', 'public')));
+app.use(express.static(path.join(__dirname, '..', 'public')));
 
 // Routes
 app.use('/api/users', userRoutes);
@@ -36,30 +36,29 @@ app.use(errorHandler);
 const server = http.createServer(app);
 
 wsHandler.on('scrapeFQDN', async (data) => {
-  let url = data.toString();
+  const url = data.toString();
   try {
     const { title, description, url: finalUrl } = await fetchTitleAndDescription(url);
     wsHandler.send('scrapeFQDN', { title, description, url: finalUrl });
   } catch (error) {
     console.error('Failed to fetch title and description:', error);
     wsHandler.send('error', `Failed to fetch title and description: ${error}`);
-    return;
   }
 });
 
-async function fetchTitleAndDescription(url) {
+async function fetchTitleAndDescription(providedUrl) {
+  let url = providedUrl;
   try {
     if (!url.startsWith('http://') && !url.startsWith('https://')) {
-      url = 'http://' + url;
+      url = `http://${url}`;
     }
 
     const { data, finalUrl } = await fetchUrlData(url);
     const dom = new JSDOM(data);
     const title = dom.window.document.querySelector('head > title').textContent || '';
-    const description =
-      dom.window.document
-        .querySelector('head > meta[name="description"]')
-        ?.getAttribute('content') || '';
+    const description = dom.window.document
+      .querySelector('head > meta[name="description"]')
+      ?.getAttribute('content') || '';
 
     return { title, description, url: finalUrl };
   } catch (error) {

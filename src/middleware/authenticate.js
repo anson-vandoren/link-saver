@@ -19,7 +19,7 @@ function authenticate(req, res, next) {
 
     // If the token is valid, attach the user to the request and call the next middleware
     req.user = user;
-    next();
+    return next();
   });
 }
 

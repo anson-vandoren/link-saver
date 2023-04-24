@@ -10,7 +10,7 @@ class WSHandler {
   listen(server) {
     if (this.socket) {
       console.debug('WebSocket already listening');
-      return;
+      return Promise.resolve();
     }
     const wss = new WebSocket.Server({ server });
 
