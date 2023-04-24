@@ -159,17 +159,6 @@ async function getLinks(searchQuery = '') {
   throw new Error('Failed to load links');
 }
 
-/**
- * Create a div element with the given classes
- * @param {string[]} classes
- * @returns A div element with the given classes
- */
-function divWithClasses(classes) {
-  const div = document.createElement('div');
-  div.classList.add(...classes);
-  return div;
-}
-
 function timeAgo(date) {
   const pluralizeAndConcat = (n, word) => {
     let newWord = word;
@@ -203,92 +192,70 @@ function timeAgo(date) {
   return pluralizeAndConcat(interval, 'second');
 }
 
+function createTagLink(tag) {
+  const tagLink = document.createElement('a');
+  tagLink.classList.add('has-text-info');
+  const tagWithHash = `#${tag}`;
+  tagLink.href = `/?search=${encodeURIComponent(tagWithHash)}`;
+  tagLink.textContent = `#${tag} `;
+
+  const searchInput = document.getElementById('search-input');
+  tagLink.addEventListener('click', (e) => {
+    e.preventDefault();
+    searchInput.value = tagWithHash;
+    doSearch(true);
+  });
+
+  return tagLink;
+}
+
 /**
  * Create a link list item element
  * @param {Link} link One link object to render
  * @returns Link list item element
  */
 function renderLinkItem(link) {
-  const linkItem = divWithClasses(['is-size-7', 'link-item']);
+  const linkItemTemplate = document.getElementById('link-item-template');
+  const fragment = linkItemTemplate.content.cloneNode(true);
+  const linkItem = fragment.querySelector('.link-item');
   linkItem.dataset.id = link.id;
 
-  // first line - link w/ page title
-  const title = divWithClasses(['add-link-title', 'is-size-6']);
-  const titleLink = document.createElement('a');
+  const titleLink = linkItem.querySelector('.link-item-title > a');
   titleLink.href = link.url;
-  titleLink.target = '_blank';
-  titleLink.rel = 'noopener noreferrer';
   titleLink.textContent = link.title;
-  title.appendChild(titleLink);
 
-  // second line - tags and description
-  const tagsSpan = document.createElement('span');
-  let hasTags = false;
-  const searchInput = document.getElementById('search-input');
+  const tagsSpan = linkItem.querySelector('.link-item-tags-description > span:first-child');
   if (link.tags.length && link.tags[0] !== '') {
-    hasTags = true;
     link.tags.forEach((tag) => {
-      const tagLink = document.createElement('a');
-      tagLink.classList.add('has-text-info');
-      const tagWithHash = `#${tag}`;
-      tagLink.href = `/?search=${encodeURIComponent(tagWithHash)}`;
-      tagLink.textContent = `#${tag} `;
-
-      // Add the click event listener to the tagLink
-      tagLink.addEventListener('click', (e) => {
-        e.preventDefault();
-        searchInput.value = tagWithHash;
-        doSearch(true);
-      });
-
-      tagsSpan.appendChild(tagLink);
+      tagsSpan.appendChild(createTagLink(tag));
     });
   }
 
-  const descrSpan = document.createElement('span');
+  const descrSpan = linkItem.querySelector('.link-item-tags-description > span:last-child');
   descrSpan.textContent = link.description ? link.description : '';
 
-  const tagsAndDescription = divWithClasses(['has-text-grey-light', 'link-tags-description']);
-  tagsAndDescription.appendChild(tagsSpan);
-  if (hasTags && link.description) {
-    tagsAndDescription.appendChild(document.createTextNode(' | '));
+  if (link.tags.length && link.tags[0] !== '' && link.description) {
+    tagsSpan.insertAdjacentText('beforeend', ' | ');
   }
-  tagsAndDescription.appendChild(descrSpan);
 
-  // third line - date, edit, and delete links
-  const actionsAndDate = document.createElement('div');
-  actionsAndDate.classList.add('has-text-grey');
-
-  const date = document.createElement('span');
+  const dateSpan = linkItem.querySelector('.link-item-date-actions > span:first-child');
   const dateAgo = timeAgo(new Date(link.savedAt));
-  date.textContent = `${dateAgo} | `;
+  dateSpan.textContent = `${dateAgo} | `;
 
-  const actions = document.createElement('span');
-
-  const editLink = document.createElement('a');
-  editLink.classList.add('has-text-grey');
-  editLink.textContent = 'Edit ';
+  const editLink = linkItem.querySelector('.link-item-date-actions > span:last-child > a:first-child');
   editLink.addEventListener('click', async () => {
-    try {
-      const linkData = await getLink(link.id);
-      showEditForm(linkData);
-    } catch (_err) { /* do nothing */ }
+    const linkData = await getLink(link.id);
+    showEditForm(linkData);
   });
 
-  const removeLink = document.createElement('a');
-  removeLink.classList.add('has-text-grey');
-  removeLink.textContent = 'Remove';
+  const removeLink = linkItem.querySelector('.link-item-date-actions > span:last-child > a:last-child');
   removeLink.addEventListener('click', () => {
     deleteLink(link.id).then(() => {
       loadLinks();
     });
   });
 
-  actions.append(editLink, removeLink);
-  actionsAndDate.append(date, actions);
-
-  linkItem.append(title, tagsAndDescription, actionsAndDate);
-  return linkItem;
+  return fragment;
 }
 
 async function handleLogoutButtonClick() {
@@ -309,15 +276,13 @@ async function handleAddLinkFormSubmit(event) {
   const visibility = document.getElementById('link-visibility').value;
   const isPublic = visibility === 'public';
 
-  try {
-    await addLink(
-      {
-        title, url, tags, isPublic, description,
-      },
-    );
-    document.getElementById('add-link-form').reset();
-    loadLinks();
-  } catch (_err) { /* do nothing */ }
+  await addLink(
+    {
+      title, url, tags, isPublic, description,
+    },
+  );
+  document.getElementById('add-link-form').reset();
+  loadLinks();
 }
 
 async function addLink(linkData) {
