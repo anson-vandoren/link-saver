@@ -12,7 +12,8 @@ function goToRoot() {
  */
 async function loadLinks(searchQuery = '') {
   try {
-    const links = await getLinks(searchQuery);
+    // TODO: implement pagination and remove the slice()
+    const links = (await getLinks(searchQuery)).slice(0, 25);
     const linkList = document.getElementById('link-list');
     linkList.innerHTML = '';
 
@@ -53,10 +54,53 @@ async function doSearch(append = false) {
   }
 }
 
-async function init() {
+function initModals() {
+  function openModal($el) {
+    $el.classList.add('is-active');
+  }
+
+  function closeModal($el) {
+    $el.classList.remove('is-active');
+  }
+
+  function closeAllModals() {
+    (document.querySelectorAll('.modal') || []).forEach(($modal) => {
+      closeModal($modal);
+    });
+  }
+
+  // Add a click event on buttons to open a specific modal
+  (document.querySelectorAll('.js-modal-trigger') || []).forEach(($trigger) => {
+    const modal = $trigger.dataset.target;
+    const $target = document.getElementById(modal);
+
+    $trigger.addEventListener('click', () => {
+      openModal($target);
+    });
+  });
+
+  // Add a click event on various child elements to close the parent modal
+  (document.querySelectorAll('.modal-background, .modal-close, .modal-card-head .delete, .modal-card-foot .button') || []).forEach(($close) => {
+    const $target = $close.closest('.modal');
+
+    $close.addEventListener('click', () => {
+      closeModal($target);
+    });
+  });
+
+  // Add a keyboard event to close all modals
+  document.addEventListener('keydown', (event) => {
+    const e = event || window.event;
+
+    if (e.key === 'Escape') {
+      closeAllModals();
+    }
+  });
+}
+
+function init() {
   if (localStorage.getItem('token')) {
     // Event listeners
-    document.getElementById('add-link').addEventListener('click', showAddForm);
     document.getElementById('search-button').addEventListener('click', () => doSearch());
     document.getElementById('search-input').addEventListener('keyup', (e) => {
       if (e.key === 'Enter') {
@@ -66,7 +110,7 @@ async function init() {
 
     document.getElementById('logout-btn').addEventListener('click', handleLogoutButtonClick);
     document.getElementById('add-link-form').addEventListener('submit', handleAddLinkFormSubmit);
-
+    initModals();
     loadLinks();
   } else {
     goToRoot();
@@ -109,6 +153,7 @@ async function getLinks(searchQuery = '') {
 
   if (response.ok) {
     const res = await response.json();
+
     return res.links;
   }
   throw new Error('Failed to load links');
@@ -168,7 +213,7 @@ function renderLinkItem(link) {
   linkItem.dataset.id = link.id;
 
   // first line - link w/ page title
-  const title = divWithClasses(['link-title', 'is-size-6']);
+  const title = divWithClasses(['add-link-title', 'is-size-6']);
   const titleLink = document.createElement('a');
   titleLink.href = link.url;
   titleLink.target = '_blank';
@@ -254,23 +299,23 @@ async function handleLogoutButtonClick() {
 async function handleAddLinkFormSubmit(event) {
   event.preventDefault();
 
-  const title = document.getElementById('link-title').value;
-  const url = document.getElementById('link-url').value;
-  const description = document.getElementById('link-description').value;
+  const title = document.getElementById('add-link-title').value;
+  const url = document.getElementById('add-link-url').value;
+  const description = document.getElementById('add-link-description').value;
   const tags = document
-    .getElementById('link-tags')
+    .getElementById('add-link-tags')
     .value.split(',')
     .map((tag) => tag.trim());
   const visibility = document.getElementById('link-visibility').value;
+  const isPublic = visibility === 'public';
 
   try {
     await addLink(
       {
-        title, url, tags, visibility, description,
+        title, url, tags, isPublic, description,
       },
     );
     document.getElementById('add-link-form').reset();
-    closeModal('add-link-modal');
     loadLinks();
   } catch (_err) { /* do nothing */ }
 }
@@ -304,26 +349,21 @@ async function getLink(id) {
   throw new Error('Failed to load link');
 }
 
+const editLinkTemplate = document.getElementById('edit-link-template');
 function showEditForm(link) {
-  const editForm = document.createElement('form');
-  editForm.id = 'edit-link-form';
-  editForm.innerHTML = `
-    <input type="hidden" id="edit-link-id" value="${link.id}">
-    <input type="text" class="custom-input" id="edit-link-title" value="${link.title}" required>
-    <input type="url" class="custom-input" id="edit-link-url" value="${link.url}" required>
-    <input type="text" class="custom-input" id="edit-link-tags" value="${(link.tags ?? []).join(
-    ', ',
-  )}">
-    <select class="custom-input" id="edit-link-visibility">
-      <option value="private" ${link.visibility === 'private' ? 'selected' : ''}>Private</option>
-      <option value="public" ${link.visibility === 'public' ? 'selected' : ''}>Public</option>
-    </select>
-    <button type="submit" class="custom-btn custom-btn-primary">Save Changes</button>
-    <button type="button" class="custom-btn custom-btn-danger" id="cancel-edit">Cancel</button>
-  `;
+  const editFormFragment = editLinkTemplate.content.cloneNode(true);
+
+  editFormFragment.querySelector('#edit-link-form').dataset.id = link.id;
+  editFormFragment.querySelector('#edit-link-title').value = link.title;
+  editFormFragment.querySelector('#edit-link-url').value = link.url;
+  editFormFragment.querySelector('#edit-link-tags').value = (link.tags ?? []).join(', ');
+  const linkVisibility = link.isPublic ? 'public' : 'private';
+  editFormFragment.querySelector(`#edit-link-visibility option[value="${linkVisibility}"]`).selected = true;
+
+  const editForm = editFormFragment.querySelector('#edit-link-form');
 
   const linkItem = document.querySelector(`[data-id="${link.id}"]`).closest('.link-item');
-  linkItem.appendChild(editForm);
+  linkItem.appendChild(editFormFragment);
 
   editForm.addEventListener('submit', handleEditFormSubmit);
   document.getElementById('cancel-edit').addEventListener('click', () => {
@@ -331,22 +371,10 @@ function showEditForm(link) {
   });
 }
 
-function showAddForm() {
-  const addLinkModal = document.getElementById('add-link-modal');
-  addLinkModal.style.display = 'block';
-
-  const addForm = document.getElementById('add-link-form');
-  addForm.addEventListener('submit', handleAddLinkFormSubmit);
-  document.getElementById('cancel-add').addEventListener('click', () => {
-    addLinkModal.style.display = 'none';
-  });
-  document.getElementById('link-url').focus();
-}
-
 async function handleEditFormSubmit(event) {
   event.preventDefault();
 
-  const linkId = document.getElementById('edit-link-id').value;
+  const linkId = event.target.dataset.id;
   const title = document.getElementById('edit-link-title').value;
   const url = document.getElementById('edit-link-url').value;
   const tags = document
@@ -354,13 +382,14 @@ async function handleEditFormSubmit(event) {
     .value.split(',')
     .map((tag) => tag.trim());
   const visibility = document.getElementById('edit-link-visibility').value;
+  const isPublic = visibility === 'public';
 
   try {
     await updateLink(linkId, {
       title,
       url,
       tags,
-      visibility,
+      isPublic,
     });
 
     // Hide the edit form and reload the links
@@ -407,28 +436,16 @@ async function deleteLink(id) {
   }
 }
 
-window.addEventListener('click', (event) => {
-  // TODO: add edit form
-  const addLinkModal = document.getElementById('add-link-modal');
-  if (event.target === addLinkModal) {
-    addLinkModal.style.display = 'none';
-  }
-});
-
-function closeModal(id) {
-  document.getElementById(id).style.display = 'none';
-}
-
 // websocket
 wsHandler.on('scrapeFQDN', (data) => {
   const { title, description, url } = data;
-  document.getElementById('link-title').value = title;
-  document.getElementById('link-description').value = description;
-  document.getElementById('link-url').value = url;
+  document.getElementById('add-link-title').value = title;
+  document.getElementById('add-link-description').value = description;
+  document.getElementById('add-link-url').value = url;
 });
 
 // Add event listener to the URL input field
-const urlInput = document.getElementById('link-url');
+const urlInput = document.getElementById('add-link-url');
 urlInput.addEventListener('focusout', (event) => {
   const url = event.target.value;
   if (url) {

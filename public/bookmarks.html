@@ -14,18 +14,59 @@
       </div>
       <div class="navbar-menu">
         <div class="navbar-end">
-          <a class="navbar-item" href="#" id="add-link">Add Link</a>
-          <a class="navbar-item" href="./settings.html">Settings</a>
-          <a class="navbar-item" href="#" id="logout-btn">Logout</a>
+          <div class="level">
+            <button
+              class="navbar-item js-modal-trigger button is-primary is-small"
+              id="add-link-btn"
+              data-target="add-link-modal"
+            >
+              Add Link
+            </button>
+            <a class="navbar-item" href="./settings.html">Settings</a>
+            <a class="navbar-item" href="#" id="logout-btn">Logout</a>
+          </div>
         </div>
       </div>
     </nav>
 
-    <div id="edit-link-modal" class="modal">
-      <div class="custom-modal-content">
-        <!-- The modal content will be dynamically added here -->
-      </div>
-    </div>
+    <template id="edit-link-template">
+      <form id="edit-link-form" data-id="">
+        <div class="field">
+          <label class="label" for="edit-link-title">Title</label>
+          <div class="control">
+            <input type="text" class="input" id="edit-link-title" />
+          </div>
+        </div>
+        <div class="field">
+          <label class="label" for="edit-link-description">Description</label>
+          <div class="control">
+            <input type="url" class="input" id="edit-link-url" required />
+          </div>
+        </div>
+        <label class="label" for="edit-link-tags">Tags</label>
+        <div class="field is-grouped">
+          <div class="control is-expanded">
+            <input type="text" class="input" id="edit-link-tags" />
+          </div>
+          <div class="control">
+            <div class="select">
+              <select id="edit-link-visibility">
+                <option value="private">Private</option>
+                <option value="public">Public</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="field is-grouped is-grouped-left">
+          <div class="control">
+            <button type="submit" class="button is-info">Save</button>
+          </div>
+          <div class="control">
+            <button type="button" class="button is-primary" id="cancel-edit">Cancel</button>
+          </div>
+        </div>
+      </form>
+    </template>
 
     <section class="columns section">
       <div class="column is-6 is-offset-3">
@@ -53,44 +94,63 @@
           </div>
         </div>
 
-        <!-- Add Link Modal -->
-        <div id="add-link-modal" class="modal card col-8">
-          <header>
-            <h5>Add Link</h5>
-          </header>
-          <form id="add-link-form">
-            <p>
-              <label for="link-url">URL</label>
-              <input type="url" id="link-url" required />
-            </p>
-            <p>
-              <label for="link-tags">Tags</label>
-              <input type="text" id="link-tags" />
-            </p>
-            <p>
-              <label for="link-title">Title</label>
-              <input type="text" id="link-title" required />
-            </p>
-            <p>
-              <label for="link-description">Description</label>
-              <textarea id="link-description" rows="3"></textarea>
-            </p>
-            <p class="grouped">
-              <select id="link-visibility">
-                <option value="private">Private</option>
-                <option value="public">Public</option>
-              </select>
-              <button type="reset" id="cancel-add">Close</button>
-              <button type="submit" form="add-link-form">Save</button>
-            </p>
-          </form>
-        </div>
-
         <ul class="" id="link-list">
           <!-- Links will be added here dynamically -->
         </ul>
       </div>
     </section>
+
+    <div id="add-link-modal" class="modal">
+      <div class="modal-background"></div>
+      <div class="modal-card">
+        <header class="modal-card-head">
+          <p class="modal-card-title">Add Link</p>
+          <button class="delete" aria-label="close"></button>
+        </header>
+        <section class="modal-card-body">
+          <form id="add-link-form">
+            <div class="field">
+              <label for="add-link-url" class="label">URL</label>
+              <div class="control">
+                <input type="url" id="add-link-url" class="input" required />
+              </div>
+            </div>
+            <div class="field">
+              <label for="add-link-tags" class="label">Tags</label>
+              <div class="control">
+                <input type="text" id="add-link-tags" class="input" />
+              </div>
+            </div>
+            <div class="field">
+              <label for="add-link-title" class="label">Title</label>
+              <div class="control">
+                <input type="text" id="add-link-title" class="input" required />
+              </div>
+            </div>
+            <div class="field">
+              <label for="link-visibility" class="label">Visibility</label>
+              <div class="control">
+                <div class="select">
+                  <select id="link-visibility">
+                    <option value="private">Private</option>
+                    <option value="public">Public</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div class="field">
+              <label for="add-link-description" class="label">Description</label>
+              <div class="control">
+                <textarea id="add-link-description" class="textarea" rows="3"></textarea>
+              </div>
+            </div>
+          </form>
+        </section>
+        <footer class="modal-card-foot">
+          <button type="submit" form="add-link-form" class="button is-info">Save</button>
+        </footer>
+      </div>
+    </div>
 
     <script src="js/bookmarks.js" type="module"></script>
   </body>

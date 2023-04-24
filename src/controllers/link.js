@@ -1,7 +1,7 @@
-'use strict';
+const { Op } = require('sequelize');
+const { JSDOM } = require('jsdom');
 const Link = require('../models/link');
 const User = require('../models/user');
-const { JSDOM } = require('jsdom');
 const { wsHandler } = require('../websocket');
 
 async function createLink(req, res, next) {
@@ -16,8 +16,6 @@ async function createLink(req, res, next) {
     next(error);
   }
 }
-
-const { Op } = require('sequelize');
 
 async function getLinks(req, res, next) {
   try {
@@ -48,6 +46,7 @@ async function getLinks(req, res, next) {
     const links = await Link.findAll({
       where: whereClause,
       include: [{ model: User, attributes: ['username'] }],
+      order: [['savedAt', 'DESC']],
     });
 
     res.status(200).json({ links });
