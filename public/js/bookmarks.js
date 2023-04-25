@@ -57,10 +57,19 @@ async function doSearch(append = false) {
 function initModals() {
   function openModal($el) {
     $el.classList.add('is-active');
+
+    // set focus correctly on the Add Link modal
+    if ($el.id === 'add-link-modal') {
+      document.getElementById('add-link-url').focus();
+    }
   }
 
   function closeModal($el) {
     $el.classList.remove('is-active');
+
+    if ($el.id === 'add-link-modal') {
+      document.getElementById('add-link-form').reset();
+    }
   }
 
   function closeAllModals() {
