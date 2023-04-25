@@ -1,4 +1,7 @@
-import { API_URL } from './common.js';
+import {
+  API_URL,
+  handleLogoutButtonClick,
+} from './common.js';
 import { wsHandler } from './ws.js';
 
 function goToRoot() {
@@ -265,11 +268,6 @@ function renderLinkItem(link) {
   });
 
   return fragment;
-}
-
-async function handleLogoutButtonClick() {
-  localStorage.removeItem('token');
-  window.location.href = '/';
 }
 
 async function handleAddLinkFormSubmit(event) {

@@ -1,4 +1,8 @@
-import { API_URL } from './common.js';
+import {
+  API_URL,
+  showNotification,
+  handleLogoutButtonClick,
+} from './common.js';
 import { wsHandler } from './ws.js';
 
 const fileInput = document.querySelector('#import-bookmarks-file input[type=file]');
@@ -52,27 +56,6 @@ importButton.addEventListener('click', async (e) => {
   importButton.disabled = true;
 });
 
-function showNotification(message, type = 'success') {
-  const notification = document.createElement('div');
-  notification.className = `notification is-${type} top-centered-notification`;
-  notification.innerHTML = `
-    <button class="delete"></button>
-    ${message}
-  `;
-
-  // Add the event listener to the delete button
-  notification.querySelector('.delete').addEventListener('click', () => {
-    notification.parentNode.removeChild(notification);
-  });
-
-  document.body.appendChild(notification);
-
-  // Automatically remove the notification after 5 seconds
-  setTimeout(() => {
-    notification.parentNode.removeChild(notification);
-  }, 5000);
-}
-
 document.addEventListener('DOMContentLoaded', () => {
   fileInput.onchange = () => {
     if (fileInput.files.length > 0) {
@@ -81,4 +64,5 @@ document.addEventListener('DOMContentLoaded', () => {
       importButton.disabled = false;
     }
   };
+  document.getElementById('logout-btn').addEventListener('click', handleLogoutButtonClick);
 });
