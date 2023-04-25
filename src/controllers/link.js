@@ -128,8 +128,9 @@ function parseNetscapeHTML(htmlContent) {
       const isPrivate = aElement.getAttribute('private') === '1';
 
       const ddElement = dtElement.nextElementSibling;
-      const description =
-        ddElement && ddElement.tagName === 'DD' ? ddElement.textContent.trim() : '';
+      const description = ddElement && ddElement.tagName === 'DD'
+        ? ddElement.textContent.trim()
+        : '';
 
       bookmarks.push({ url, title, tags, description, addDate, isPublic: !isPrivate });
     }
@@ -139,24 +140,46 @@ function parseNetscapeHTML(htmlContent) {
 }
 
 async function addBookmarksToDatabase(bookmarks, userId) {
-  for (let i = 0; i < bookmarks.length; i++) {
-    if (i % 10 === 0) {
-      wsHandler.send('import-progress', { progress: (i / bookmarks.length) * 100 });
-    }
-    const bookmark = bookmarks[i];
-    const { url, title, tags, description, addDate } = bookmark;
+  const sock = wsHandler.connections.get(userId);
+  if (!sock) {
+    throw new Error('User not connected', userId);
+  }
+
+  const totalBookmarks = bookmarks.length;
+  const bookmarkPromises = bookmarks.map((bookmark, i) => {
+    const { url, title, tags, description, addDate, isPublic } = bookmark;
 
     // Add the new link to the database
-    await Link.create({
+    const createLinkPromise = Link.create({
       url,
       title,
       tags,
       description,
+      isPublic,
       savedAt: addDate,
       userId,
     });
-  }
-  wsHandler.send('import-progress', { progress: 100 });
+
+    // Send progress update after each link creation
+    createLinkPromise.then(() => {
+      if (i % 10 === 0) {
+        sock.send(
+          JSON.stringify({
+            type: 'import-progress',
+            data: { progress: (i / totalBookmarks) * 100 },
+          })
+        );
+      }
+    });
+
+    return createLinkPromise;
+  });
+
+  // Wait for all promises to resolve
+  await Promise.all(bookmarkPromises);
+
+  // Send final progress update
+  sock.send(JSON.stringify({ type: 'import-progress', data: { progress: 100 } }));
 }
 
 async function importLinks(req, res, next) {

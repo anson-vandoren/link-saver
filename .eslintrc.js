@@ -18,5 +18,14 @@ module.exports = {
         functions: false,
       },
     ],
+    'no-plusplus': 0,
+    'object-curly-newline': [
+      'warn', {
+        ObjectExpression: { multiline: true, minProperties: 6 },
+        ObjectPattern: { multiline: true, minProperties: 6 },
+        ImportDeclaration: { multiline: true, minProperties: 6 },
+        ExportDeclaration: { multiline: true, minProperties: 6 },
+      },
+    ],
   },
 };

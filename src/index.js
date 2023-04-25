@@ -35,14 +35,14 @@ app.use(errorHandler);
 // WebSocket server
 const server = http.createServer(app);
 
-wsHandler.on('scrapeFQDN', async (data) => {
+wsHandler.on('scrapeFQDN', async (sock, data) => {
   const url = data.toString();
   try {
     const { title, description, url: finalUrl } = await fetchTitleAndDescription(url);
-    wsHandler.send('scrapeFQDN', { title, description, url: finalUrl });
+    sock.send(JSON.stringify({ type: 'scrapeFQDN', data: { title, description, url: finalUrl } }));
   } catch (error) {
     console.error('Failed to fetch title and description:', error);
-    wsHandler.send('error', `Failed to fetch title and description: ${error}`);
+    sock.send(JSON.stringify({ type: 'error', data: `Failed to fetch title and description: ${error}` }));
   }
 });
 
