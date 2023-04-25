@@ -4,67 +4,68 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Settings</title>
-    <!-- Include your CSS file here -->
-    <link rel="stylesheet" href="https://unpkg.com/chota@latest" />
+    <link rel="stylesheet" href="https://unpkg.com/bulmaswatch/darkly/bulmaswatch.min.css" />
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <div class="container">
-      <header>
-        <nav class="nav">
-          <div class="nav-left">
-            <a class="brand" href="./bookmarks.html">PagePouch</a>
+    <nav class="navbar is-transparent" role="navigation" aria-label="main navigation">
+      <div class="navbar-brand">
+        <a class="navbar-item title" href="/bookmarks.html">PagePouch</a>
+      </div>
+      <div class="navbar-menu">
+        <div class="navbar-end">
+          <div class="level">
+            <button
+              class="navbar-item js-modal-trigger button is-primary is-small"
+              id="add-link-btn"
+              data-target="add-link-modal"
+            >
+              Add Link
+            </button>
+            <a class="navbar-item" href="./settings.html">Settings</a>
+            <a class="navbar-item" href="#" id="logout-btn">Logout</a>
           </div>
-          <div class="nav-right">
-            <a class="nav-link" href="#" id="add-link">Add Link</a>
-            <a class="nav-link" href="./settings.html">Settings</a>
-            <a class="nav-link" href="#" id="logout-btn">Logout</a>
-          </div>
-        </nav>
-      </header>
+        </div>
+      </div>
+    </nav>
 
-      <div class="row">
-        <div class="col-2"></div>
-        <h1 class="col-8">Settings</h1>
-        <div class="col-2"></div>
-      </div>
-      <div class="row">
-        <div class="col-2"></div>
-        <div class="col-8">
-          <!-- Add the import bookmarks form -->
-          <form id="import-bookmarks-form" enctype="multipart/form-data">
-            Import bookmarks from an HTML file:
-            <p class="grouped">
-              <label class="file">
-                <input
-                  type="file"
-                  id="import-bookmarks-file"
-                  accept=".html"
-                  aria-label="Choose bookmark file to import"
-                />
-                <span class="file-custom"></span>
-              </label>
-              <button id="import-btn" class="button primary">Import</button>
-            </p>
-            <meter value="0" max="100" id="import-progress" class="is-full-width is-hidden"></meter>
-          </form>
-          <div class="col-2"></div>
+    <section class="columns section">
+      <div class="column is-6 is-offset-3">
+        <div class="level">
+          <div class="level-left">
+            <h3 class="title level-item">Settings</h3>
+          </div>
         </div>
+        <form id="import-bookmarks-form" enctype="multipart/form-data">
+          <label for="import-bookmarks-file" class="label">Import Bookmarks</label>
+          <div class="field is-grouped">
+            <div class="control">
+              <div id="import-bookmarks-file" class="file has-name is-link">
+                <label class="file-label">
+                  <input
+                    name="import-bookmarks-file"
+                    class="file-input"
+                    type="file"
+                    accept=".html"
+                    aria-label="Choose bookmark file to import"
+                  />
+                  <span class="file-cta">
+                    <span class="file-label">
+                      Choose a file
+                    </span>
+                  </span>
+                  <span class="file-name">bookmarks.html</span>
+                </label>
+              </div>
+            </div>
+            <button id="import-btn" class="button is-info" disabled>Import</button>
+          </div>
+          <progress value="0" max="100" id="import-progress" class="progress is-link is-hidden"></meter>
+        </form>
+        <hr />
       </div>
-      <div class="row">
-        <div class="col-2"></div>
-        <div class="col-2">
-          <!-- Theme selector -->
-          <label for="theme-select">Theme:</label>
-          <select id="theme-select">
-            <option value="light">Light</option>
-            <option value="dark">Dark</option>
-          </select>
-        </div>
-        <div class="col"></div>
-      </div>
-    </div>
-    <!-- Include your JavaScript file here -->
+    </section>
+
     <script src="./js/settings.js" type="module"></script>
   </body>
 </html>

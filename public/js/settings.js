@@ -1,6 +1,9 @@
 import { API_URL } from './common.js';
 import { wsHandler } from './ws.js';
 
+const fileInput = document.querySelector('#import-bookmarks-file input[type=file]');
+const importButton = document.getElementById('import-btn');
+
 async function importBookmarks(file) {
   const formData = new FormData();
   formData.append('file', file);
@@ -26,14 +29,14 @@ async function importBookmarks(file) {
   if (!response.ok) {
     throw new Error('Failed to import bookmarks');
   }
-}
 
-const importFileInput = document.getElementById('import-bookmarks-file');
-const importButton = document.getElementById('import-btn');
+  // Show the success notification
+  showNotification('Bookmarks imported successfully.');
+}
 
 importButton.addEventListener('click', async (e) => {
   e.preventDefault();
-  const file = importFileInput.files[0];
+  const file = fileInput.files[0];
   if (!file) {
     alert('Please select a file to import.');
     return;
@@ -41,28 +44,41 @@ importButton.addEventListener('click', async (e) => {
 
   try {
     await importBookmarks(file);
-    alert('Bookmarks imported successfully.');
   } catch (error) {
     console.error('Failed to import bookmarks:', error);
     alert('Failed to import bookmarks. Please try again.');
   }
+  fileInput.value = '';
+  importButton.disabled = true;
 });
 
-function handleThemeSelect() {
-  const themeSelect = document.getElementById('theme-select');
-  const storedTheme = localStorage.getItem('theme');
-  if (storedTheme) {
-    themeSelect.value = storedTheme;
-    document.body.classList.toggle('dark', storedTheme === 'dark');
-  }
+function showNotification(message, type = 'success') {
+  const notification = document.createElement('div');
+  notification.className = `notification is-${type} top-centered-notification`;
+  notification.innerHTML = `
+    <button class="delete"></button>
+    ${message}
+  `;
 
-  themeSelect.addEventListener('change', (e) => {
-    const theme = e.target.value;
-    localStorage.setItem('theme', theme);
-    document.body.classList.toggle('dark', theme === 'dark');
+  // Add the event listener to the delete button
+  notification.querySelector('.delete').addEventListener('click', () => {
+    notification.parentNode.removeChild(notification);
   });
+
+  document.body.appendChild(notification);
+
+  // Automatically remove the notification after 5 seconds
+  setTimeout(() => {
+    notification.parentNode.removeChild(notification);
+  }, 5000);
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  handleThemeSelect();
+  fileInput.onchange = () => {
+    if (fileInput.files.length > 0) {
+      const fileName = document.querySelector('#import-bookmarks-file .file-name');
+      fileName.textContent = fileInput.files[0].name;
+      importButton.disabled = false;
+    }
+  };
 });
