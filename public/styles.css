@@ -1,5 +1,5 @@
 
-.link-item-tags-description {
+.link-item-tags-description, .link-item-title {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;

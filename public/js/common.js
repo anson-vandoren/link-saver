@@ -1,5 +1,7 @@
 export const API_URL = 'http://localhost:3001';
 
+const DEFAULT_PER_PAGE = 25;
+
 /**
  * @typedef {Object} Link
  * @property {number} id
@@ -43,10 +45,10 @@ export function handleLogoutButtonClick() {
  * @param {string} searchQuery optional search query to filter links
  * @throws {Error} if the request fails
  */
-export async function loadLinks(searchQuery = '') {
+export async function loadLinks(searchQuery = '', page = 1, pageSize = DEFAULT_PER_PAGE) {
+  // TODO: can we remove needing searchQuery as an arg?
   try {
-    // TODO: implement pagination and remove the slice()
-    const links = (await getLinks(searchQuery)).slice(0, 25);
+    const { links, totalPages } = await getLinks(searchQuery, page, pageSize);
     const linkList = document.getElementById('link-list');
     linkList.innerHTML = '';
 
@@ -54,6 +56,8 @@ export async function loadLinks(searchQuery = '') {
       const item = renderLinkItem(link);
       linkList.appendChild(item);
     });
+
+    updatePagination(searchQuery, page, totalPages);
   } catch (err) {
     console.error('failed to load and render links', err);
     // go to / if not already there
@@ -69,7 +73,7 @@ export async function loadLinks(searchQuery = '') {
  * @returns {Promise<Link[]>} list of links
  * @throws {Error} if the request fails
  */
-async function getLinks(searchQuery = '') {
+async function getLinks(searchQuery = '', page = 1, pageSize = DEFAULT_PER_PAGE) {
   const headers = { 'Content-Type': 'application/json' };
 
   const token = localStorage.getItem('token');
@@ -79,13 +83,18 @@ async function getLinks(searchQuery = '') {
 
   const url = new URL(`${API_URL}/api/links`);
   url.searchParams.append('search', searchQuery);
+  url.searchParams.append('page', page);
+  url.searchParams.append('pageSize', pageSize);
 
   const response = await fetch(url.toString(), { headers });
 
   if (response.ok) {
     const res = await response.json();
 
-    return res.links;
+    return {
+      links: res.links,
+      totalPages: res.totalPages,
+    };
   }
   throw new Error('Failed to load links');
 }
@@ -317,6 +326,91 @@ export async function doSearch(append = false) {
   try {
     await loadLinks(newQuery);
   } catch (_err) {
-    goToRoot();
+    // Do nothing
+  }
+}
+
+function createEllipsis() {
+  const listItem = document.createElement('li');
+  const ellipsis = document.createElement('span');
+  ellipsis.classList.add('pagination-ellipsis');
+  ellipsis.innerHTML = '&hellip;';
+  listItem.appendChild(ellipsis);
+  return listItem;
+}
+
+function createPaginationItem(pageNumber, currentPage) {
+  const listItem = document.createElement('li');
+  const paginationLink = document.createElement('a');
+  paginationLink.classList.add('pagination-link');
+  paginationLink.textContent = pageNumber;
+  paginationLink.setAttribute('aria-label', `Goto page ${pageNumber}`);
+  if (pageNumber === currentPage) {
+    paginationLink.classList.add('is-current');
+    paginationLink.setAttribute('aria-current', 'page');
+  } else {
+    paginationLink.addEventListener('click', () => {
+      const searchQuery = document.getElementById('search-input').value.trim();
+      loadLinks(searchQuery, pageNumber);
+    });
+  }
+  listItem.appendChild(paginationLink);
+  return listItem;
+}
+
+function updatePagination(searchQuery, currentPage, totalPages) {
+  const paginationList = document.querySelector('.pagination-list');
+  paginationList.innerHTML = '';
+
+  const maxPagesToShow = 3; // Adjust this value to show more or fewer page buttons
+
+  let startPage = Math.max(2, currentPage - Math.floor(maxPagesToShow / 2));
+  const endPage = Math.min(totalPages, startPage + maxPagesToShow - 1);
+  startPage = Math.max(2, endPage - maxPagesToShow + 1);
+
+  // TODO: figure out how to replace an ellipsis with a page number so total number of elements is constant
+
+  // always show the first page
+  paginationList.appendChild(createPaginationItem(1, currentPage));
+
+  if (startPage > 2) {
+    paginationList.appendChild(createEllipsis());
+  }
+
+  for (let i = startPage; i <= endPage; i++) {
+    const listItem = createPaginationItem(i, currentPage);
+    paginationList.appendChild(listItem);
+  }
+
+  if (endPage < totalPages) {
+    paginationList.appendChild(createEllipsis());
+  }
+
+  // Add event listeners for previous and next buttons
+  const prevBtn = document.querySelector('.pagination-previous');
+  const nextBtn = document.querySelector('.pagination-next');
+
+  const prevBtnClone = prevBtn.cloneNode(true);
+  const nextBtnClone = nextBtn.cloneNode(true);
+
+  prevBtn.replaceWith(prevBtnClone);
+  nextBtn.replaceWith(nextBtnClone);
+
+  if (currentPage <= 1) {
+    prevBtnClone.setAttribute('disabled', '');
+  } else {
+    prevBtnClone.removeAttribute('disabled');
+    prevBtnClone.addEventListener('click', () => {
+      loadLinks(searchQuery, currentPage - 1);
+    });
+  }
+
+  if (currentPage >= totalPages) {
+    nextBtnClone.setAttribute('disabled', '');
+  } else {
+    nextBtnClone.removeAttribute('disabled');
+    nextBtnClone.addEventListener('click', () => {
+      loadLinks(searchQuery, currentPage + 1);
+    });
   }
 }

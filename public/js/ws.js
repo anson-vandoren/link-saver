@@ -63,7 +63,6 @@ if (token) {
 } else {
   // go to login page
   window.location.href = '/';
-  // TODO: handle for public view
 }
 
 export { wsHandler };

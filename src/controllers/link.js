@@ -4,6 +4,8 @@ const Link = require('../models/link');
 const User = require('../models/user');
 const { wsHandler } = require('../websocket');
 
+const DEFAULT_PER_PAGE = 25;
+
 async function createLink(req, res, next) {
   try {
     const { url, title, tags, isPublic, description } = req.body;
@@ -20,6 +22,9 @@ async function createLink(req, res, next) {
 async function getLinks(req, res, next) {
   try {
     const searchQuery = req.query.search || '';
+    const page = parseInt(req.query.page, 10) || 1;
+    const limit = parseInt(req.query.limit, 10) || DEFAULT_PER_PAGE;
+    const offset = (page - 1) * limit;
 
     const searchTerms = searchQuery.split(' ');
 
@@ -49,7 +54,7 @@ async function getLinks(req, res, next) {
       };
     }
 
-    const links = await Link.findAll({
+    const result = await Link.findAndCountAll({
       where: whereClause,
       attributes: {
         include: ['id', 'title', 'url', 'description', 'tags', 'isPublic', 'savedAt', 'updatedAt'],
@@ -57,9 +62,14 @@ async function getLinks(req, res, next) {
       },
       include: [{ model: User, attributes: ['username'] }],
       order: [['savedAt', 'DESC']],
+      limit,
+      offset,
     });
 
-    res.status(200).json({ links });
+    const links = result.rows;
+    const totalLinks = result.count;
+
+    res.status(200).json({ links, currentPage: page, totalPages: Math.ceil(totalLinks / limit) });
   } catch (error) {
     next(error);
   }
