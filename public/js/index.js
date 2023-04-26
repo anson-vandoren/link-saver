@@ -1,6 +1,7 @@
 import {
   API_URL,
   showNotification,
+  loadLinks,
 } from './common.js';
 
 function loginDropdownHandler() {
@@ -48,4 +49,5 @@ document.addEventListener('DOMContentLoaded', () => {
   loginDropdownHandler();
   const loginForm = document.getElementById('login-form');
   loginForm.addEventListener('submit', loginSubmit);
+  loadLinks();
 });

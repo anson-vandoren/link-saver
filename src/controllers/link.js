@@ -19,7 +19,6 @@ async function createLink(req, res, next) {
 
 async function getLinks(req, res, next) {
   try {
-    const userId = req.user.id;
     const searchQuery = req.query.search || '';
 
     const searchTerms = searchQuery.split(' ');
@@ -27,10 +26,7 @@ async function getLinks(req, res, next) {
     const titleDescriptionFilter = searchTerms
       .filter((term) => !term.startsWith('#'))
       .map((term) => ({
-        [Op.or]: [
-          { title: { [Op.like]: `%${term}%` } },
-          { description: { [Op.like]: `%${term}%` } },
-        ],
+        [Op.or]: [{ title: { [Op.like]: `%${term}%` } }, { description: { [Op.like]: `%${term}%` } }],
       }));
 
     const tagsFilter = searchTerms
@@ -38,13 +34,27 @@ async function getLinks(req, res, next) {
       .map((term) => term.slice(1))
       .map((tagSearch) => ({ tags: { [Op.like]: `%${tagSearch}%` } }));
 
-    const whereClause = {
-      userId,
-      [Op.and]: [...titleDescriptionFilter, ...tagsFilter],
-    };
+    let whereClause;
+
+    const userId = req.user?.id;
+    if (userId) {
+      whereClause = {
+        userId,
+        [Op.and]: [...titleDescriptionFilter, ...tagsFilter],
+      };
+    } else {
+      whereClause = {
+        isPublic: true,
+        [Op.and]: [...titleDescriptionFilter, ...tagsFilter],
+      };
+    }
 
     const links = await Link.findAll({
       where: whereClause,
+      attributes: {
+        include: ['id', 'title', 'url', 'description', 'tags', 'isPublic', 'savedAt', 'updatedAt'],
+        exclude: ['userId'],
+      },
       include: [{ model: User, attributes: ['username'] }],
       order: [['savedAt', 'DESC']],
     });
@@ -57,10 +67,12 @@ async function getLinks(req, res, next) {
 
 async function getLink(req, res, next) {
   try {
+    const userId = req.user.id;
+    console.log('getLink for userId', userId);
     const link = await Link.findOne({
       where: {
         id: req.params.id,
-        UserId: req.user.id,
+        UserId: userId,
       },
       include: [{ model: User, attributes: ['username'] }],
     });
@@ -128,9 +140,7 @@ function parseNetscapeHTML(htmlContent) {
       const isPrivate = aElement.getAttribute('private') === '1';
 
       const ddElement = dtElement.nextElementSibling;
-      const description = ddElement && ddElement.tagName === 'DD'
-        ? ddElement.textContent.trim()
-        : '';
+      const description = ddElement && ddElement.tagName === 'DD' ? ddElement.textContent.trim() : '';
 
       bookmarks.push({ url, title, tags, description, addDate, isPublic: !isPrivate });
     }

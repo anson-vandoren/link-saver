@@ -23,4 +23,28 @@ function authenticate(req, res, next) {
   });
 }
 
-module.exports = authenticate;
+async function authenticateOptional(req, res, next) {
+  const authHeader = req.headers.authorization;
+
+  if (!authHeader) {
+    req.user = null;
+    return next();
+  }
+
+  const token = authHeader.split(' ')[1];
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = decoded;
+    next();
+  } catch (error) {
+    console.log('Error verifying token: ', error);
+    req.user = null;
+    next();
+  }
+}
+
+module.exports = {
+  authenticate,
+  authenticateOptional,
+};

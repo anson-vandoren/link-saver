@@ -3,13 +3,13 @@ const multer = require('multer');
 const {
   createLink, getLink, getLinks, updateLink, deleteLink, importLinks,
 } = require('../controllers/link');
-const authenticate = require('../middleware/authenticate');
+const { authenticate, authenticateOptional } = require('../middleware/authenticate');
 
 const upload = multer({ storage: multer.memoryStorage() });
 const router = express.Router();
 
 router.post('/', authenticate, createLink);
-router.get('/', authenticate, getLinks);
+router.get('/', authenticateOptional, getLinks);
 router.get('/:id', authenticate, getLink);
 router.put('/:id', authenticate, updateLink);
 router.delete('/:id', authenticate, deleteLink);
