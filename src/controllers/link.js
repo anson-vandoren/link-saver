@@ -58,7 +58,7 @@ async function getLinks(req, res, next) {
       where: whereClause,
       attributes: {
         include: ['id', 'title', 'url', 'description', 'tags', 'isPublic', 'savedAt', 'updatedAt'],
-        exclude: ['userId'],
+        exclude: userId ? [] : ['userId'],
       },
       include: [{ model: User, attributes: ['username'] }],
       order: [['savedAt', 'DESC']],
