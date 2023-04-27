@@ -358,32 +358,53 @@ function createPaginationItem(pageNumber, currentPage) {
   return listItem;
 }
 
+/* Expected pagination layout:
+  * 1 2 3 4 5 ... 10
+  * 1 ... 4 5 6 ... 10
+  * 1 ... 6 7 8 9 10
+*/
 function updatePagination(searchQuery, currentPage, totalPages) {
   const paginationList = document.querySelector('.pagination-list');
   paginationList.innerHTML = '';
 
-  const maxPagesToShow = 3; // Adjust this value to show more or fewer page buttons
+  const maxPagesToShow = 5; // Adjust this value to show more or fewer page buttons
 
-  let startPage = Math.max(2, currentPage - Math.floor(maxPagesToShow / 2));
-  const endPage = Math.min(totalPages, startPage + maxPagesToShow - 1);
-  startPage = Math.max(2, endPage - maxPagesToShow + 1);
+  let startPage = Math.max(2, currentPage - Math.floor((maxPagesToShow - 2) / 2));
+  let endPage = Math.min(totalPages - 1, startPage + maxPagesToShow - 3);
+  startPage = Math.max(2, endPage - (maxPagesToShow - 3));
 
-  // TODO: figure out how to replace an ellipsis with a page number so total number of elements is constant
-
-  // always show the first page
+  // Add the first page button
   paginationList.appendChild(createPaginationItem(1, currentPage));
 
+  // Add left ellipsis if necessary
   if (startPage > 2) {
     paginationList.appendChild(createEllipsis());
+  } else {
+    // if not an ellipsis, add the second page button
+    paginationList.appendChild(createPaginationItem(2, currentPage));
+    startPage++;
+    endPage++;
   }
 
+  // if we won't be adding an ellipsis at the end, make startPage one sooner
+  if (endPage === totalPages - 1) {
+    startPage--;
+  }
+
+  // Add the page buttons
   for (let i = startPage; i <= endPage; i++) {
     const listItem = createPaginationItem(i, currentPage);
     paginationList.appendChild(listItem);
   }
 
-  if (endPage < totalPages) {
+  // Add right ellipsis if necessary
+  if (endPage < totalPages - 1) {
     paginationList.appendChild(createEllipsis());
+  }
+
+  // Add the last page button
+  if (totalPages > 1) {
+    paginationList.appendChild(createPaginationItem(totalPages, currentPage));
   }
 
   // Add event listeners for previous and next buttons
