@@ -6,26 +6,24 @@ module.exports = {
   },
   root: true,
   extends: 'airbnb-base',
-  overrides: [
-  ],
+  overrides: [],
   parserOptions: {
     ecmaVersion: 'latest',
     sourceType: 'module',
   },
   rules: {
-    'no-use-before-define': [
-      'error', {
-        functions: false,
-      },
-    ],
+    'no-use-before-define': ['error', { functions: false }],
     'no-plusplus': 0,
     'object-curly-newline': [
-      'warn', {
-        ObjectExpression: { multiline: true, minProperties: 6 },
-        ObjectPattern: { multiline: true, minProperties: 6 },
-        ImportDeclaration: { multiline: true, minProperties: 6 },
-        ExportDeclaration: { multiline: true, minProperties: 6 },
+      'warn',
+      {
+        ObjectExpression: { multiline: true, minProperties: 6, consistent: true },
+        ObjectPattern: { multiline: true, minProperties: 6, consistent: true },
+        ImportDeclaration: { multiline: true, minProperties: 6, consistent: true },
+        ExportDeclaration: { multiline: true, minProperties: 6, consistent: true },
       },
     ],
+    'no-underscore-dangle': 0,
+    'import/extensions': 0,
   },
 };

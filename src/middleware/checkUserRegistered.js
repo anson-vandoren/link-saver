@@ -1,6 +1,6 @@
-const User = require('../models/user');
+import User from '../models/user.js';
 
-async function checkUserRegistered(req, res, next) {
+async function checkUserRegistered(_req, res, next) {
   try {
     const user = await User.findOne();
     if (!user) {
@@ -12,6 +12,4 @@ async function checkUserRegistered(req, res, next) {
   return next();
 }
 
-module.exports = {
-  checkUserRegistered,
-};
+export default checkUserRegistered;

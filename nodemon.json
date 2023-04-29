@@ -1,3 +1,5 @@
 {
-  "ignore": ["public/**/*"]
+  "verbose": true,
+  "ignore": ["public/**/*"],
+  "watch": ["src/**/*", ".env", "nodemon.json"]
 }

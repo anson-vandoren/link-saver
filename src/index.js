@@ -1,16 +1,19 @@
-require('dotenv').config();
-const express = require('express');
-const cors = require('cors');
-const path = require('path');
-const { JSDOM } = require('jsdom');
-const https = require('https');
-const http = require('http');
-const userRoutes = require('./routes/user');
-const linkRoutes = require('./routes/link');
-const errorHandler = require('./middleware/errorHandler');
-const { checkUserRegistered } = require('./middleware/checkUserRegistered');
-const sequelize = require('./database');
-const { wsHandler } = require('./websocket');
+import { URL } from 'url';
+// config.js must be first to ensure .env variables are loaded before anything else
+import './config.js';
+import express from 'express';
+import cors from 'cors';
+import { join } from 'path';
+import { JSDOM } from 'jsdom';
+import * as https from 'https';
+import * as http from 'http';
+import userRoutes from './routes/user.js';
+import linkRoutes from './routes/link.js';
+import errorHandler from './middleware/errorHandler.js';
+import checkUserRegistered from './middleware/checkUserRegistered.js';
+import sequelize from './database.js';
+import wsHandler from './websocket.js';
+import logger from './logger.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -19,14 +22,16 @@ const PORT = process.env.PORT || 3001;
 app.use(cors());
 app.use(express.json());
 
+const __dirname = new URL('.', import.meta.url).pathname;
+
 // serve index.html at the root path, and other static content as needed
-app.use(express.static(path.join(__dirname, '..', 'public')));
+app.use(express.static(join(__dirname, '..', 'public')));
 
 // Routes
 app.use('/api/users', userRoutes);
 app.use('/api/links', checkUserRegistered, linkRoutes);
 app.get('/bookmarks', checkUserRegistered, (_req, res) => {
-  res.sendFile(path.join(__dirname, '..', 'public', 'bookmarks.html'));
+  res.sendFile(join(__dirname, '..', 'public', 'bookmarks.html'));
 });
 
 // Error handler
@@ -41,7 +46,7 @@ wsHandler.on('scrapeFQDN', async (sock, data) => {
     const { title, description, url: finalUrl } = await fetchTitleAndDescription(url);
     sock.send(JSON.stringify({ type: 'scrapeFQDN', data: { title, description, url: finalUrl } }));
   } catch (error) {
-    console.error('Failed to fetch title and description:', error);
+    logger.error('Failed to fetch title and description:', { error });
     sock.send(JSON.stringify({ type: 'error', data: `Failed to fetch title and description: ${error}` }));
   }
 });
@@ -62,7 +67,7 @@ async function fetchTitleAndDescription(providedUrl) {
 
     return { title, description, url: finalUrl };
   } catch (error) {
-    console.error('Failed to fetch title and description:', error);
+    logger.error('Failed to fetch title and description:', { error });
     return { title: '', description: '', url };
   }
 }
@@ -104,15 +109,13 @@ async function fetchUrlData(url) {
 }
 
 // Start the server
-(async () => {
-  try {
-    await sequelize.sync();
-    console.log('Database synchronized');
-    server.listen(PORT, () => {
-      console.log(`Server is running on port ${PORT}`);
-    });
-    await wsHandler.listen(server);
-  } catch (error) {
-    console.error('Error synchronizing database:', error);
-  }
-})();
+try {
+  await sequelize.sync();
+  logger.info('Database synchronized');
+} catch (error) {
+  logger.error('Error synchronizing database:', error);
+}
+server.listen(PORT, () => {
+  logger.info('Server started', { port: PORT });
+});
+await wsHandler.listen(server);

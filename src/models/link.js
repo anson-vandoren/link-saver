@@ -1,6 +1,6 @@
-const { Sequelize, DataTypes, Model } = require('sequelize');
-const sequelize = require('../database');
-const User = require('./user');
+import Sequelize, { DataTypes, Model } from 'sequelize';
+import sequelize from '../database.js';
+import User from './user.js';
 
 class Link extends Model {}
 
@@ -14,13 +14,9 @@ Link.init(
     url: {
       type: DataTypes.STRING,
       allowNull: false,
-      validate: {
-        isUrl: true,
-      },
+      validate: { isUrl: true },
     },
-    title: {
-      type: DataTypes.STRING,
-    },
+    title: { type: DataTypes.STRING },
     tags: {
       type: DataTypes.TEXT,
       allowNull: true,
@@ -64,4 +60,4 @@ Link.init(
 User.hasMany(Link, { foreignKey: 'userId' });
 Link.belongsTo(User, { foreignKey: 'userId' });
 
-module.exports = Link;
+export default Link;

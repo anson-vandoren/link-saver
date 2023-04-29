@@ -1,8 +1,9 @@
-const { Op } = require('sequelize');
-const { JSDOM } = require('jsdom');
-const Link = require('../models/link');
-const User = require('../models/user');
-const { wsHandler } = require('../websocket');
+import { Op } from 'sequelize';
+import { JSDOM } from 'jsdom';
+import Link from '../models/link.js';
+import User from '../models/user.js';
+import wsHandler from '../websocket.js';
+import logger from '../logger.js';
 
 const DEFAULT_PER_PAGE = 25;
 
@@ -11,7 +12,9 @@ async function createLink(req, res, next) {
     const { url, title, tags, isPublic, description } = req.body;
     const userId = req.user.id;
 
-    const newLink = await Link.create({ url, title, tags, isPublic, description, userId });
+    const newLink = await Link.create({
+      url, title, tags, isPublic, description, userId,
+    });
 
     res.status(201).json({ message: 'Link created successfully', link: newLink });
   } catch (error) {
@@ -144,24 +147,25 @@ function exportBookmarks(links) {
 async function exportLinks(req, res, next) {
   try {
     const userId = req.user.id;
-    console.log('exportLinks for userId', userId);
     if (!userId) {
-      return res.status(401).json({ error: { message: 'Unauthorized' } });
+      res.status(401).json({ error: { message: 'Unauthorized' } });
+      return;
     }
     const links = await getAllLinks(userId);
+    logger.info('exporting links', { userId, count: links.length });
     const bookmarkHTML = exportBookmarks(links);
     res.setHeader('Content-Disposition', 'attachment; filename=bookmarks.html');
     res.setHeader('Content-Type', 'text/html');
     res.send(bookmarkHTML);
   } catch (error) {
-    return next(error);
+    next(error);
   }
 }
 
 async function getLink(req, res, next) {
   try {
     const userId = req.user.id;
-    console.log('getLink for userId', userId);
+    logger.silly('getting link for user', { userId, linkId: req.params.id });
     const link = await Link.findOne({
       where: {
         id: req.params.id,
@@ -188,7 +192,8 @@ async function updateLink(req, res, next) {
 
     const link = await Link.findOne({ where: { id, userId } });
     if (!link) {
-      return res.status(404).json({ error: { message: 'Link not found' } });
+      res.status(404).json({ error: { message: 'Link not found' } });
+      return;
     }
 
     await link.update({ url, title, tags, isPublic });
@@ -206,7 +211,8 @@ async function deleteLink(req, res, next) {
 
     const link = await Link.findOne({ where: { id, userId } });
     if (!link) {
-      return res.status(404).json({ error: { message: 'Link not found' } });
+      res.status(404).json({ error: { message: 'Link not found' } });
+      return;
     }
 
     await link.destroy();
@@ -235,7 +241,9 @@ function parseNetscapeHTML(htmlContent) {
       const ddElement = dtElement.nextElementSibling;
       const description = ddElement && ddElement.tagName === 'DD' ? ddElement.textContent.trim() : '';
 
-      bookmarks.push({ url, title, tags, description, addDate, isPublic: !isPrivate });
+      bookmarks.push({
+        url, title, tags, description, addDate, isPublic: !isPrivate,
+      });
     }
   });
 
@@ -250,7 +258,9 @@ async function addBookmarksToDatabase(bookmarks, userId) {
 
   const totalBookmarks = bookmarks.length;
   const bookmarkPromises = bookmarks.map((bookmark, i) => {
-    const { url, title, tags, description, addDate, isPublic } = bookmark;
+    const {
+      url, title, tags, description, addDate, isPublic,
+    } = bookmark;
 
     // Add the new link to the database
     const createLinkPromise = Link.create({
@@ -270,7 +280,7 @@ async function addBookmarksToDatabase(bookmarks, userId) {
           JSON.stringify({
             type: 'import-progress',
             data: { progress: (i / totalBookmarks) * 100 },
-          })
+          }),
         );
       }
     });
@@ -297,7 +307,7 @@ async function importLinks(req, res, next) {
   return res.status(200).json({ message: 'Links imported successfully' });
 }
 
-module.exports = {
+export {
   createLink,
   exportLinks,
   getLink,

@@ -1,5 +1,6 @@
-const jwt = require('jsonwebtoken');
-const WebSocket = require('ws');
+import { verify } from 'jsonwebtoken';
+import ws from 'ws';
+import logger from './logger.js';
 
 class WSHandler {
   constructor() {
@@ -9,30 +10,33 @@ class WSHandler {
 
   listen(server) {
     if (this.socket) {
-      console.debug('WebSocket already listening');
+      logger.debug('WebSocket already listening');
       return Promise.resolve();
     }
-    const wss = new WebSocket.Server({ server });
+    const wss = new ws.Server({ server });
 
     wss.on('error', (err) => {
-      console.error('WebSocket server error', err);
+      logger.error('WebSocket server error', { err });
     });
 
     return new Promise((resolve) => {
       wss.on('listening', () => {
-        console.log('WebSocket server listening');
+        logger.info('WebSocket server listening');
         resolve();
       });
 
       wss.on('connection', (sock, req) => {
         const token = new URL(req.url, `http://${req.headers.host}`).searchParams.get('token');
         if (!token) {
-          console.log('Client did not provide a token');
+          logger.warn('Client did not provide a token');
           sock.close();
           return;
         }
-        console.log('Client connected', token);
-        jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
+        logger.debug('Client connected', { token, ip: req.socket.remoteAddress, port: req.socket.remotePort });
+        // Keep track of the remote host since it's not present on the 'close' event
+        // eslint-disable-next-line no-param-reassign
+        sock.__remoteHost = { ip: req.socket.remoteAddress, port: req.socket.remotePort };
+        verify(token, process.env.JWT_SECRET, (err, decoded) => {
           this.onJwtVerified(decoded, err, sock);
         });
       });
@@ -41,22 +45,23 @@ class WSHandler {
 
   onJwtVerified(decoded, err, sock) {
     if (err) {
-      console.log('Client provided an invalid token', err);
+      logger.warn('Client provided an invalid token', { err });
       sock.close();
       return;
     }
-    console.log('Client provided a valid token', decoded);
+    logger.debug('Client provided a valid token', { decoded });
     this.connections.set(decoded.id, sock);
 
     sock.on('message', (message) => this.handleMessage(sock, message));
 
-    sock.on('close', () => {
-      console.log('Client disconnected');
+    sock.on('close', (code, reason) => {
+      const { ip, port } = sock.__remoteHost;
+      logger.debug('Client disconnected', { code, reason: reason.toString() || undefined, ip, port });
       this.connections.delete(decoded.id);
     });
 
     sock.on('error', (error) => {
-      console.error('WebSocket error', error);
+      logger.error('WebSocket error', { error });
     });
   }
 
@@ -65,7 +70,7 @@ class WSHandler {
     if (this.handlers.has(type)) {
       this.handlers.get(type)(socket, data);
     } else {
-      console.log('Unhandled message type', type);
+      logger.warn('Unhandled message type', { type });
     }
   }
 
@@ -83,4 +88,4 @@ class WSHandler {
 
 const wsHandler = new WSHandler();
 
-module.exports = { wsHandler };
+export default wsHandler;
