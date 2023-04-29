@@ -56,6 +56,33 @@ importButton.addEventListener('click', async (e) => {
   importButton.disabled = true;
 });
 
+async function exportBookmarks() {
+  try {
+    const response = await fetch(`${API_URL}/api/links/export`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${localStorage.getItem('token')}`,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error('Error exporting bookmarks');
+    }
+
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'bookmarks.html';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  } catch (error) {
+    console.error('Error exporting bookmarks:', error.message);
+  }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   fileInput.onchange = () => {
     if (fileInput.files.length > 0) {
@@ -65,4 +92,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   };
   document.getElementById('logout-btn').addEventListener('click', handleLogoutButtonClick);
+  const exportBtn = document.getElementById('export-btn');
+  exportBtn.addEventListener('click', () => {
+    exportBookmarks();
+  });
 });

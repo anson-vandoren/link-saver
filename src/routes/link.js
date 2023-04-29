@@ -1,7 +1,7 @@
 const express = require('express');
 const multer = require('multer');
 const {
-  createLink, getLink, getLinks, updateLink, deleteLink, importLinks,
+  createLink, exportLinks, getLink, getLinks, updateLink, deleteLink, importLinks,
 } = require('../controllers/link');
 const { authenticate, authenticateOptional } = require('../middleware/authenticate');
 
@@ -10,6 +10,7 @@ const router = express.Router();
 
 router.post('/', authenticate, createLink);
 router.get('/', authenticateOptional, getLinks);
+router.get('/export', authenticate, exportLinks);
 router.get('/:id', authenticate, getLink);
 router.put('/:id', authenticate, updateLink);
 router.delete('/:id', authenticate, deleteLink);

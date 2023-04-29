@@ -50,9 +50,7 @@
                     aria-label="Choose bookmark file to import"
                   />
                   <span class="file-cta">
-                    <span class="file-label">
-                      Choose a file
-                    </span>
+                    <span class="file-label"> Choose a file </span>
                   </span>
                   <span class="file-name">bookmarks.html</span>
                 </label>
@@ -60,9 +58,13 @@
             </div>
             <button id="import-btn" class="button is-info" disabled>Import</button>
           </div>
-          <progress value="0" max="100" id="import-progress" class="progress is-link is-hidden"></meter>
+          <progress value="0" max="100" id="import-progress" class="progress is-link is-hidden"></progress>
         </form>
         <hr />
+        <div class="export-bookmarks-container">
+          <label class="label">Export Bookmarks</label>
+          <button id="export-btn" class="button is-info">Export</button>
+        </div>
       </div>
     </section>
 

@@ -19,6 +19,7 @@ async function createLink(req, res, next) {
   }
 }
 
+// TODO: disallow more than 100 per request if not signed in
 async function getLinks(req, res, next) {
   try {
     const searchQuery = req.query.search || '';
@@ -72,6 +73,88 @@ async function getLinks(req, res, next) {
     res.status(200).json({ links, currentPage: page, totalPages: Math.ceil(totalLinks / limit) });
   } catch (error) {
     next(error);
+  }
+}
+
+async function getAllLinks(userId) {
+  let whereClause;
+
+  if (userId) {
+    whereClause = { userId };
+  } else {
+    whereClause = { isPublic: true };
+  }
+
+  const links = await Link.findAll({
+    where: whereClause,
+    attributes: {
+      include: ['id', 'title', 'url', 'description', 'tags', 'isPublic', 'savedAt', 'updatedAt'],
+      exclude: userId ? [] : ['userId'],
+    },
+    include: [{ model: User, attributes: ['username'] }],
+    order: [['savedAt', 'DESC']],
+  });
+
+  return links;
+}
+
+function replaceUnusualWhitespace(text) {
+  // eslint-disable-next-line no-control-regex
+  const unusualWhitespaceRegex = /[\u0085\u2028\u2029\u000C\u000B]/g;
+  return text.replace(unusualWhitespaceRegex, ' ');
+}
+
+function exportBookmarks(links) {
+  const header = `<!DOCTYPE NETSCAPE-Bookmark-file-1>
+
+<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=UTF-8">
+
+<TITLE>Bookmarks</TITLE>
+
+<H1>Bookmarks</H1>
+
+<DL><p>
+`;
+
+  const footer = '\n</DL><p>';
+
+  const bookmarks = links.map((link) => {
+    const {
+      title,
+      url,
+      description,
+      tags,
+      isPublic,
+      savedAt,
+    } = link;
+
+    const dt = Math.floor(new Date(savedAt).getTime() / 1000);
+
+    const firstLine = `\t<DT><A HREF="${url}" ADD_DATE="${dt}" PRIVATE="${isPublic ? '0' : '1'}" TAGS="${tags.join(',')}">${title}</A>\n`;
+    if (!description) {
+      return firstLine;
+    }
+    return `${firstLine}\n\t<DD>${description}\n`;
+  }).join('\n');
+
+  const bookmarkHTML = header + bookmarks + footer;
+  return replaceUnusualWhitespace(bookmarkHTML);
+}
+
+async function exportLinks(req, res, next) {
+  try {
+    const userId = req.user.id;
+    console.log('exportLinks for userId', userId);
+    if (!userId) {
+      return res.status(401).json({ error: { message: 'Unauthorized' } });
+    }
+    const links = await getAllLinks(userId);
+    const bookmarkHTML = exportBookmarks(links);
+    res.setHeader('Content-Disposition', 'attachment; filename=bookmarks.html');
+    res.setHeader('Content-Type', 'text/html');
+    res.send(bookmarkHTML);
+  } catch (error) {
+    return next(error);
   }
 }
 
@@ -216,6 +299,7 @@ async function importLinks(req, res, next) {
 
 module.exports = {
   createLink,
+  exportLinks,
   getLink,
   getLinks,
   updateLink,
