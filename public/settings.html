@@ -4,7 +4,12 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Settings</title>
-    <link rel="stylesheet" href="https://unpkg.com/bulmaswatch/darkly/bulmaswatch.min.css" />
+    <script>
+      (function () {
+        const theme = localStorage.getItem('selectedTheme') || 'https://unpkg.com/bulmaswatch/darkly/bulmaswatch.min.css';
+        document.write(`<link id="theme-stylesheet" rel="stylesheet" href="${theme}" />`);
+      })();
+    </script>
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
@@ -60,10 +65,21 @@
           </div>
           <progress value="0" max="100" id="import-progress" class="progress is-link is-hidden"></progress>
         </form>
-        <hr />
-        <div class="export-bookmarks-container">
-          <label class="label">Export Bookmarks</label>
-          <button id="export-btn" class="button is-info">Export</button>
+        <div class="export-bookmarks-container level">
+          <div class="control">
+            <label class="label">Export Bookmarks</label>
+            <button id="export-btn" class="button is-info">Export</button>
+          </div>
+        </div>
+        <div class="field level">
+          <div class="control">
+            <label for="theme-selector" class="label">Select Theme</label>
+            <div class="select">
+              <select id="theme-selector">
+                <!-- Theme options will be populated here -->
+              </select>
+            </div>
+          </div>
         </div>
       </div>
     </section>
