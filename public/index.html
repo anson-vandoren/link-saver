@@ -6,7 +6,8 @@
     <title>PagePouch</title>
     <script>
       (function () {
-        const theme = localStorage.getItem('selectedTheme') || 'https://unpkg.com/bulmaswatch/darkly/bulmaswatch.min.css';
+        const theme =
+          localStorage.getItem('selectedTheme') || 'https://unpkg.com/bulmaswatch/darkly/bulmaswatch.min.css';
         document.write(`<link id="theme-stylesheet" rel="stylesheet" href="${theme}" />`);
       })();
     </script>
@@ -67,7 +68,7 @@
     </template>
 
     <section class="columns section">
-      <div class="column is-6 is-offset-3">
+      <div class="column is-5 is-offset-3">
         <div class="level">
           <div class="level-left">
             <h3 class="title level-item">Bookmarks</h3>
@@ -96,21 +97,27 @@
           <!-- Links will be added here dynamically -->
         </ul>
 
-        <p class="level">
-          <nav class="pagination is-centered" role="navigation" aria-label="pagination">
-            <a class="pagination-previous">Previous</a>
-            <a class="pagination-next">Next page</a>
-            <ul class="pagination-list">
-              <li><a class="pagination-link" aria-label="Goto page 1">1</a></li>
-              <li><span class="pagination-ellipsis">&hellip;</span></li>
-              <li><a class="pagination-link" aria-label="Goto page 45">45</a></li>
-              <li><a class="pagination-link is-current" aria-label="Page 46" aria-current="page">46</a></li>
-              <li><a class="pagination-link" aria-label="Goto page 47">47</a></li>
-              <li><span class="pagination-ellipsis">&hellip;</span></li>
-              <li><a class="pagination-link" aria-label="Goto page 86">86</a></li>
-            </ul>
-          </nav>
-        </p>
+        <p class="level"><!-- without this, the pagination is too close --></p>
+        <nav class="pagination is-centered" role="navigation" aria-label="pagination">
+          <a class="pagination-previous">Previous</a>
+          <a class="pagination-next">Next page</a>
+          <ul class="pagination-list">
+            <li><a class="pagination-link" aria-label="Goto page 1">1</a></li>
+            <li><span class="pagination-ellipsis">&hellip;</span></li>
+            <li><a class="pagination-link" aria-label="Goto page 45">45</a></li>
+            <li><a class="pagination-link is-current" aria-label="Page 46" aria-current="page">46</a></li>
+            <li><a class="pagination-link" aria-label="Goto page 47">47</a></li>
+            <li><span class="pagination-ellipsis">&hellip;</span></li>
+            <li><a class="pagination-link" aria-label="Goto page 86">86</a></li>
+          </ul>
+        </nav>
+      </div>
+      <div class="column is-4">
+        <h3 class="title is-4">Tags</h3>
+        <hr />
+        <div id="tagsList">
+          <!-- Tags will be added here dynamically -->
+        </div>
       </div>
     </section>
 
