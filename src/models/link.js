@@ -17,16 +17,6 @@ Link.init(
       validate: { isUrl: true },
     },
     title: { type: DataTypes.STRING },
-    tags: {
-      type: DataTypes.TEXT,
-      allowNull: true,
-      get() {
-        return JSON.parse(this.getDataValue('tags') || '[]');
-      },
-      set(value) {
-        this.setDataValue('tags', JSON.stringify(value || []));
-      },
-    },
     description: {
       type: DataTypes.STRING,
       allowNull: true,
@@ -56,8 +46,5 @@ Link.init(
     modelName: 'Link',
   },
 );
-
-User.hasMany(Link, { foreignKey: 'userId' });
-Link.belongsTo(User, { foreignKey: 'userId' });
 
 export default Link;

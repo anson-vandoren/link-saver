@@ -3,87 +3,48 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>PagePouch</title>
+    <title>PagePouch - Sign Up</title>
     <script>
       (function () {
-        const theme = localStorage.getItem('selectedTheme') || 'https://unpkg.com/bulmaswatch/darkly/bulmaswatch.min.css';
+        const theme =
+          localStorage.getItem('selectedTheme') || 'https://unpkg.com/bulmaswatch/darkly/bulmaswatch.min.css';
         document.write(`<link id="theme-stylesheet" rel="stylesheet" href="${theme}" />`);
       })();
     </script>
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <nav class="navbar is-transparent" role="navigation" aria-label="main navigation">
-      <div class="navbar-brand">
-        <a class="navbar-item title" href="/">PagePouch</a>
-      </div>
-      <div class="navbar-menu">
-        <div class="navbar-end">
-          <div class="navbar-item has-dropdown" id="login-dropdown">
-            <a class="navbar-link">Login</a>
-            <div class="navbar-dropdown is-boxed is-right is-transparent">
-              <div class="navbar-item">
-                <form id="login-form">
-                  <div class="field">
-                    <div class="control">
-                      <input class="input" type="text" placeholder="Username" id="login-username" />
-                    </div>
-                  </div>
-                  <div class="field">
-                    <div class="control">
-                      <input
-                        class="input"
-                        type="password"
-                        placeholder="Password"
-                        id="login-password"
-                      />
-                    </div>
-                  </div>
-                  <div class="field is-grouped">
-                    <div class="control">
-                      <button class="button is-primary" id="login-btn">Log in</button>
-                    </div>
-                  </div>
-                </form>
+    <section class="section">
+      <div class="container is-max-desktop">
+        <form id="signup-form">
+          <div class="columns">
+            <div class="column"></div>
+            <div class="column is-one-third">
+              <h1 class="title">Sign up</h1>
+              <div class="field">
+                <label class="label">Username</label>
+                <div class="control">
+                  <input class="input" type="text" name="username" placeholder="Enter your username">
+                </div>
+              </div>
+              <div class="field">
+                <label class="label">Password</label>
+                <div class="control">
+                  <input class="input" type="password" name="password" placeholder="Enter your password">
+                </div>
+              </div>
+              <div class="field">
+                <div class="control">
+                  <button class="button is-primary" type="submit">Sign up</button>
+                </div>
               </div>
             </div>
+            <div class="column"></div>
           </div>
-        </div>
+        </form>
       </div>
-    </nav>
+    </section>
 
-    <div class="row">
-      <div class="col-2"></div>
-
-      <div class="col-8">
-        <div class="row is-vertical-align">
-          <div class="col-2">
-            <h3>Bookmarks</h3>
-          </div>
-          <div class="col"></div>
-          <div class="col-6">
-            <input
-              type="search"
-              placeholder="Search for words or #tags"
-              autocomplete="off"
-              id="search-input"
-            />
-          </div>
-          <div class="col-2">
-            <button id="search-button">Search</button>
-          </div>
-        </div>
-
-        <div class="row">
-          <ul class="list-group col-12" id="link-list">
-            <!-- Links will be added here dynamically -->
-          </ul>
-        </div>
-      </div>
-
-      <div class="col-2"></div>
-    </div>
-
-    <script src="js/index.js" type="module"></script>
+    <script src="js/signup.js" type="module"></script>
   </body>
 </html>

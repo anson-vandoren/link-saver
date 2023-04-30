@@ -7,6 +7,7 @@ import { join } from 'path';
 import { JSDOM } from 'jsdom';
 import * as https from 'https';
 import * as http from 'http';
+import './models/associations.js'; // needs to be near the top
 import userRoutes from './routes/user.js';
 import linkRoutes from './routes/link.js';
 import errorHandler from './middleware/errorHandler.js';
@@ -21,9 +22,14 @@ const PORT = process.env.PORT || 3001;
 // Middleware
 app.use(cors());
 app.use(express.json());
+app.use((req, _res, next) => {
+  logger.debug(`${req.method} ${req.originalUrl}`);
+  next();
+});
 
 const __dirname = new URL('.', import.meta.url).pathname;
 
+app.use(checkUserRegistered);
 // serve index.html at the root path, and other static content as needed
 app.use(express.static(join(__dirname, '..', 'public')));
 
@@ -32,6 +38,9 @@ app.use('/api/users', userRoutes);
 app.use('/api/links', checkUserRegistered, linkRoutes);
 app.get('/bookmarks', checkUserRegistered, (_req, res) => {
   res.sendFile(join(__dirname, '..', 'public', 'bookmarks.html'));
+});
+app.get('/signup', (_req, res) => {
+  res.sendFile(join(__dirname, '..', 'public', 'signup.html'));
 });
 
 // Error handler

@@ -15,7 +15,6 @@ async function registerUser(req, res, next) {
       return;
     }
 
-
     const existingUser = await User.findOne({ where: { username } });
     if (existingUser) {
       logger.warn('Tried to register a new user, but username is already in use.', { username });

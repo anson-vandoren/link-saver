@@ -2,6 +2,8 @@ import { Op } from 'sequelize';
 import { JSDOM } from 'jsdom';
 import Link from '../models/link.js';
 import User from '../models/user.js';
+import Tag from '../models/tag.js';
+import LinkTag from '../models/linkTag.js';
 import wsHandler from '../websocket.js';
 import logger from '../logger.js';
 
@@ -12,11 +14,23 @@ async function createLink(req, res, next) {
     const { url, title, tags, isPublic, description } = req.body;
     const userId = req.user.id;
 
-    const newLink = await Link.create({
-      url, title, tags, isPublic, description, userId,
+    const newLink = await Link.create({ url, title, isPublic, description, userId });
+
+    if (tags && tags.length > 0) {
+      for (const tagName of tags) {
+        const [tagInstance] = await Tag.findOrCreate({ where: { name: tagName } });
+        await LinkTag.create({ linkId: newLink.id, tagId: tagInstance.id });
+      }
+    }
+
+    const createdLink = await Link.findByPk(newLink.id, {
+      include: [
+        { model: Tag, through: { attributes: [] } },
+        { model: User, attributes: ['username'] },
+      ],
     });
 
-    res.status(201).json({ message: 'Link created successfully', link: newLink });
+    res.status(201).json({ message: 'Link created successfully', link: createdLink });
   } catch (error) {
     next(error);
   }
@@ -41,7 +55,7 @@ async function getLinks(req, res, next) {
     const tagsFilter = searchTerms
       .filter((term) => term.startsWith('#'))
       .map((term) => term.slice(1))
-      .map((tagSearch) => ({ tags: { [Op.like]: `%${tagSearch}%` } }));
+      .map((tagSearch) => ({ '$Tags.name$': { [Op.like]: `%${tagSearch}%` } }));
 
     let whereClause;
 
@@ -60,17 +74,25 @@ async function getLinks(req, res, next) {
 
     const result = await Link.findAndCountAll({
       where: whereClause,
-      attributes: {
-        include: ['id', 'title', 'url', 'description', 'tags', 'isPublic', 'savedAt', 'updatedAt'],
-        exclude: userId ? [] : ['userId'],
-      },
-      include: [{ model: User, attributes: ['username'] }],
+      include: [
+        { model: Tag, through: { attributes: [] } },
+        { model: User, attributes: ['username'] },
+      ],
       order: [['savedAt', 'DESC']],
       limit,
       offset,
     });
 
-    const links = result.rows;
+    const links = result.rows.map((link) => {
+      const linkPlain = link.get({ plain: true });
+      linkPlain.tags = linkPlain.Tags.map((tag) => tag.name);
+      delete linkPlain.Tags;
+      if (!userId) {
+        delete linkPlain.userId;
+      }
+      return linkPlain;
+    });
+
     const totalLinks = result.count;
 
     res.status(200).json({ links, currentPage: page, totalPages: Math.ceil(totalLinks / limit) });
@@ -90,11 +112,10 @@ async function getAllLinks(userId) {
 
   const links = await Link.findAll({
     where: whereClause,
-    attributes: {
-      include: ['id', 'title', 'url', 'description', 'tags', 'isPublic', 'savedAt', 'updatedAt'],
-      exclude: userId ? [] : ['userId'],
-    },
-    include: [{ model: User, attributes: ['username'] }],
+    include: [
+      { model: Tag, through: { attributes: [] } },
+      { model: User, attributes: ['username'] },
+    ],
     order: [['savedAt', 'DESC']],
   });
 
@@ -171,11 +192,21 @@ async function getLink(req, res, next) {
         id: req.params.id,
         UserId: userId,
       },
-      include: [{ model: User, attributes: ['username'] }],
+      include: [
+        { model: User, attributes: ['username'] },
+        {
+          model: Tag,
+          as: 'tags',
+          through: { attributes: [] }, // Exclude the LinkTag attributes
+        },
+      ],
     });
 
     if (link) {
-      res.status(200).json(link);
+      // Convert tags to simple array
+      const tags = link.tags.map((tag) => tag.name);
+      const formattedLink = { ...link.get({ plain: true }), tags };
+      res.status(200).json(formattedLink);
     } else {
       res.status(404).json({ error: { message: 'Link not found' } });
     }
@@ -190,15 +221,34 @@ async function updateLink(req, res, next) {
     const { url, title, tags, isPublic } = req.body;
     const userId = req.user.id;
 
-    const link = await Link.findOne({ where: { id, userId } });
+    const link = await Link.findOne({ where: { id, userId }, include: [Tag] });
     if (!link) {
       res.status(404).json({ error: { message: 'Link not found' } });
       return;
     }
 
-    await link.update({ url, title, tags, isPublic });
+    await link.update({ url, title, isPublic });
 
-    res.status(200).json({ message: 'Link updated successfully', link });
+    // Remove old tag associations
+    await LinkTag.destroy({ where: { linkId: link.id } });
+
+    // Add new tag associations
+    if (tags && tags.length > 0) {
+      for (const tagName of tags) {
+        const [tagInstance] = await Tag.findOrCreate({ where: { name: tagName } });
+        await LinkTag.create({ linkId: link.id, tagId: tagInstance.id });
+      }
+    }
+
+    // Retrieve the updated link with tags
+    const updatedLink = await Link.findByPk(link.id, {
+      include: [
+        { model: Tag, through: { attributes: [] } },
+        { model: User, attributes: ['username'] },
+      ],
+    });
+
+    res.status(200).json({ message: 'Link updated successfully', link: updatedLink });
   } catch (error) {
     next(error);
   }
@@ -251,45 +301,58 @@ function parseNetscapeHTML(htmlContent) {
 }
 
 async function addBookmarksToDatabase(bookmarks, userId) {
+  // TODO: perf++: use bulkCreate or queued promises w/ concurrency control
   const sock = wsHandler.connections.get(userId);
   if (!sock) {
     throw new Error('User not connected', userId);
   }
 
   const totalBookmarks = bookmarks.length;
-  const bookmarkPromises = bookmarks.map((bookmark, i) => {
+  const tagCache = new Map();
+  let queriesSaved = 0;
+
+  for (let i = 0; i < totalBookmarks; i++) {
+    const bookmark = bookmarks[i];
     const {
       url, title, tags, description, addDate, isPublic,
     } = bookmark;
 
     // Add the new link to the database
-    const createLinkPromise = Link.create({
+    const newLink = await Link.create({
       url,
       title,
-      tags,
       description,
       isPublic,
       savedAt: addDate,
       userId,
     });
 
-    // Send progress update after each link creation
-    createLinkPromise.then(() => {
-      if (i % 10 === 0) {
-        sock.send(
-          JSON.stringify({
-            type: 'import-progress',
-            data: { progress: (i / totalBookmarks) * 100 },
-          }),
-        );
+    // Add tags to the link
+    if (tags && tags.length > 0) {
+      for (const tagName of tags) {
+        let tagId = tagCache.get(tagName);
+        if (!tagId) {
+          const [tagInstance] = await Tag.findOrCreate({ where: { name: tagName } });
+          tagId = tagInstance.id;
+          tagCache.set(tagName, tagId);
+        } else {
+          queriesSaved += 1;
+        }
+        await LinkTag.create({ linkId: newLink.id, tagId });
       }
-    });
+    }
 
-    return createLinkPromise;
-  });
-
-  // Wait for all promises to resolve
-  await Promise.all(bookmarkPromises);
+    // Send progress update after each link creation
+    if (i % 10 === 0) {
+      sock.send(
+        JSON.stringify({
+          type: 'import-progress',
+          data: { progress: (i / totalBookmarks) * 100 },
+        }),
+      );
+    }
+  }
+  logger.info(`Saved ${totalBookmarks} bookmarks to database (${queriesSaved} queries saved)`);
 
   // Send final progress update
   sock.send(JSON.stringify({ type: 'import-progress', data: { progress: 100 } }));
