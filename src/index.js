@@ -115,7 +115,7 @@ try {
 } catch (error) {
   logger.error('Error synchronizing database:', error);
 }
-server.listen(PORT, () => {
+server.listen(PORT, '0.0.0.0', () => {
   logger.info('Server started', { port: PORT });
 });
 await wsHandler.listen(server);

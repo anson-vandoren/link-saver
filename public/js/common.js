@@ -266,7 +266,7 @@ async function handleEditFormSubmit(event) {
     closeEditForm();
     await loadLinks();
   } catch (error) {
-    alert('Failed to update link. Please try again.');
+    showNotification('Failed to update link', 'danger');
   }
 }
 function closeEditForm() {
@@ -304,6 +304,7 @@ async function deleteLink(id) {
     throw new Error('Failed to delete link');
   }
 }
+
 function timeAgo(date) {
   const pluralizeAndConcat = (n, word) => {
     let newWord = word;

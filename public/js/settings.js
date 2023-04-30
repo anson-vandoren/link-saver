@@ -38,7 +38,7 @@ importButton.addEventListener('click', async (e) => {
   e.preventDefault();
   const file = fileInput.files[0];
   if (!file) {
-    alert('Please select a file to import.');
+    showNotification('Please select a file to import.', 'warning');
     return;
   }
 
@@ -46,7 +46,7 @@ importButton.addEventListener('click', async (e) => {
     await importBookmarks(file);
   } catch (error) {
     console.error('Failed to import bookmarks:', error);
-    alert('Failed to import bookmarks. Please try again.');
+    showNotification('Failed to import bookmarks. Check logs for more details', 'danger');
   }
   fileInput.value = '';
   importButton.disabled = true;

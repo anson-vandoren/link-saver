@@ -39,7 +39,7 @@ async function loginSubmit(e) {
     localStorage.setItem('token', token);
     window.location.href = 'bookmarks.html';
   } else {
-    showNotification('Error logging in. Please check your credentials.', 'is-danger');
+    showNotification('Error logging in. Please check your credentials.', 'danger');
     loginForm.reset();
     usernameField.focus(); // focus the username field after resetting the form
   }
