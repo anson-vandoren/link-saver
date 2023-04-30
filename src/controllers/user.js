@@ -60,7 +60,45 @@ async function loginUser(req, res, next) {
   }
 }
 
+async function changePassword(req, res, next) {
+  try {
+    // Check for validation errors
+    // TODO: impl?
+    // const errors = validationResult(req);
+    // if (!errors.isEmpty()) {
+    //   return res.status(422).json({ errors: errors.array() });
+    // }
+
+    const { currentPassword, newPassword } = req.body;
+    const user = await User.findByPk(req.user.id);
+
+    if (!user) {
+      logger.warn('Tried to change password, but user does not exist.', { id: req.user.id, username: req.user.username });
+      res.status(401).json({ error: { message: 'Incorrect username or password.' } });
+      return;
+    }
+
+    // Check if the current password is correct
+    const isPasswordCorrect = await compare(currentPassword, user.password);
+
+    if (!isPasswordCorrect) {
+      res.status(400).json({ message: 'Current password is incorrect' });
+      return;
+    }
+
+    // Update the user's password
+    const hashedNewPassword = await hash(newPassword, 10);
+    user.password = hashedNewPassword;
+    await user.save();
+
+    res.status(200).json({ message: 'Password updated successfully' });
+  } catch (error) {
+    next(error);
+  }
+}
+
 export {
   registerUser,
   loginUser,
+  changePassword,
 };

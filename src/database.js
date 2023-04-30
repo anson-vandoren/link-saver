@@ -7,7 +7,7 @@ logger.info('Opening database at', { DB_PATH });
 const sequelize = new Sequelize({
   dialect: 'sqlite',
   storage: DB_PATH,
-  logging: (msg) => logger.debug(msg),
+  logging: (msg) => logger.silly(msg),
 });
 
 export default sequelize;

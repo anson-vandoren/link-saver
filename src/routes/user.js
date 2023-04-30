@@ -1,12 +1,11 @@
 import { Router } from 'express';
-import { registerUser, loginUser } from '../controllers/user.js';
+import { authenticate } from '../middleware/authenticate.js';
+import { registerUser, loginUser, changePassword } from '../controllers/user.js';
 
 const route = Router();
 
-// Register route
 route.post('/register', registerUser);
-
-// Login route
 route.post('/login', loginUser);
+route.put('/change-password', authenticate, changePassword);
 
 export default route;

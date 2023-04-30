@@ -6,7 +6,8 @@
     <title>Settings</title>
     <script>
       (function () {
-        const theme = localStorage.getItem('selectedTheme') || 'https://unpkg.com/bulmaswatch/darkly/bulmaswatch.min.css';
+        const theme =
+          localStorage.getItem('selectedTheme') || 'https://unpkg.com/bulmaswatch/darkly/bulmaswatch.min.css';
         document.write(`<link id="theme-stylesheet" rel="stylesheet" href="${theme}" />`);
       })();
     </script>
@@ -41,36 +42,40 @@
             <h3 class="title level-item">Settings</h3>
           </div>
         </div>
-        <form id="import-bookmarks-form" enctype="multipart/form-data">
-          <label for="import-bookmarks-file" class="label">Import Bookmarks</label>
-          <div class="field is-grouped">
-            <div class="control">
-              <div id="import-bookmarks-file" class="file has-name is-link">
-                <label class="file-label">
-                  <input
-                    name="import-bookmarks-file"
-                    class="file-input"
-                    type="file"
-                    accept=".html"
-                    aria-label="Choose bookmark file to import"
-                  />
-                  <span class="file-cta">
-                    <span class="file-label"> Choose a file </span>
-                  </span>
-                  <span class="file-name">bookmarks.html</span>
-                </label>
+        <div class="level">
+          <form id="import-bookmarks-form" enctype="multipart/form-data">
+            <label for="import-bookmarks-file" class="label">Import Bookmarks</label>
+            <div class="field is-grouped">
+              <div class="control">
+                <div id="import-bookmarks-file" class="file has-name is-link">
+                  <label class="file-label">
+                    <input
+                      name="import-bookmarks-file"
+                      class="file-input"
+                      type="file"
+                      accept=".html"
+                      aria-label="Choose bookmark file to import"
+                    />
+                    <span class="file-cta">
+                      <span class="file-label"> Choose a file </span>
+                    </span>
+                    <span class="file-name">bookmarks.html</span>
+                  </label>
+                </div>
               </div>
+              <button id="import-btn" class="button is-info" disabled>Import</button>
             </div>
-            <button id="import-btn" class="button is-info" disabled>Import</button>
-          </div>
-          <progress value="0" max="100" id="import-progress" class="progress is-link is-hidden"></progress>
-        </form>
+            <progress value="0" max="100" id="import-progress" class="progress is-link is-hidden"></progress>
+          </form>
+        </div>
+        <hr />
         <div class="export-bookmarks-container level">
           <div class="control">
             <label class="label">Export Bookmarks</label>
             <button id="export-btn" class="button is-info">Export</button>
           </div>
         </div>
+        <hr />
         <div class="field level">
           <div class="control">
             <label for="theme-selector" class="label">Select Theme</label>
@@ -81,6 +86,68 @@
             </div>
           </div>
         </div>
+        <hr />
+        <div id="change-password-container">
+          <form id="change-password-form">
+            <h4 class="title is-5">Change Password</h4>
+            <div class="columns">
+              <div class="column">
+                <div class="field">
+                  <label for="new-password" class="label">New Password</label>
+                  <div class="control">
+                    <input
+                      id="new-password"
+                      type="password"
+                      class="input"
+                      placeholder="Enter a new password"
+                      required
+                    />
+                  </div>
+                </div>
+              </div>
+              <div class="column">
+                <div class="field">
+                  <label for="confirm-new-password" class="label">Confirm New Password</label>
+                  <div class="control">
+                    <input
+                      id="confirm-new-password"
+                      type="password"
+                      class="input"
+                      placeholder="Re-enter the new password"
+                      required
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="columns">
+              <div class="column">
+                <div class="field">
+                  <label for="current-password" class="label">Current Password</label>
+                  <div class="control">
+                    <input
+                      id="current-password"
+                      type="password"
+                      class="input"
+                      placeholder="Enter your current password"
+                      required
+                    />
+                  </div>
+                </div>
+              </div>
+              <div class="column">
+                <div class="field">
+                  <div class="control">
+                    <label class="label" style="visibility: hidden">Change Password</label>
+                    <!-- This is to align the button with the input fields -->
+                    <button type="submit" class="button is-info">Change Password</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </form>
+        </div>
+        <hr />
       </div>
     </section>
 
