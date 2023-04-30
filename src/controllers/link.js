@@ -55,7 +55,7 @@ async function getLinks(req, res, next) {
     const tagsFilter = searchTerms
       .filter((term) => term.startsWith('#'))
       .map((term) => term.slice(1))
-      .map((tagSearch) => ({ '$Tags.name$': { [Op.like]: `%${tagSearch}%` } }));
+      .map((tagSearch) => ({ name: { [Op.like]: `%${tagSearch}%` } }));
 
     let whereClause;
 
@@ -63,19 +63,23 @@ async function getLinks(req, res, next) {
     if (userId) {
       whereClause = {
         userId,
-        [Op.and]: [...titleDescriptionFilter, ...tagsFilter],
+        [Op.and]: titleDescriptionFilter,
       };
     } else {
       whereClause = {
         isPublic: true,
-        [Op.and]: [...titleDescriptionFilter, ...tagsFilter],
+        [Op.and]: titleDescriptionFilter,
       };
     }
 
     const result = await Link.findAndCountAll({
       where: whereClause,
       include: [
-        { model: Tag, through: { attributes: [] } },
+        {
+          model: Tag,
+          through: { attributes: [] },
+          where: tagsFilter.length > 0 ? { [Op.and]: tagsFilter } : undefined,
+        },
         { model: User, attributes: ['username'] },
       ],
       order: [['savedAt', 'DESC']],
@@ -142,24 +146,21 @@ function exportBookmarks(links) {
 
   const footer = '\n</DL><p>';
 
-  const bookmarks = links.map((link) => {
-    const {
-      title,
-      url,
-      description,
-      tags,
-      isPublic,
-      savedAt,
-    } = link;
+  const bookmarks = links
+    .map((link) => {
+      const { title, url, description, tags, isPublic, savedAt } = link;
 
-    const dt = Math.floor(new Date(savedAt).getTime() / 1000);
+      const dt = Math.floor(new Date(savedAt).getTime() / 1000);
 
-    const firstLine = `\t<DT><A HREF="${url}" ADD_DATE="${dt}" PRIVATE="${isPublic ? '0' : '1'}" TAGS="${tags.join(',')}">${title}</A>\n`;
-    if (!description) {
-      return firstLine;
-    }
-    return `${firstLine}\n\t<DD>${description}\n`;
-  }).join('\n');
+      const firstLine = `\t<DT><A HREF="${url}" ADD_DATE="${dt}" PRIVATE="${isPublic ? '0' : '1'}" TAGS="${tags.join(
+        ','
+      )}">${title}</A>\n`;
+      if (!description) {
+        return firstLine;
+      }
+      return `${firstLine}\n\t<DD>${description}\n`;
+    })
+    .join('\n');
 
   const bookmarkHTML = header + bookmarks + footer;
   return replaceUnusualWhitespace(bookmarkHTML);
@@ -292,7 +293,12 @@ function parseNetscapeHTML(htmlContent) {
       const description = ddElement && ddElement.tagName === 'DD' ? ddElement.textContent.trim() : '';
 
       bookmarks.push({
-        url, title, tags, description, addDate, isPublic: !isPrivate,
+        url,
+        title,
+        tags,
+        description,
+        addDate,
+        isPublic: !isPrivate,
       });
     }
   });
@@ -313,9 +319,7 @@ async function addBookmarksToDatabase(bookmarks, userId) {
 
   for (let i = 0; i < totalBookmarks; i++) {
     const bookmark = bookmarks[i];
-    const {
-      url, title, tags, description, addDate, isPublic,
-    } = bookmark;
+    const { url, title, tags, description, addDate, isPublic } = bookmark;
 
     // Add the new link to the database
     const newLink = await Link.create({
@@ -348,7 +352,7 @@ async function addBookmarksToDatabase(bookmarks, userId) {
         JSON.stringify({
           type: 'import-progress',
           data: { progress: (i / totalBookmarks) * 100 },
-        }),
+        })
       );
     }
   }
@@ -370,12 +374,4 @@ async function importLinks(req, res, next) {
   return res.status(200).json({ message: 'Links imported successfully' });
 }
 
-export {
-  createLink,
-  exportLinks,
-  getLink,
-  getLinks,
-  updateLink,
-  deleteLink,
-  importLinks,
-};
+export { createLink, exportLinks, getLink, getLinks, updateLink, deleteLink, importLinks };

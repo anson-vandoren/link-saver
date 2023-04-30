@@ -10,6 +10,7 @@ import * as http from 'http';
 import './models/associations.js'; // needs to be near the top
 import userRoutes from './routes/user.js';
 import linkRoutes from './routes/link.js';
+import tagRoutes from './routes/tag.js';
 import errorHandler from './middleware/errorHandler.js';
 import checkUserRegistered from './middleware/checkUserRegistered.js';
 import sequelize from './database.js';
@@ -36,6 +37,7 @@ app.use(express.static(join(__dirname, '..', 'public')));
 // Routes
 app.use('/api/users', userRoutes);
 app.use('/api/links', checkUserRegistered, linkRoutes);
+app.use('/api/tags', tagRoutes);
 app.get('/bookmarks', checkUserRegistered, (_req, res) => {
   res.sendFile(join(__dirname, '..', 'public', 'bookmarks.html'));
 });

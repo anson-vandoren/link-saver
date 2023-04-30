@@ -1,4 +1,4 @@
-import { API_URL, handleLogoutButtonClick, loadLinks, doSearch } from './common.js';
+import { API_URL, handleLogoutButtonClick, loadLinks, loadTags, doSearch } from './common.js';
 import { wsHandler } from './ws.js';
 
 function goToRoot() {
@@ -149,4 +149,5 @@ urlInput.addEventListener('focusout', (event) => {
 document.addEventListener('DOMContentLoaded', () => {
   init();
   setInitialSearch();
+  loadTags();
 });

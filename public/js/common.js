@@ -141,7 +141,7 @@ function renderLinkItem(link) {
     });
 
     const removeLink = linkItem.querySelector('.link-item-date-actions > span:last-child > a:last-child');
-    
+
     // Hide the remove link and show the cancel and confirm links
     const showConfirmation = () => {
       removeLink.style.display = 'none';
@@ -190,18 +190,30 @@ function renderLinkItem(link) {
   return fragment;
 }
 
-function createTagLink(tag) {
+function scrollToTop() {
+  window.scrollTo({
+    top: 0,
+    behavior: 'smooth',
+  });
+}
+
+function createTagLink(tag, shouldShowHash = true, isFirst = false) {
   const tagLink = document.createElement('a');
   tagLink.classList.add('has-text-info');
   const tagWithHash = `#${tag}`;
-  tagLink.href = `/?search=${encodeURIComponent(tagWithHash)}`;
-  tagLink.textContent = `#${tag} `;
+  // tagLink.href = `/?search=${encodeURIComponent(tagWithHash)}`;
+  tagLink.textContent = `${shouldShowHash ? '#' : ''}${tag} `;
+  // if it's the first tag, <strong> the first character and make the first character uppercase
+  if (isFirst) {
+    tagLink.innerHTML = `<strong>${tagLink.textContent[0].toUpperCase()}</strong>${tagLink.textContent.slice(1)}`;
+  }
 
   const searchInput = document.getElementById('search-input');
   tagLink.addEventListener('click', (e) => {
     e.preventDefault();
     searchInput.value = tagWithHash;
     doSearch(true);
+    scrollToTop();
   });
 
   return tagLink;
@@ -220,6 +232,7 @@ async function getLink(id) {
   }
   throw new Error('Failed to load link');
 }
+
 const editLinkTemplate = document.getElementById('edit-link-template');
 function showEditForm(link) {
   const editFormFragment = editLinkTemplate.content.cloneNode(true);
@@ -395,10 +408,10 @@ function createPaginationItem(pageNumber, currentPage) {
 }
 
 /* Expected pagination layout:
-  * 1 2 3 4 5 ... 10
-  * 1 ... 4 5 6 ... 10
-  * 1 ... 6 7 8 9 10
-*/
+ * 1 2 3 4 5 ... 10
+ * 1 ... 4 5 6 ... 10
+ * 1 ... 6 7 8 9 10
+ */
 function updatePagination(searchQuery, currentPage, totalPages) {
   const paginationList = document.querySelector('.pagination-list');
   paginationList.innerHTML = '';
@@ -470,4 +483,61 @@ function updatePagination(searchQuery, currentPage, totalPages) {
       loadLinks(searchQuery, currentPage + 1);
     });
   }
+}
+
+function generateTagsHtml(tags) {
+  const groupedTags = tags.reduce((acc, tag) => {
+    const firstChar = tag.charAt(0).toUpperCase();
+    if (!acc[firstChar]) {
+      acc[firstChar] = [];
+    }
+    acc[firstChar].push(tag);
+    return acc;
+  }, {});
+
+  const tagsFragment = document.createDocumentFragment();
+
+  // eslint-disable-next-line no-restricted-syntax, guard-for-in
+  for (const char in groupedTags) {
+    const block = document.createElement('div');
+    block.classList.add('block');
+
+    groupedTags[char].forEach((tag, index) => {
+      const isFirst = index === 0;
+      const tagLink = createTagLink(tag.toLowerCase(), false, isFirst);
+      tagLink.classList.add('tag-link'); // Add the class for styling
+      if (index > 0) {
+        tagLink.style.marginRight = '8px'; // Add space between tags
+      }
+      block.appendChild(tagLink); // Add the tag link to the block
+    });
+
+    tagsFragment.appendChild(block);
+  }
+
+  return tagsFragment;
+}
+
+export async function loadTags() {
+  // Replace this with the actual API call to fetch the tags
+  const tags = await fetchTagsFromApi();
+
+  const tagsList = document.getElementById('tagsList');
+  const tagsContainer = generateTagsHtml(tags);
+  tagsList.innerHTML = '';
+  tagsList.appendChild(tagsContainer);
+}
+
+async function fetchTagsFromApi() {
+  const response = await fetch(`${API_URL}/api/tags`, {
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${localStorage.getItem('token')}`,
+    },
+  });
+
+  if (response.ok) {
+    return response.json();
+  }
+  throw new Error('Failed to load link');
 }
