@@ -141,7 +141,42 @@ function renderLinkItem(link) {
     });
 
     const removeLink = linkItem.querySelector('.link-item-date-actions > span:last-child > a:last-child');
-    removeLink.addEventListener('click', () => {
+    
+    // Hide the remove link and show the cancel and confirm links
+    const showConfirmation = () => {
+      removeLink.style.display = 'none';
+      cancelLink.style.display = 'inline';
+      confirmLink.style.display = 'inline';
+    };
+
+    // Show the remove link and hide the cancel and confirm links
+    const hideConfirmation = () => {
+      removeLink.style.display = 'inline';
+      cancelLink.style.display = 'none';
+      confirmLink.style.display = 'none';
+    };
+
+    const removeSpan = linkItem.querySelector('.link-item-date-actions > span:last-child');
+    removeLink.addEventListener('click', showConfirmation);
+
+    // Add the cancel and confirm links
+    const cancelLink = document.createElement('a');
+    cancelLink.href = 'javascript:void(0)';
+    cancelLink.textContent = 'Cancel';
+    cancelLink.classList.add('has-text-danger');
+    cancelLink.style.display = 'none';
+    removeSpan.appendChild(cancelLink);
+
+    const confirmLink = document.createElement('a');
+    confirmLink.href = 'javascript:void(0)';
+    confirmLink.textContent = ' Confirm';
+    confirmLink.classList.add('has-text-danger');
+    confirmLink.style.display = 'none';
+    removeSpan.appendChild(confirmLink);
+
+    // Bind event listeners
+    cancelLink.addEventListener('click', hideConfirmation);
+    confirmLink.addEventListener('click', () => {
       deleteLink(link.id).then(() => {
         loadLinks();
       });
