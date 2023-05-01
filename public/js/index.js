@@ -1,9 +1,4 @@
-import {
-  API_URL,
-  showNotification,
-  loadLinks,
-  loadTags,
-} from './common.js';
+import { showNotification, loadLinks, loadTags } from './common.js';
 
 function loginDropdownHandler() {
   const loginForm = document.getElementById('login-dropdown');
@@ -13,7 +8,6 @@ function loginDropdownHandler() {
     if (e.target.classList.contains('navbar-link')) {
       loginForm.classList.toggle('is-active');
 
-      // focus the username field when the login dropdown is active
       if (loginForm.classList.contains('is-active')) {
         usernameField.focus();
       }
@@ -21,35 +15,37 @@ function loginDropdownHandler() {
   });
 }
 
-async function loginSubmit(e) {
-  e.preventDefault();
+function loginSubmitHandler() {
   const loginForm = document.getElementById('login-form');
-  const usernameField = document.getElementById('login-username');
-  const password = document.getElementById('login-password').value;
 
-  const response = await fetch(`${API_URL}/api/users/login`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ username: usernameField.value, password }),
+  loginForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const usernameField = document.getElementById('login-username');
+    const password = document.getElementById('login-password').value;
+
+    const response = await fetch('/api/users/login', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ username: usernameField.value, password }),
+    });
+
+    if (response.ok) {
+      const { token } = await response.json();
+      localStorage.setItem('token', token);
+      window.location.href = 'bookmarks.html';
+    } else {
+      showNotification('Error logging in. Please check your credentials.', 'danger');
+      loginForm.reset();
+      usernameField.focus();
+    }
   });
-
-  if (response.ok) {
-    const { token } = await response.json();
-    localStorage.setItem('token', token);
-    window.location.href = 'bookmarks.html';
-  } else {
-    showNotification('Error logging in. Please check your credentials.', 'danger');
-    loginForm.reset();
-    usernameField.focus(); // focus the username field after resetting the form
-  }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
   loginDropdownHandler();
-  const loginForm = document.getElementById('login-form');
-  loginForm.addEventListener('submit', loginSubmit);
+  loginSubmitHandler();
   loadLinks();
   loadTags();
 });
