@@ -197,7 +197,7 @@ async function getLink(req, res, next) {
         { model: User, attributes: ['username'] },
         {
           model: Tag,
-          as: 'tags',
+          as: 'Tags',
           through: { attributes: [] }, // Exclude the LinkTag attributes
         },
       ],
@@ -205,7 +205,7 @@ async function getLink(req, res, next) {
 
     if (link) {
       // Convert tags to simple array
-      const tags = link.tags.map((tag) => tag.name);
+      const tags = link.Tags.map((tag) => tag.name);
       const formattedLink = { ...link.get({ plain: true }), tags };
       res.status(200).json(formattedLink);
     } else {

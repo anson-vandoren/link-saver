@@ -278,6 +278,7 @@ async function handleEditFormSubmit(event) {
     // Hide the edit form and reload the links
     closeEditForm();
     await loadLinks();
+    await loadTags();
   } catch (error) {
     showNotification('Failed to update link', 'danger');
   }
