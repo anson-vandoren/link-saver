@@ -153,6 +153,29 @@ async function handleChangePasswordSubmit(event) {
   }
 }
 
+async function handlePurgeUnusedTags() {
+  try {
+    const response = await fetch('/api/tags/purge-unused', {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${localStorage.getItem('token')}`,
+      },
+    });
+
+    if (response.ok) {
+      showNotification('Unused tags have been purged.', 'success');
+    } else {
+      const errorData = await response.json();
+      console.warn('Error purging unused tags:', errorData.error.message);
+      showNotification('An error occurred while purging unused tags. Please try again later.', 'warning');
+    }
+  } catch (error) {
+    console.error('Error purging unused tags:', error);
+    showNotification('An error occurred while purging unused tags. Please try again later.', 'warning');
+  }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   fileInput.onchange = () => {
     if (fileInput.files.length > 0) {
@@ -170,4 +193,5 @@ document.addEventListener('DOMContentLoaded', () => {
   saveThemeHandler();
   const changePasswordForm = document.getElementById('change-password-form');
   changePasswordForm.addEventListener('submit', handleChangePasswordSubmit);
+  document.getElementById('purge-tags-btn').addEventListener('click', handlePurgeUnusedTags);
 });

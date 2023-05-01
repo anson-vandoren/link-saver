@@ -141,6 +141,8 @@ function renderLinkItem(link) {
     });
 
     const removeLink = linkItem.querySelector('.link-item-date-actions > span:last-child > a:last-child');
+    const cancelLink = document.createElement('a');
+    const confirmLink = document.createElement('a');
 
     // Hide the remove link and show the cancel and confirm links
     const showConfirmation = () => {
@@ -160,14 +162,12 @@ function renderLinkItem(link) {
     removeLink.addEventListener('click', showConfirmation);
 
     // Add the cancel and confirm links
-    const cancelLink = document.createElement('a');
     cancelLink.href = 'javascript:void(0)';
     cancelLink.textContent = 'Cancel';
     cancelLink.classList.add('has-text-danger');
     cancelLink.style.display = 'none';
     removeSpan.appendChild(cancelLink);
 
-    const confirmLink = document.createElement('a');
     confirmLink.href = 'javascript:void(0)';
     confirmLink.textContent = ' Confirm';
     confirmLink.classList.add('has-text-danger');
