@@ -1,4 +1,4 @@
-import { showNotification } from './common.js';
+import showNotification from './notification.js';
 
 async function handlePurgeUnusedTags() {
   const errMsg = 'Failed to purge unused tags. Please try again later.';

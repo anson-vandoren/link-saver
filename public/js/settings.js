@@ -1,9 +1,9 @@
-import { handleLogoutButtonClick } from './common.js';
 import './importBookmarks.js';
-import handleChangePasswordSubmit from './auth.js';
 import exportBookmarks from './exportBookmarks.js';
 import { populateThemeDropdown, saveThemeHandler } from './theme.js';
 import handlePurgeUnusedTags from './tags.js';
+import handleLogoutButtonClick from './auth/logout.js';
+import handleChangePasswordSubmit from './auth/passwordChange.js';
 
 document.addEventListener('DOMContentLoaded', () => {
   const importButton = document.getElementById('import-btn');

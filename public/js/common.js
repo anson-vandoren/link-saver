@@ -1,55 +1,22 @@
-export const API_URL = 'http://localhost:3001';
-
-const DEFAULT_PER_PAGE = 25;
-
-/**
- * @typedef {Object} Link
- * @property {number} id
- * @property {string} url
- * @property {string} title
- * @property {string[]} tags
- * @property {boolean} isPublic
- * @property {string} savedAt
- * @property {number} userId
- */
-
-export function showNotification(message, type = 'success') {
-  const notification = document.createElement('div');
-  notification.className = `notification is-${type} top-centered-notification`;
-  notification.innerHTML = `
-    <button class="delete"></button>
-    ${message}
-  `;
-
-  // Automatically remove the notification after 5 seconds
-  const autoRemoveTimeout = setTimeout(() => {
-    notification.parentNode.removeChild(notification);
-  }, 5000);
-
-  // Add the event listener to the delete button
-  notification.querySelector('.delete').addEventListener('click', () => {
-    notification.parentNode.removeChild(notification);
-    clearTimeout(autoRemoveTimeout);
-  });
-
-  document.body.appendChild(notification);
-}
-
-export function handleLogoutButtonClick() {
-  localStorage.removeItem('token');
-  window.location.href = '/';
-}
+import showNotification from './notification.js';
+import { scrollToTop, timeAgo } from './utils.js';
+import { deleteLink, getLink, getLinks, getTags, updateLink } from './apiClient.js';
+import { DEFAULT_PER_PAGE } from './constants.js';
 
 /**
  * Fetch links from the API and render them in the DOM
  * @param {string} searchQuery optional search query to filter links
  * @throws {Error} if the request fails
  */
-export async function loadLinks(searchQuery = '', page = 1, pageSize = DEFAULT_PER_PAGE) {
-  // TODO: can we remove needing searchQuery as an arg?
+export async function loadLinks(page = 1, pageSize = DEFAULT_PER_PAGE) {
+  const searchInput = document.getElementById('search-input');
+  const searchQuery = searchInput?.value.trim() ?? '';
+
+  const linkList = document.getElementById('link-list');
+  if (!linkList) return; // nowhere to render to
+
   try {
     const { links, totalPages } = await getLinks(searchQuery, page, pageSize);
-    const linkList = document.getElementById('link-list');
     linkList.innerHTML = '';
 
     links.forEach((link) => {
@@ -59,44 +26,8 @@ export async function loadLinks(searchQuery = '', page = 1, pageSize = DEFAULT_P
 
     updatePagination(searchQuery, page, totalPages);
   } catch (err) {
-    console.error('failed to load and render links', err);
-    // go to / if not already there
-    if (window.location.pathname !== '/') {
-      window.location.href = '/';
-    }
+    showNotification('Oops, something went wrong.', 'danger');
   }
-}
-
-/**
- * Fetch links from the API
- * @param {string} searchQuery optional search query to filter links
- * @returns {Promise<Link[]>} list of links
- * @throws {Error} if the request fails
- */
-async function getLinks(searchQuery = '', page = 1, pageSize = DEFAULT_PER_PAGE) {
-  const headers = { 'Content-Type': 'application/json' };
-
-  const token = localStorage.getItem('token');
-  if (token) {
-    headers.Authorization = `Bearer ${token}`;
-  }
-
-  const url = new URL(`${API_URL}/api/links`);
-  url.searchParams.append('search', searchQuery);
-  url.searchParams.append('page', page);
-  url.searchParams.append('pageSize', pageSize);
-
-  const response = await fetch(url.toString(), { headers });
-
-  if (response.ok) {
-    const res = await response.json();
-
-    return {
-      links: res.links,
-      totalPages: res.totalPages,
-    };
-  }
-  throw new Error('Failed to load links');
 }
 
 /**
@@ -190,13 +121,6 @@ function renderLinkItem(link) {
   return fragment;
 }
 
-function scrollToTop() {
-  window.scrollTo({
-    top: 0,
-    behavior: 'smooth',
-  });
-}
-
 function createTagLink(tag, shouldShowHash = true, isFirst = false) {
   const tagLink = document.createElement('a');
   tagLink.classList.add('has-text-info');
@@ -217,20 +141,6 @@ function createTagLink(tag, shouldShowHash = true, isFirst = false) {
   });
 
   return tagLink;
-}
-
-async function getLink(id) {
-  const response = await fetch(`${API_URL}/api/links/${id}`, {
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${localStorage.getItem('token')}`,
-    },
-  });
-
-  if (response.ok) {
-    return response.json();
-  }
-  throw new Error('Failed to load link');
 }
 
 const editLinkTemplate = document.getElementById('edit-link-template');
@@ -290,68 +200,6 @@ function closeEditForm() {
   }
 }
 
-async function updateLink(id, data) {
-  const response = await fetch(`${API_URL}/api/links/${id}`, {
-    method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${localStorage.getItem('token')}`,
-    },
-    body: JSON.stringify(data),
-  });
-
-  if (!response.ok) {
-    throw new Error('Failed to update link');
-  }
-}
-
-async function deleteLink(id) {
-  const response = await fetch(`${API_URL}/api/links/${id}`, {
-    method: 'DELETE',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${localStorage.getItem('token')}`,
-    },
-  });
-
-  if (!response.ok) {
-    throw new Error('Failed to delete link');
-  }
-}
-
-function timeAgo(date) {
-  const pluralizeAndConcat = (n, word) => {
-    let newWord = word;
-    if (n > 1) newWord = `${word}s`;
-    return `${n} ${newWord} ago`;
-  };
-
-  const seconds = Math.floor((new Date() - date) / 1000);
-  let interval = Math.floor(seconds / 31536000);
-  if (interval >= 1) {
-    return pluralizeAndConcat(interval, 'year');
-  }
-
-  interval = Math.floor(seconds / 2592000);
-  if (interval >= 1) {
-    return pluralizeAndConcat(interval, 'month');
-  }
-  interval = Math.floor(seconds / 86400);
-  if (interval >= 1) {
-    return pluralizeAndConcat(interval, 'day');
-  }
-  interval = Math.floor(seconds / 3600);
-  if (interval >= 1) {
-    return pluralizeAndConcat(interval, 'hour');
-  }
-  interval = Math.floor(seconds / 60);
-  if (interval >= 1) {
-    return pluralizeAndConcat(interval, 'minute');
-  }
-  interval = Math.floor(seconds);
-  return pluralizeAndConcat(interval, 'second');
-}
-
 export async function doSearch(append = false) {
   const doAppend = typeof append === 'boolean' ? append : false;
   const searchInput = document.getElementById('search-input');
@@ -374,7 +222,7 @@ export async function doSearch(append = false) {
   window.history.pushState(null, '', urlPath);
 
   try {
-    await loadLinks(newQuery);
+    await loadLinks();
   } catch (_err) {
     // Do nothing
   }
@@ -400,8 +248,7 @@ function createPaginationItem(pageNumber, currentPage) {
     paginationLink.setAttribute('aria-current', 'page');
   } else {
     paginationLink.addEventListener('click', () => {
-      const searchQuery = document.getElementById('search-input').value.trim();
-      loadLinks(searchQuery, pageNumber);
+      loadLinks(pageNumber);
     });
   }
   listItem.appendChild(paginationLink);
@@ -472,7 +319,7 @@ function updatePagination(searchQuery, currentPage, totalPages) {
   } else {
     prevBtnClone.removeAttribute('disabled');
     prevBtnClone.addEventListener('click', () => {
-      loadLinks(searchQuery, currentPage - 1);
+      loadLinks(currentPage - 1);
     });
   }
 
@@ -481,7 +328,7 @@ function updatePagination(searchQuery, currentPage, totalPages) {
   } else {
     nextBtnClone.removeAttribute('disabled');
     nextBtnClone.addEventListener('click', () => {
-      loadLinks(searchQuery, currentPage + 1);
+      loadLinks(currentPage + 1);
     });
   }
 }
@@ -521,24 +368,10 @@ function generateTagsHtml(tags) {
 
 export async function loadTags() {
   // Replace this with the actual API call to fetch the tags
-  const tags = await fetchTagsFromApi();
+  const tags = await getTags();
 
   const tagsList = document.getElementById('tagsList');
   const tagsContainer = generateTagsHtml(tags);
   tagsList.innerHTML = '';
   tagsList.appendChild(tagsContainer);
-}
-
-async function fetchTagsFromApi() {
-  const response = await fetch(`${API_URL}/api/tags`, {
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${localStorage.getItem('token')}`,
-    },
-  });
-
-  if (response.ok) {
-    return response.json();
-  }
-  throw new Error('Failed to load link');
 }

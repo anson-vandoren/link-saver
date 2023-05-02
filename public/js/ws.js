@@ -1,4 +1,4 @@
-import { API_URL } from './common.js';
+import { API_URL } from './constants.js';
 
 function establishWebSocket(token) {
   if (!token) {

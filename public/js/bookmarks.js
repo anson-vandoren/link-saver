@@ -1,7 +1,9 @@
-import { doSearch, handleLogoutButtonClick, loadLinks, loadTags } from './common.js';
+import { doSearch, loadLinks, loadTags } from './common.js';
 import initModals from './modals.js';
 import handleAddLinkFormSubmit from './links.js';
 import setInitialSearch from './search.js';
+
+import handleLogoutButtonClick from './auth/logout.js';
 
 function init() {
   if (localStorage.getItem('token')) {

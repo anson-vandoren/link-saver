@@ -1,4 +1,5 @@
 import { loadLinks } from './common.js';
+import { createLink } from './apiClient.js';
 import wsHandler from './ws.js';
 
 async function handleAddLinkFormSubmit(event) {
@@ -14,7 +15,7 @@ async function handleAddLinkFormSubmit(event) {
   const visibility = document.getElementById('link-visibility').value;
   const isPublic = visibility === 'public';
 
-  await addLink({
+  await createLink({
     title,
     url,
     tags,
@@ -23,21 +24,6 @@ async function handleAddLinkFormSubmit(event) {
   });
   document.getElementById('add-link-form').reset();
   loadLinks();
-}
-
-async function addLink(linkData) {
-  const response = await fetch('/api/links', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${localStorage.getItem('token')}`,
-    },
-    body: JSON.stringify(linkData),
-  });
-
-  if (!response.ok) {
-    throw new Error('Failed to add link');
-  }
 }
 
 wsHandler.on('scrapeFQDN', (data) => {

@@ -1,8 +1,10 @@
-import { showNotification } from '../common.js';
+import showNotification from '../notification.js';
 
 export function loginDropdownHandler() {
   const loginForm = document.getElementById('login-dropdown');
+  if (!loginForm) return;
   const usernameField = document.getElementById('login-username');
+  if (!usernameField) return;
 
   loginForm.addEventListener('click', (e) => {
     if (e.target.classList.contains('navbar-link')) {
@@ -17,6 +19,7 @@ export function loginDropdownHandler() {
 
 export function loginSubmitHandler() {
   const loginForm = document.getElementById('login-form');
+  if (!loginForm) return;
 
   loginForm.addEventListener('submit', async (e) => {
     e.preventDefault();
