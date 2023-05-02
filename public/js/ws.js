@@ -2,36 +2,26 @@ import { API_URL } from './common.js';
 
 function establishWebSocket(token) {
   if (!token) {
-    console.log('No token found, skipping WebSocket connection');
-    return;
+    return undefined;
   }
   const WSS_BASE = API_URL.replace('http', 'ws');
   const WSS_URL = `${WSS_BASE}?token=${token}`;
   const socket = new WebSocket(WSS_URL);
-
-  socket.addEventListener('open', (event) => {
-    console.log('WebSocket connection opened:', event);
-  });
-
-  socket.addEventListener('close', (event) => {
-    console.log('WebSocket connection closed:', event);
-  });
-
-  socket.addEventListener('error', (event) => {
-    console.error('WebSocket error:', event);
-  });
 
   return socket;
 }
 
 class WSHandler {
   constructor() {
-    this.socket = null;
+    this.socket = undefined;
     this.handlers = {};
   }
 
   connect(token) {
     this.socket = establishWebSocket(token);
+    if (!this.socket) {
+      return;
+    }
     this.socket.addEventListener('message', (event) => {
       const { type, data } = JSON.parse(event.data);
       if (this.handlers[type]) {
@@ -65,4 +55,4 @@ if (token) {
   window.location.href = '/';
 }
 
-export { wsHandler };
+export default wsHandler;

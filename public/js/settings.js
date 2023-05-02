@@ -1,5 +1,5 @@
-import { API_URL, showNotification, handleLogoutButtonClick } from './common.js';
-import { wsHandler } from './ws.js';
+import { showNotification, handleLogoutButtonClick } from './common.js';
+import wsHandler from './ws.js';
 
 const fileInput = document.querySelector('#import-bookmarks-file input[type=file]');
 const importButton = document.getElementById('import-btn');
@@ -15,7 +15,7 @@ async function importBookmarks(file) {
     progress.setAttribute('value', data.progress);
   });
 
-  const response = await fetch(`${API_URL}/api/links/import`, {
+  const response = await fetch('/api/links/import', {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${localStorage.getItem('token')}`,
@@ -45,8 +45,7 @@ importButton.addEventListener('click', async (e) => {
   try {
     await importBookmarks(file);
   } catch (error) {
-    console.error('Failed to import bookmarks:', error);
-    showNotification('Failed to import bookmarks. Check logs for more details', 'danger');
+    showNotification('Failed to import bookmarks. Check server logs for more details', 'danger');
   }
   fileInput.value = '';
   importButton.disabled = true;
@@ -54,7 +53,7 @@ importButton.addEventListener('click', async (e) => {
 
 async function exportBookmarks() {
   try {
-    const response = await fetch(`${API_URL}/api/links/export`, {
+    const response = await fetch('/api/links/export', {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -75,7 +74,7 @@ async function exportBookmarks() {
     a.click();
     a.remove();
   } catch (error) {
-    console.error('Error exporting bookmarks:', error.message);
+    showNotification('Failed to export bookmarks. Check server logs for more details', 'danger');
   }
 }
 
@@ -154,6 +153,7 @@ async function handleChangePasswordSubmit(event) {
 }
 
 async function handlePurgeUnusedTags() {
+  const errMsg = 'Failed to purge unused tags. Please try again later.';
   try {
     const response = await fetch('/api/tags/purge-unused', {
       method: 'DELETE',
@@ -166,13 +166,10 @@ async function handlePurgeUnusedTags() {
     if (response.ok) {
       showNotification('Unused tags have been purged.', 'success');
     } else {
-      const errorData = await response.json();
-      console.warn('Error purging unused tags:', errorData.error.message);
-      showNotification('An error occurred while purging unused tags. Please try again later.', 'warning');
+      showNotification(errMsg, 'warning');
     }
   } catch (error) {
-    console.error('Error purging unused tags:', error);
-    showNotification('An error occurred while purging unused tags. Please try again later.', 'warning');
+    showNotification(errMsg, 'warning');
   }
 }
 

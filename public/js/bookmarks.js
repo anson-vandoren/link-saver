@@ -1,5 +1,5 @@
-import { API_URL, handleLogoutButtonClick, loadLinks, loadTags, doSearch } from './common.js';
-import { wsHandler } from './ws.js';
+import { handleLogoutButtonClick, loadLinks, loadTags, doSearch } from './common.js';
+import wsHandler from './ws.js';
 
 function goToRoot() {
   window.location.href = '/';
@@ -115,7 +115,7 @@ async function handleAddLinkFormSubmit(event) {
 }
 
 async function addLink(linkData) {
-  const response = await fetch(`${API_URL}/api/links`, {
+  const response = await fetch('/api/links', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

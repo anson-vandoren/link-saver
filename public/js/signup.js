@@ -1,4 +1,3 @@
-import { API_URL } from './common.js';
 import { showNotification } from './common.js';
 
 async function handleFormSubmit(event) {
@@ -10,7 +9,7 @@ async function handleFormSubmit(event) {
   const username = formData.get('username');
   const password = formData.get('password');
 
-  const response = await fetch(`${API_URL}/api/users/register`, {
+  const response = await fetch('/api/users/register', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

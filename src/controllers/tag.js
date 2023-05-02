@@ -51,5 +51,4 @@ async function purgeUnusedTags(_req, res, next) {
   }
 }
 
-
 export { getTags, purgeUnusedTags };
