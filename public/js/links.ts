@@ -11,25 +11,52 @@ import { ScrapeFQDNResponseData } from '../../shared/apiTypes';
 
 export const tagOnClick = () => {
   updateSearch();
-  loadLinks();
-  scrollToTop();
+  loadLinks()
+    .then(() => {
+      scrollToTop();
+    })
+    .catch((error: unknown) => {
+      const reason = error instanceof Error ? error.message : 'Unknown error';
+      showNotification(reason, 'danger');
+    });
 };
 
 async function handleEditFormSubmit(event: Event) {
   event.preventDefault();
-
+  if (!(event.target instanceof HTMLFormElement)) {
+    throw new Error('Could not find edit form');
+  }
   const linkId = event.target.dataset.id;
-  const title = document.getElementById('edit-link-title').value;
-  const url = document.getElementById('edit-link-url').value;
-  const tags = document
-    .getElementById('edit-link-tags')
-    .value.split(',')
-    .map((tag) => tag.trim());
-  const visibility = document.getElementById('edit-link-visibility').value;
-  const isPublic = visibility === 'public';
+  if (!linkId) {
+    throw new Error('Could not find link id');
+  }
+  const titleElem = document.getElementById('edit-link-title');
+  if (!(titleElem instanceof HTMLInputElement)) {
+    // TODO: factor out getOrThrow(?)
+    throw new Error('Could not find edit link title');
+  }
+  const title = titleElem.value;
+  const urlElem = document.getElementById('edit-link-url');
+  if (!(urlElem instanceof HTMLInputElement)) {
+    throw new Error('Could not find edit link url');
+  }
+  const url = urlElem.value;
+
+  const tagsElem = document.getElementById('edit-link-tags');
+  if (!(tagsElem instanceof HTMLInputElement)) {
+    throw new Error('Could not find edit link tags');
+  }
+
+  const tags = tagsElem.value.split(',').map((tag) => tag.trim());
+
+  const visibilityElem = document.getElementById('edit-link-visibility');
+  if (!(visibilityElem instanceof HTMLSelectElement)) {
+    throw new Error('Could not find edit link visibility');
+  }
+  const isPublic = visibilityElem.value === 'public';
 
   try {
-    await updateLink(linkId, {
+    await updateLink(+linkId, {
       title,
       url,
       tags,
@@ -44,6 +71,7 @@ async function handleEditFormSubmit(event: Event) {
     showNotification('Failed to update link', 'danger');
   }
 }
+
 function closeEditForm() {
   const editForm = document.getElementById('edit-link-form');
   if (editForm) {
@@ -78,15 +106,15 @@ async function handleAddLinkFormSubmit(event) {
 wsHandler.on('scrapeFQDN', (data: ScrapeFQDNResponseData) => {
   const { title, description, url } = data;
   const titleElem = document.getElementById('add-link-title');
-  if ((titleElem instanceof HTMLInputElement) && !titleElem.value) {
+  if (titleElem instanceof HTMLInputElement && !titleElem.value) {
     titleElem.value = title;
   }
   const descriptionElem = document.getElementById('add-link-description');
-  if ((descriptionElem instanceof HTMLInputElement) && !descriptionElem.value) {
+  if (descriptionElem instanceof HTMLInputElement && !descriptionElem.value) {
     descriptionElem.value = description;
   }
   const urlElem = document.getElementById('add-link-url');
-  if ((urlElem instanceof HTMLInputElement) && !urlElem.value) {
+  if (urlElem instanceof HTMLInputElement && !urlElem.value) {
     urlElem.value = url;
   }
 });
@@ -142,9 +170,11 @@ function renderLinkItem(link) {
   const tagsSpan = linkItem.querySelector('.link-item-tags-description > span:first-child');
   if (link.tags.length && link.tags[0] !== '') {
     link.tags.forEach((tag) => {
-      tagsSpan.appendChild(createTagLink(tag, {
-        onClick: tagOnClick,
-      }));
+      tagsSpan.appendChild(
+        createTagLink(tag, {
+          onClick: tagOnClick,
+        })
+      );
     });
   }
 
@@ -243,7 +273,4 @@ async function loadLinks(page = 1, pageSize = DEFAULT_PER_PAGE) {
   }
 }
 
-export {
-  handleAddLinkFormSubmit,
-  loadLinks,
-};
+export { handleAddLinkFormSubmit, loadLinks };

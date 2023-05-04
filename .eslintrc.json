@@ -22,6 +22,10 @@
       "error",
       { "functions": false }
     ],
+    "@typescript-eslint/no-use-before-define": [
+      "error",
+      { "functions": false }
+    ],
     "no-plusplus": 0,
     "object-curly-newline": [
       "warn",
