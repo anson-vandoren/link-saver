@@ -34,20 +34,22 @@ async function importBookmarks(file) {
 
 const fileInput = document.querySelector('#import-bookmarks-file input[type=file]');
 const importButton = document.getElementById('import-btn');
+// TODO: refactor
+if (importButton && fileInput) {
+  importButton.addEventListener('click', async (e) => {
+    e.preventDefault();
+    const file = fileInput.files[0];
+    if (!file) {
+      showNotification('Please select a file to import.', 'warning');
+      return;
+    }
 
-importButton.addEventListener('click', async (e) => {
-  e.preventDefault();
-  const file = fileInput.files[0];
-  if (!file) {
-    showNotification('Please select a file to import.', 'warning');
-    return;
-  }
-
-  try {
-    await importBookmarks(file);
-  } catch (error) {
-    showNotification('Failed to import bookmarks. Check server logs for more details', 'danger');
-  }
-  fileInput.value = '';
-  importButton.disabled = true;
-});
+    try {
+      await importBookmarks(file);
+    } catch (error) {
+      showNotification('Failed to import bookmarks. Check server logs for more details', 'danger');
+    }
+    fileInput.value = '';
+    importButton.disabled = true;
+  });
+}
