@@ -30,4 +30,6 @@ function showNotification(message, type = 'success') {
   document.body.appendChild(notification);
 }
 
-export default showNotification;
+export {
+  showNotification,
+};

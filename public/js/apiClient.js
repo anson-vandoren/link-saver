@@ -51,7 +51,9 @@ async function getLinks(searchQuery = '', page = 1, pageSize = DEFAULT_PER_PAGE)
     headers.Authorization = `Bearer ${token}`;
   }
 
-  const url = new URL('/api/links');
+  const { origin } = window.location;
+  const apiPath = '/api/links';
+  const url = new URL(`${origin}${apiPath}`);
   url.searchParams.append('search', searchQuery);
   url.searchParams.append('page', page);
   url.searchParams.append('pageSize', pageSize);

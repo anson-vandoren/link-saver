@@ -1,17 +1,21 @@
-import { doSearch, loadLinks, loadTags } from './common.js';
+import { loadLinks, handleAddLinkFormSubmit, tagOnClick } from './links.js';
+import { updateSearch } from './search.js';
+import { loadTags } from './tagsBar.js';
 import initModals from './modals.js';
-import handleAddLinkFormSubmit from './links.js';
-import setInitialSearch from './search.js';
 
-import handleLogoutButtonClick from './auth/logout.js';
+import { handleLogoutButtonClick } from './auth/logout.js';
 
 function init() {
   if (localStorage.getItem('token')) {
     // Event listeners
-    document.getElementById('search-button').addEventListener('click', () => doSearch());
+    document.getElementById('search-button').addEventListener('click', () => {
+      updateSearch();
+      loadLinks();
+    });
     document.getElementById('search-input').addEventListener('keyup', (e) => {
       if (e.key === 'Enter') {
-        doSearch();
+        updateSearch();
+        loadLinks();
       }
     });
 
@@ -26,6 +30,7 @@ function init() {
 
 document.addEventListener('DOMContentLoaded', () => {
   init();
-  setInitialSearch();
-  loadTags();
+  updateSearch(true);
+  loadLinks();
+  loadTags(tagOnClick);
 });

@@ -1,4 +1,4 @@
-import showNotification from '../notification.js';
+import { showNotification } from '../notification.js';
 
 async function handleSignupFormSubmit(event) {
   event.preventDefault();

@@ -1,6 +1,6 @@
-import showNotification from '../notification.js';
+import { showNotification } from '../notification.js';
 
-async function handleChangePasswordSubmit(event) {
+export async function handleChangePasswordSubmit(event) {
   event.preventDefault();
 
   const newPassword = document.getElementById('new-password').value;
@@ -35,5 +35,3 @@ async function handleChangePasswordSubmit(event) {
     showNotification('Failed to update password. Please try again.', 'danger');
   }
 }
-
-export default handleChangePasswordSubmit;

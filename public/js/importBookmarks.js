@@ -1,6 +1,6 @@
-import wsHandler from './ws.js';
+import { wsHandler } from './ws.js';
 
-import showNotification from './notification.js';
+import { showNotification } from './notification.js';
 
 async function importBookmarks(file) {
   const formData = new FormData();

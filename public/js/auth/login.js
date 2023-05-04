@@ -1,4 +1,4 @@
-import showNotification from '../notification.js';
+import { showNotification } from '../notification.js';
 
 export function loginDropdownHandler() {
   const loginForm = document.getElementById('login-dropdown');

@@ -148,12 +148,14 @@ function exportBookmarks(links) {
 
   const bookmarks = links
     .map((link) => {
-      const { title, url, description, tags, isPublic, savedAt } = link;
+      const {
+        title, url, description, tags, isPublic, savedAt,
+      } = link;
 
       const dt = Math.floor(new Date(savedAt).getTime() / 1000);
 
       const firstLine = `\t<DT><A HREF="${url}" ADD_DATE="${dt}" PRIVATE="${isPublic ? '0' : '1'}" TAGS="${tags.join(
-        ','
+        ',',
       )}">${title}</A>\n`;
       if (!description) {
         return firstLine;
@@ -319,7 +321,9 @@ async function addBookmarksToDatabase(bookmarks, userId) {
 
   for (let i = 0; i < totalBookmarks; i++) {
     const bookmark = bookmarks[i];
-    const { url, title, tags, description, addDate, isPublic } = bookmark;
+    const {
+      url, title, tags, description, addDate, isPublic,
+    } = bookmark;
 
     // Add the new link to the database
     const newLink = await Link.create({
@@ -352,7 +356,7 @@ async function addBookmarksToDatabase(bookmarks, userId) {
         JSON.stringify({
           type: 'import-progress',
           data: { progress: (i / totalBookmarks) * 100 },
-        })
+        }),
       );
     }
   }
@@ -374,4 +378,6 @@ async function importLinks(req, res, next) {
   return res.status(200).json({ message: 'Links imported successfully' });
 }
 
-export { createLink, exportLinks, getLink, getLinks, updateLink, deleteLink, importLinks };
+export {
+  createLink, exportLinks, getLink, getLinks, updateLink, deleteLink, importLinks,
+};

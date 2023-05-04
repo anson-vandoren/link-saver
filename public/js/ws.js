@@ -1,10 +1,9 @@
-import { API_URL } from './constants.js';
-
 function establishWebSocket(token) {
   if (!token) {
     return undefined;
   }
-  const WSS_BASE = API_URL.replace('http', 'ws');
+  const { origin } = window.location;
+  const WSS_BASE = origin.replace('http', 'ws');
   const WSS_URL = `${WSS_BASE}?token=${token}`;
   const socket = new WebSocket(WSS_URL);
 
@@ -50,9 +49,8 @@ const wsHandler = new WSHandler();
 const token = localStorage.getItem('token');
 if (token) {
   wsHandler.connect(token);
-} else {
-  // go to login page
-  window.location.href = '/';
 }
 
-export default wsHandler;
+export {
+  wsHandler,
+};

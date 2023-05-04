@@ -1,6 +1,6 @@
-import showNotification from './notification.js';
+import { showNotification } from './notification.js';
 
-async function exportBookmarks() {
+export async function exportBookmarks() {
   try {
     const response = await fetch('/api/links/export', {
       method: 'GET',
@@ -26,5 +26,3 @@ async function exportBookmarks() {
     showNotification('Failed to export bookmarks. Check server logs for more details', 'danger');
   }
 }
-
-export default exportBookmarks;
