@@ -1,4 +1,4 @@
-import { showNotification } from './notification.js';
+import { showNotification } from './notification';
 
 export async function exportBookmarks() {
   try {

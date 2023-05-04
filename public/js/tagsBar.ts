@@ -1,24 +1,25 @@
-import { createTagLink } from './tags.js';
-import { getTags } from './apiClient.js';
+import { createTagLink } from './tags';
+import { getTags } from './apiClient';
+import { Tag } from '../../shared/apiTypes';
 
-function generateTagsHtml(tags, onClick) {
+function generateTagsHtml(tags: Tag[], onClick: () => void) {
   const groupedTags = tags.reduce((acc, tag) => {
-    const firstChar = tag.charAt(0).toUpperCase();
+    const firstChar: string = tag.charAt(0).toUpperCase();
     if (!acc[firstChar]) {
       acc[firstChar] = [];
     }
     acc[firstChar].push(tag);
     return acc;
-  }, {});
+  }, {} as Record<string, string[]>);
 
   const tagsFragment = document.createDocumentFragment();
 
-  // eslint-disable-next-line no-restricted-syntax, guard-for-in
-  for (const char in groupedTags) {
+  // TODO: verify the change from const char in groupedTags
+  for (const char of Object.keys(groupedTags)) {
     const block = document.createElement('div');
     block.classList.add('block');
 
-    groupedTags[char].forEach((tag, index) => {
+    groupedTags[char].forEach((tag: string, index: number) => {
       const isFirst = index === 0;
       const tagLink = createTagLink(tag.toLowerCase(), {
         shouldShowHash: false,
@@ -38,10 +39,11 @@ function generateTagsHtml(tags, onClick) {
   return tagsFragment;
 }
 
-export async function loadTags(onClick) {
+export async function loadTags(onClick: () => void) {
+  const tagsList = document.getElementById('tagsList');
+  if (!tagsList) return;
   const tags = await getTags();
 
-  const tagsList = document.getElementById('tagsList');
   const tagsContainer = generateTagsHtml(tags, onClick);
   tagsList.innerHTML = '';
   tagsList.appendChild(tagsContainer);

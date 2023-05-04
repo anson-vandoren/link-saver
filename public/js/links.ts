@@ -1,12 +1,13 @@
-import { createLink, deleteLink, getLink, getLinks, updateLink } from './apiClient.js';
-import { scrollToTop, timeAgo } from './utils.js';
-import { createTagLink } from './tags.js';
-import { loadTags } from './tagsBar.js';
-import { DEFAULT_PER_PAGE } from './constants.js';
-import { showNotification } from './notification.js';
-import { updatePagination } from './pagination.js';
-import { wsHandler } from './ws.js';
-import { updateSearch } from './search.js';
+import { createLink, deleteLink, getLink, getLinks, updateLink } from './apiClient';
+import { scrollToTop, timeAgo } from './utils';
+import { createTagLink } from './tags';
+import { loadTags } from './tagsBar';
+import { DEFAULT_PER_PAGE } from './constants';
+import { showNotification } from './notification';
+import { updatePagination } from './pagination';
+import { wsHandler } from './ws';
+import { updateSearch } from './search';
+import { ScrapeFQDNResponseData } from '../../shared/apiTypes';
 
 export const tagOnClick = () => {
   updateSearch();
@@ -14,7 +15,7 @@ export const tagOnClick = () => {
   scrollToTop();
 };
 
-async function handleEditFormSubmit(event) {
+async function handleEditFormSubmit(event: Event) {
   event.preventDefault();
 
   const linkId = event.target.dataset.id;
@@ -74,11 +75,20 @@ async function handleAddLinkFormSubmit(event) {
   loadLinks();
 }
 
-wsHandler.on('scrapeFQDN', (data) => {
+wsHandler.on('scrapeFQDN', (data: ScrapeFQDNResponseData) => {
   const { title, description, url } = data;
-  document.getElementById('add-link-title').value = title;
-  document.getElementById('add-link-description').value = description;
-  document.getElementById('add-link-url').value = url;
+  const titleElem = document.getElementById('add-link-title');
+  if ((titleElem instanceof HTMLInputElement) && !titleElem.value) {
+    titleElem.value = title;
+  }
+  const descriptionElem = document.getElementById('add-link-description');
+  if ((descriptionElem instanceof HTMLInputElement) && !descriptionElem.value) {
+    descriptionElem.value = description;
+  }
+  const urlElem = document.getElementById('add-link-url');
+  if ((urlElem instanceof HTMLInputElement) && !urlElem.value) {
+    urlElem.value = url;
+  }
 });
 
 // Add event listener to the URL input field

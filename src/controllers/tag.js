@@ -11,7 +11,7 @@ async function getTags(_req, res, next) {
       order: [[Sequelize.fn('lower', Sequelize.col('name')), 'ASC']],
     });
 
-    const tagNames = tags.map((tag) => tag.name);
+    const tagNames: string[] = tags.map((tag) => tag.name);
     res.status(200).json(tagNames);
   } catch (error) {
     next(error);

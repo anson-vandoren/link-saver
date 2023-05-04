@@ -1,6 +1,7 @@
-function updateSearch(append = false) {
+export function updateSearch(append = false) {
   const doAppend = typeof append === 'boolean' ? append : false;
   const searchInput = document.getElementById('search-input');
+  if (!(searchInput instanceof HTMLInputElement)) throw new Error('Search input not found');
   const query = searchInput.value.trim();
   const existingQuery = new URLSearchParams(window.location.search).get('search') || '';
 
@@ -20,7 +21,3 @@ function updateSearch(append = false) {
   const urlPath = newQuery.length > 0 ? `/bookmarks.html?search=${encodeURIComponent(newQuery)}` : '/bookmarks.html';
   window.history.pushState(null, '', urlPath);
 }
-
-export {
-  updateSearch,
-};

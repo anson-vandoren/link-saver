@@ -1,4 +1,5 @@
-import { showNotification } from './notification.js';
+import { showNotification } from './notification';
+import { getToken } from './utils';
 
 export async function handlePurgeUnusedTags() {
   const errMsg = 'Failed to purge unused tags. Please try again later.';
@@ -7,7 +8,7 @@ export async function handlePurgeUnusedTags() {
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${localStorage.getItem('token')}`,
+        Authorization: `Bearer ${getToken()}`,
       },
     });
 
@@ -26,7 +27,8 @@ const defaultCreateTagOpts = {
   isFirst: false,
   onClick: () => {},
 };
-export function createTagLink(tag, opts = defaultCreateTagOpts) {
+
+export function createTagLink(tag: string, opts = defaultCreateTagOpts) {
   const { shouldShowHash, isFirst, onClick } = { ...defaultCreateTagOpts, ...opts };
   const tagLink = document.createElement('a');
   tagLink.classList.add('has-text-info');
@@ -38,7 +40,7 @@ export function createTagLink(tag, opts = defaultCreateTagOpts) {
   }
 
   const searchInput = document.getElementById('search-input');
-  if (!searchInput) {
+  if (!searchInput || !(searchInput instanceof HTMLInputElement)) {
     return tagLink;
   }
   tagLink.addEventListener('click', (e) => {

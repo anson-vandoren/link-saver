@@ -1,6 +1,6 @@
-import { wsHandler } from './ws.js';
+import { wsHandler } from './ws';
 
-import { showNotification } from './notification.js';
+import { showNotification } from './notification';
 
 async function importBookmarks(file) {
   const formData = new FormData();
@@ -34,7 +34,7 @@ async function importBookmarks(file) {
 
 const fileInput = document.querySelector('#import-bookmarks-file input[type=file]');
 const importButton = document.getElementById('import-btn');
-// TODO: refactor
+// TODO: refactor so this isn't an import for side effects
 if (importButton && fileInput) {
   importButton.addEventListener('click', async (e) => {
     e.preventDefault();

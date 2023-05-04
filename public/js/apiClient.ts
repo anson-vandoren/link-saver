@@ -1,11 +1,13 @@
-import { DEFAULT_PER_PAGE } from './constants.js';
+import { GetLinksResponse, Link, Tag } from '../../shared/apiTypes';
+import { DEFAULT_PER_PAGE } from './constants';
+import { getToken } from './utils';
 
-async function updateLink(id, data) {
+async function updateLink(id: number, data: Partial<Link>) {
   const response = await fetch(`/api/links/${id}`, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${localStorage.getItem('token')}`,
+      Authorization: `Bearer ${getToken()}`,
     },
     body: JSON.stringify(data),
   });
@@ -15,12 +17,12 @@ async function updateLink(id, data) {
   }
 }
 
-async function deleteLink(id) {
+async function deleteLink(id: number) {
   const response = await fetch(`/api/links/${id}`, {
     method: 'DELETE',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${localStorage.getItem('token')}`,
+      Authorization: `Bearer ${getToken()}`,
     },
   });
 
@@ -29,11 +31,11 @@ async function deleteLink(id) {
   }
 }
 
-async function getLink(id) {
+async function getLink(id: number) {
   const response = await fetch(`/api/links/${id}`, {
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${localStorage.getItem('token')}`,
+      Authorization: `Bearer ${getToken()}`,
     },
   });
 
@@ -44,7 +46,7 @@ async function getLink(id) {
 }
 
 async function getLinks(searchQuery = '', page = 1, pageSize = DEFAULT_PER_PAGE) {
-  const headers = { 'Content-Type': 'application/json' };
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
 
   const token = localStorage.getItem('token');
   if (token) {
@@ -55,13 +57,13 @@ async function getLinks(searchQuery = '', page = 1, pageSize = DEFAULT_PER_PAGE)
   const apiPath = '/api/links';
   const url = new URL(`${origin}${apiPath}`);
   url.searchParams.append('search', searchQuery);
-  url.searchParams.append('page', page);
-  url.searchParams.append('pageSize', pageSize);
+  url.searchParams.append('page', `${page}`);
+  url.searchParams.append('pageSize', `${pageSize}`);
 
   const response = await fetch(url.toString(), { headers });
 
   if (response.ok) {
-    const res = await response.json();
+    const res = await response.json() as GetLinksResponse;
 
     return {
       links: res.links,
@@ -71,16 +73,16 @@ async function getLinks(searchQuery = '', page = 1, pageSize = DEFAULT_PER_PAGE)
   throw new Error('Failed to load links');
 }
 
-async function getTags() {
+async function getTags(): Promise<Tag[]> {
   const response = await fetch('/api/tags', {
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${localStorage.getItem('token')}`,
+      Authorization: `Bearer ${getToken()}`,
     },
   });
 
   if (response.ok) {
-    return response.json();
+    return response.json() as Promise<Tag[]>;
   }
   throw new Error('Failed to load link');
 }
@@ -90,7 +92,7 @@ async function createLink(linkData) {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${localStorage.getItem('token')}`,
+      Authorization: `Bearer ${getToken()}`,
     },
     body: JSON.stringify(linkData),
   });

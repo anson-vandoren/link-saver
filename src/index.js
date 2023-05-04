@@ -16,6 +16,7 @@ import checkUserRegistered from './middleware/checkUserRegistered.js';
 import sequelize from './database.js';
 import wsHandler from './websocket.js';
 import logger from './logger.js';
+import { ScrapeFQDNResponseData } from '../shared/apiTypes';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -51,11 +52,12 @@ app.use(errorHandler);
 // WebSocket server
 const server = http.createServer(app);
 
-wsHandler.on('scrapeFQDN', async (sock, data) => {
-  const url = data.toString();
+wsHandler.on('scrapeFQDN', async (sock, msg) => {
+  const url = msg.toString();
   try {
     const { title, description, url: finalUrl } = await fetchTitleAndDescription(url);
-    sock.send(JSON.stringify({ type: 'scrapeFQDN', data: { title, description, url: finalUrl } }));
+    const data: ScrapeFQDNResponseData = { title, description, url: finalUrl };
+    sock.send(JSON.stringify({ type: 'scrapeFQDN', data}));
   } catch (error) {
     logger.error('Failed to fetch title and description:', { error });
     sock.send(JSON.stringify({ type: 'error', data: `Failed to fetch title and description: ${error}` }));

@@ -6,6 +6,7 @@ import Tag from '../models/tag.js';
 import LinkTag from '../models/linkTag.js';
 import wsHandler from '../websocket.js';
 import logger from '../logger.js';
+import { GetLinksResponse } from '../../shared/apiTypes';
 
 const DEFAULT_PER_PAGE = 25;
 
@@ -98,8 +99,8 @@ async function getLinks(req, res, next) {
     });
 
     const totalLinks = result.count;
-
-    res.status(200).json({ links, currentPage: page, totalPages: Math.ceil(totalLinks / limit) });
+    const data: GetLinksResponse = { links, currentPage: page, totalPages: Math.ceil(totalLinks / limit) };
+    res.status(200).json(data);
   } catch (error) {
     next(error);
   }

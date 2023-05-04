@@ -1,18 +1,18 @@
-function scrollToTop() {
+export function scrollToTop() {
   window.scrollTo({
     top: 0,
     behavior: 'smooth',
   });
 }
 
-function timeAgo(date) {
-  const pluralizeAndConcat = (n, word) => {
+export function timeAgo(date: Date) {
+  const pluralizeAndConcat = (n: number, word: string) => {
     let newWord = word;
     if (n > 1) newWord = `${word}s`;
     return `${n} ${newWord} ago`;
   };
 
-  const seconds = Math.floor((new Date() - date) / 1000);
+  const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
   let interval = Math.floor(seconds / 31536000);
   if (interval >= 1) {
     return pluralizeAndConcat(interval, 'year');
@@ -38,7 +38,8 @@ function timeAgo(date) {
   return pluralizeAndConcat(interval, 'second');
 }
 
-export {
-  scrollToTop,
-  timeAgo,
-};
+export function getToken(): string {
+  const token = localStorage.getItem('token');
+  if (!token) throw new Error('Expected token in storage but found none.');
+  return token;
+}
