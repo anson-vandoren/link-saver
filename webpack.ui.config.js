@@ -1,4 +1,5 @@
 import path from 'path';
+// eslint-disable-next-line import/no-extraneous-dependencies
 import { merge } from 'webpack-merge';
 
 // eslint-disable-next-line @typescript-eslint/naming-convention

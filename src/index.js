@@ -34,9 +34,8 @@ app.use(checkUserRegistered);
 // serve index.html at the root path, and other static content as needed
 if (process.env.NODE_ENV === 'production') {
   app.use(express.static(join(__dirname, '..', 'public', 'dist')));
-} else {
-  app.use(express.static(join(__dirname, '..', 'public')));
 }
+app.use(express.static(join(__dirname, '..', 'public')));
 
 // Routes
 app.use('/api/users', userRoutes);

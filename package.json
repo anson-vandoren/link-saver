@@ -9,7 +9,7 @@
     "start:ui": "webpack serve --env env=dev --config webpack.ui.config.js",
     "start:dev": "nodemon --inspect=9229 src/index.js",
     "build:ui:dev": "webpack --env env=dev --config webpack.ui.config.js",
-    "build:ui:prod": "webpack --env env=prod --config webpack.ui.config.js",
+    "build:ui:prod": "rm -rf public/dist && webpack --env env=prod --config webpack.ui.config.js",
     "build:server": "webpack --config webpack.server.config.js"
   },
   "keywords": [],
@@ -36,6 +36,7 @@
     "eslint-config-airbnb-base": "^15.0.0",
     "eslint-config-airbnb-typescript": "^17.0.0",
     "eslint-plugin-import": "^2.27.5",
+    "terser-webpack-plugin": "^5.3.7",
     "ts-loader": "^9.4.2",
     "typescript": "^5.0.4",
     "webpack": "^5.82.0",

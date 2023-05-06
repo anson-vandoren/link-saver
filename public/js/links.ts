@@ -63,7 +63,6 @@ async function handleEditFormSubmit(event: Event) {
     await loadLinks();
     await loadTags(tagOnClick);
   } catch (error) {
-    console.log(error);
     showNotification('Failed to update link', 'danger');
   }
 }
@@ -104,7 +103,7 @@ wsHandler.on('scrapeFQDN', (data) => {
 });
 
 // Add event listener to the URL input field
-let addLinkForm;
+let addLinkForm: HTMLFormElement | null = null;
 try {
   addLinkForm = getElementById('add-link-form', HTMLFormElement);
 } catch (error) {
@@ -151,7 +150,6 @@ function showEditForm(link: Link) {
 
   editLinkForm.addEventListener('submit', (event) => {
     handleEditFormSubmit(event).catch((_err) => {
-      console.log(_err);
       showNotification('Failed to update link', 'danger');
     });
   });
@@ -194,7 +192,8 @@ function renderLinkItem(link: Link) {
 
   const dateAgo = timeAgo(new Date(link.savedAt));
 
-  const isLoggedIn = !!link.userId && localStorage.getItem('token');
+  // TODO: remove window location check when combined
+  const isLoggedIn = !!link.userId && localStorage.getItem('token') && window.location.pathname === '/bookmarks.html';
   const dateSpan = fromLinkItem('.link-item-date-actions > span:first-child', HTMLSpanElement);
   if (isLoggedIn) {
     dateSpan.textContent = `Saved ${dateAgo} | `;
@@ -206,7 +205,7 @@ function renderLinkItem(link: Link) {
     };
     editLink.addEventListener('click', (e) => {
       clickEditHandler(e).catch((_err) => {
-        console.log(_err);
+        console.debug('Failed to show edit form', _err);
         showNotification('Failed to show edit form', 'danger');
       });
     });
