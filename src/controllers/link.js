@@ -85,6 +85,7 @@ async function getLinks(req, res, next) {
       order: [['savedAt', 'DESC']],
       limit,
       offset,
+      distinct: true,
     });
 
     const links = result.rows.map((link) => {
