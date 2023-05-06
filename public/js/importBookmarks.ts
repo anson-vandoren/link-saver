@@ -72,8 +72,13 @@ async function importBtnListener(e: Event) {
 export function handleImportButton() {
   const importButton = getElementById('import-btn', HTMLButtonElement);
   importButton.addEventListener('click', (e: Event) => {
-    importBtnListener(e).catch((_err) => {
-      showNotification('Failed to import bookmarks. Check server logs for more details', 'danger');
-    });
+    importBtnListener(e)
+      .then(() => {
+        showNotification('Bookmarks imported successfully.');
+        window.location.href = './bookmarks.html';
+      })
+      .catch((_err) => {
+        showNotification('Failed to import bookmarks. Check server logs for more details', 'danger');
+      });
   });
 }
