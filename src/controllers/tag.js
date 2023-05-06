@@ -1,14 +1,26 @@
 import { Sequelize } from 'sequelize';
+import sequelize from '../database.js';
 import logger from '../logger.js';
 import Link from '../models/link.js';
 import Tag from '../models/tag.js';
 
 // TODO: rate limit
-async function getTags(_req, res, next) {
+async function getTags(req, res, next) {
   try {
-    const tags = await Tag.findAll({
-      attributes: ['name'],
-      order: [[Sequelize.fn('lower', Sequelize.col('name')), 'ASC']],
+    const sortBy = req.query.sortBy || 'name';
+
+    const orderConfig = sortBy === 'links'
+      ? 'link_count DESC, LOWER(name) ASC'
+      : 'LOWER(name) ASC';
+
+    const tags = await sequelize.query(`
+      SELECT t.name, COUNT(lt.linkId) as link_count
+      FROM Tags t
+      LEFT JOIN LinkTags lt ON t.id = lt.tagId
+      GROUP BY t.id, t.name
+      ORDER BY ${orderConfig}
+    `, {
+      type: Sequelize.QueryTypes.SELECT,
     });
 
     const tagNames = tags.map((tag) => tag.name);
@@ -17,6 +29,7 @@ async function getTags(_req, res, next) {
     next(error);
   }
 }
+
 
 async function purgeUnusedTags(_req, res, next) {
   try {

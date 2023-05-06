@@ -6,7 +6,7 @@ import { exportBookmarks } from './exportBookmarks';
 import { handleImportButton } from './importBookmarks';
 import { handleAddLinkFormSubmit, loadLinks, tagOnClick } from './links';
 import initModals from './modals';
-import { updateSearch } from './search';
+import { clearSearch, updateSearch } from './search';
 import { handlePurgeUnusedTags } from './tags';
 import { loadTags } from './tagsBar';
 import { populateThemeDropdown, saveThemeHandler } from './theme';
@@ -31,6 +31,11 @@ function initBookmarks(): void {
 
   document.getElementById('logout-btn')?.addEventListener('click', handleLogoutButtonClick);
   document.getElementById('add-link-form')?.addEventListener('submit', handleAddLinkFormSubmit);
+  document.getElementById('bookmarks-title')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    clearSearch();
+    loadLinks();
+  });
   initModals();
   loadLinks();
   updateSearch(true);
@@ -43,7 +48,7 @@ function initSettings() {
   const fileInput = document.querySelector('#import-bookmarks-file input[type=file]');
   if (fileInput instanceof HTMLInputElement && importButton instanceof HTMLButtonElement) {
     fileInput.onchange = () => {
-      if (fileInput.files && fileInput.files.length  > 0) {
+      if (fileInput.files && fileInput.files.length > 0) {
         const fileName = document.querySelector('#import-bookmarks-file .file-name');
         if (fileName) {
           fileName.textContent = fileInput.files[0].name;
@@ -70,6 +75,11 @@ document.addEventListener('DOMContentLoaded', () => {
     if (hasToken()) {
       window.location.href = '/bookmarks.html';
     }
+    document.getElementById('bookmarks-title')?.addEventListener('click', (e) => {
+      e.preventDefault();
+      clearSearch();
+      loadLinks();
+    });
     handleLogin();
     loadLinks();
     loadTags(tagOnClick);

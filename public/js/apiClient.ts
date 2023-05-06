@@ -87,13 +87,13 @@ async function getLinks(searchQuery = '', page = 1, pageSize = DEFAULT_PER_PAGE)
   throw new Error('Failed to load links');
 }
 
-async function getTags(): Promise<Tag[]> {
+async function getTags(sortBy: 'name' | 'links' = 'name'): Promise<Tag[]> {
   const authHeader = hasToken() ? { Authorization: `Bearer ${getToken()}` } : {};
   const headers = { 'Content-Type': 'application/json' } as Record<string, string>;
   if (authHeader.Authorization) {
     headers.Authorization = authHeader.Authorization;
   }
-  const response = await fetch('/api/tags', {
+  const response = await fetch(`/api/tags?sortBy=${sortBy}`, {
     headers,
   });
 

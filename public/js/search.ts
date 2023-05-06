@@ -18,6 +18,18 @@ export function updateSearch(append = false) {
   newQuery = newQuery.trim();
 
   searchInput.value = newQuery;
-  const urlPath = newQuery.length > 0 ? `/bookmarks.html?search=${encodeURIComponent(newQuery)}` : '/bookmarks.html';
+  // Update the URL
+  const currentPath = window.location.pathname;
+  const urlPath = newQuery.length > 0 ? `${currentPath}?search=${encodeURIComponent(newQuery)}` : currentPath;
   window.history.pushState(null, '', urlPath);
+}
+
+export function clearSearch() {
+  const searchInput = document.getElementById('search-input');
+  if (!(searchInput instanceof HTMLInputElement)) throw new Error('Search input not found');
+  searchInput.value = '';
+  const currentPath = window.location.pathname;
+  // clear the search query from the URL
+  const newPath = currentPath.split('?')[0];
+  window.history.pushState(null, '', newPath);
 }

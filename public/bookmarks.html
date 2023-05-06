@@ -11,6 +11,7 @@
         document.write(`<link id="theme-stylesheet" rel="stylesheet" href="${theme}" />`);
       })();
     </script>
+    <link rel="stylesheet" href="bulma-switch.min.css">
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
@@ -97,7 +98,7 @@
       <div class="column is-5 is-offset-3">
         <div class="level">
           <div class="level-left">
-            <a class="title level-item" href="/bookmarks.html">Bookmarks</a>
+            <a class="title level-item" href="" id="bookmarks-title">Bookmarks</a>
           </div>
           <div class="level-right">
             <div class="level-item">
@@ -139,7 +140,17 @@
         </nav>
       </div>
       <div class="column is-4">
-        <h3 class="title is-4">Tags</h3>
+        <div class="level">
+          <div class="level-left">
+            <h3 class="title is-4">Tags</h3>
+          </div>
+          <div class="level-right">
+            <div class="field">
+              <input id="toggleSort" type="checkbox" name="toggleSort" class="switch is-rounded" />
+              <label for="toggleSort">Sort by Link Count</label>
+            </div>
+          </div>
+        </div>
         <hr />
         <div id="tagsList">
           <!-- Tags will be added here dynamically -->
