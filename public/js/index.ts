@@ -10,6 +10,7 @@ import { updateSearch } from './search';
 import { handlePurgeUnusedTags } from './tags';
 import { loadTags } from './tagsBar';
 import { populateThemeDropdown, saveThemeHandler } from './theme';
+import { hasToken } from './utils';
 
 function initBookmarks(): void {
   if (localStorage.getItem('token')) {
@@ -67,6 +68,9 @@ function initSettings() {
 
 document.addEventListener('DOMContentLoaded', () => {
   if (window.location.pathname === '/' || window.location.pathname === '/index.html') {
+    if (hasToken()) {
+      window.location.href = '/bookmarks.html';
+    }
     loginDropdownHandler();
     loginSubmitHandler();
     loadLinks();
