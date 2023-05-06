@@ -39,13 +39,22 @@ async function getLink(id: number): Promise<Link> {
     },
   });
 
+  if (response.redirected) {
+    window.location.href = response.url;
+    return {} as Link;
+  }
+
   if (response.ok) {
     return response.json() as Promise<Link>;
   }
   throw new Error('Failed to load link');
 }
 
-async function getLinks(searchQuery = '', page = 1, pageSize = DEFAULT_PER_PAGE) {
+type GetLinksRes = {
+  links: Link[];
+  totalPages: number;
+}
+async function getLinks(searchQuery = '', page = 1, pageSize = DEFAULT_PER_PAGE): Promise<GetLinksRes> {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
 
   const token = localStorage.getItem('token');
@@ -61,6 +70,11 @@ async function getLinks(searchQuery = '', page = 1, pageSize = DEFAULT_PER_PAGE)
   url.searchParams.append('pageSize', `${pageSize}`);
 
   const response = await fetch(url.toString(), { headers });
+
+  if (response.redirected) {
+    window.location.href = response.url;
+    return {} as GetLinksRes;
+  }
 
   if (response.ok) {
     const res = await response.json() as GetLinksResponse;

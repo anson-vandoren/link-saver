@@ -1,4 +1,5 @@
 import { showNotification } from './notification';
+import { getElementById } from './utils';
 
 type LoadLinksCallback = (page: number) => void | Promise<void>;
 function createPaginationItem(pageNumber: number, currentPage: number, cb: LoadLinksCallback) {
@@ -43,13 +44,28 @@ export function updatePagination(currentPage: number, totalPages: number, cb: Lo
   if (!paginationList) {
     throw new Error('Could not find pagination list');
   }
+
+  const prevBtn = document.querySelector('.pagination-previous');
+  const nextBtn = document.querySelector('.pagination-next');
+  if (!prevBtn || !nextBtn) {
+    throw new Error('Could not find pagination buttons');
+  }
+
   paginationList.innerHTML = '';
+  if (totalPages <= 1) {
+    getElementById('pagination-nav', HTMLElement)?.classList.add('is-hidden');
+    return;
+  }
+  getElementById('pagination-nav', HTMLElement)?.classList.remove('is-hidden');
 
   const maxPagesToShow = 5; // Adjust this value to show more or fewer page buttons
 
   let startPage = Math.max(2, currentPage - Math.floor((maxPagesToShow - 2) / 2));
   let endPage = Math.min(totalPages - 1, startPage + maxPagesToShow - 3);
   startPage = Math.max(2, endPage - (maxPagesToShow - 3));
+  if (endPage < startPage) {
+    endPage = startPage;
+  }
 
   // Add the first page button
   paginationList.appendChild(createPaginationItem(1, currentPage, cb));
@@ -85,13 +101,8 @@ export function updatePagination(currentPage: number, totalPages: number, cb: Lo
     paginationList.appendChild(createPaginationItem(totalPages, currentPage, cb));
   }
 
-  // Add event listeners for previous and next buttons
-  const prevBtn = document.querySelector('.pagination-previous');
-  const nextBtn = document.querySelector('.pagination-next');
-  if (!prevBtn || !nextBtn) {
-    throw new Error('Could not find pagination buttons');
-  }
 
+  // Add event listeners for previous and next buttons
   const prevBtnClone = prevBtn.cloneNode(true) as typeof prevBtn;
   const nextBtnClone = nextBtn.cloneNode(true) as typeof nextBtn;
 

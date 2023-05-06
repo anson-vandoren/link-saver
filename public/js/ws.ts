@@ -5,21 +5,27 @@ function establishWebSocket(token: string) {
   if (!token) {
     return undefined;
   }
-  const { origin } = window.location;
-  const WSS_BASE = origin.replace('http', 'ws');
-  const WSS_URL = `${WSS_BASE}?token=${token}`;
+  const { protocol, hostname } = window.location;
+  const wsProtocol = protocol === 'https:' ? 'wss:' : 'ws:';
+  const WSS_URL = `${wsProtocol}//${hostname}:3001?token=${token}`;
   const socket = new WebSocket(WSS_URL);
 
   return socket;
 }
 
+
 class WSHandler {
   private socket: WebSocket | undefined;
   private handlers: Map<string, (data: unknown) => void> = new Map();
 
-  connect(token: string) {
+  public get isConnected() {
+    return this.socket?.readyState === WebSocket.OPEN;
+  }
+
+  connect(token: string): void {
     this.socket = establishWebSocket(token);
     if (!this.socket) {
+      console.debug('No socket');
       return;
     }
     this.socket.addEventListener('message', (event: { data: string }) => {
@@ -60,8 +66,16 @@ try {
 } catch (_err) { /* ignore */ }
 if (token) {
   wsHandler.connect(token);
+  console.debug('Connected to websocket');
+} else {
+  console.debug('No token found, not connecting to websocket');
+}
+
+function getGlobalWSHandler() {
+  return wsHandler;
 }
 
 export {
   wsHandler,
+  getGlobalWSHandler,
 };

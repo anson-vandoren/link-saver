@@ -73,13 +73,13 @@ function closeEditForm() {
 
 async function handleAddLinkFormSubmit(event: Event) {
   event.preventDefault();
-  const [title, url, description, rawTags, visibility] = getValuesOrThrow([
+  const [title, url, rawTags, visibility] = getValuesOrThrow([
     'add-link-title',
     'add-link-url',
-    'add-link-description',
     'add-link-tags',
     'link-visibility',
   ]);
+  const description = getElementById('add-link-description', HTMLTextAreaElement).value;
 
   const tags = rawTags.split(',').map((tag) => tag.trim());
   const isPublic = visibility === 'public';
@@ -98,7 +98,7 @@ async function handleAddLinkFormSubmit(event: Event) {
 wsHandler.on('scrapeFQDN', (data) => {
   const { title, description, url } = data as ScrapeFQDNResponseData;
   getElementById('add-link-title', HTMLInputElement).value ||= title;
-  getElementById('add-link-description', HTMLInputElement).value ||= description;
+  getElementById('add-link-description', HTMLTextAreaElement).value ||= description;
   getElementById('add-link-url', HTMLInputElement).value ||= url;
 });
 
@@ -280,6 +280,7 @@ async function loadLinks(page = 1, pageSize = DEFAULT_PER_PAGE) {
 
     updatePagination(page, totalPages, loadLinks);
   } catch (err) {
+    console.error('Failed to load links', err);
     showNotification('Oops, something went wrong.', 'danger');
   }
 }

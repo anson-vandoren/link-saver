@@ -313,7 +313,7 @@ async function addBookmarksToDatabase(bookmarks, userId) {
   // TODO: perf++: use bulkCreate or queued promises w/ concurrency control
   const sock = wsHandler.connections.get(userId);
   if (!sock) {
-    throw new Error('User not connected', userId);
+    logger.warn('no websocket connection found for user', { userId });
   }
 
   const totalBookmarks = bookmarks.length;
@@ -353,7 +353,7 @@ async function addBookmarksToDatabase(bookmarks, userId) {
 
     // Send progress update after each link creation
     if (i % 10 === 0) {
-      sock.send(
+      sock?.send(
         JSON.stringify({
           type: 'import-progress',
           data: { progress: (i / totalBookmarks) * 100 },
@@ -364,7 +364,7 @@ async function addBookmarksToDatabase(bookmarks, userId) {
   logger.info(`Saved ${totalBookmarks} bookmarks to database (${queriesSaved} queries saved)`);
 
   // Send final progress update
-  sock.send(JSON.stringify({ type: 'import-progress', data: { progress: 100 } }));
+  sock?.send(JSON.stringify({ type: 'import-progress', data: { progress: 100 } }));
 }
 
 async function importLinks(req, res, next) {
