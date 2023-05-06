@@ -16,7 +16,6 @@ import checkUserRegistered from './middleware/checkUserRegistered.js';
 import sequelize from './database.js';
 import wsHandler from './websocket.js';
 import logger from './logger.js';
-import { ScrapeFQDNResponseData } from '../shared/apiTypes';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -33,7 +32,11 @@ const __dirname = new URL('.', import.meta.url).pathname;
 
 app.use(checkUserRegistered);
 // serve index.html at the root path, and other static content as needed
-app.use(express.static(join(__dirname, '..', 'public')));
+if (process.env.NODE_ENV === 'production') {
+  app.use(express.static(join(__dirname, '..', 'public', 'dist')));
+} else {
+  app.use(express.static(join(__dirname, '..', 'public')));
+}
 
 // Routes
 app.use('/api/users', userRoutes);
@@ -53,10 +56,10 @@ app.use(errorHandler);
 const server = http.createServer(app);
 
 wsHandler.on('scrapeFQDN', async (sock, msg) => {
-  const url = msg.toString();
+  const { url } = msg;
   try {
-    const { title, description, url: finalUrl } = await fetchTitleAndDescription(url);
-    const data: ScrapeFQDNResponseData = { title, description, url: finalUrl };
+    const { title, description, url: finalUrl } = await fetchTitleAndDescription(url.toString());
+    const data = { title, description, url: finalUrl };
     sock.send(JSON.stringify({ type: 'scrapeFQDN', data}));
   } catch (error) {
     logger.error('Failed to fetch title and description:', { error });

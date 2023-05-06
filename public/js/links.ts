@@ -1,13 +1,22 @@
+import { Link, ScrapeFQDNResponseData } from '../../shared/apiTypes';
 import { createLink, deleteLink, getLink, getLinks, updateLink } from './apiClient';
-import { scrollToTop, timeAgo } from './utils';
-import { createTagLink } from './tags';
-import { loadTags } from './tagsBar';
 import { DEFAULT_PER_PAGE } from './constants';
 import { showNotification } from './notification';
 import { updatePagination } from './pagination';
-import { wsHandler } from './ws';
 import { updateSearch } from './search';
-import { ScrapeFQDNResponseData } from '../../shared/apiTypes';
+import { createTagLink } from './tags';
+import { loadTags } from './tagsBar';
+import {
+  getElementById,
+  getValuesOrThrow,
+  isFormElem,
+  isInputElem,
+  querySelectorInFragment,
+  scrollToTop,
+  setValuesOrThrow,
+  timeAgo,
+} from './utils';
+import { wsHandler } from './ws';
 
 export const tagOnClick = () => {
   updateSearch();
@@ -23,6 +32,7 @@ export const tagOnClick = () => {
 
 async function handleEditFormSubmit(event: Event) {
   event.preventDefault();
+
   if (!(event.target instanceof HTMLFormElement)) {
     throw new Error('Could not find edit form');
   }
@@ -30,30 +40,15 @@ async function handleEditFormSubmit(event: Event) {
   if (!linkId) {
     throw new Error('Could not find link id');
   }
-  const titleElem = document.getElementById('edit-link-title');
-  if (!(titleElem instanceof HTMLInputElement)) {
-    // TODO: factor out getOrThrow(?)
-    throw new Error('Could not find edit link title');
-  }
-  const title = titleElem.value;
-  const urlElem = document.getElementById('edit-link-url');
-  if (!(urlElem instanceof HTMLInputElement)) {
-    throw new Error('Could not find edit link url');
-  }
-  const url = urlElem.value;
+  const [title, url, rawTags, visibility] = getValuesOrThrow([
+    'edit-link-title',
+    'edit-link-url',
+    'edit-link-tags',
+    'edit-link-visibility',
+  ]);
+  const tags = rawTags.split(',').map((tag) => tag.trim());
 
-  const tagsElem = document.getElementById('edit-link-tags');
-  if (!(tagsElem instanceof HTMLInputElement)) {
-    throw new Error('Could not find edit link tags');
-  }
-
-  const tags = tagsElem.value.split(',').map((tag) => tag.trim());
-
-  const visibilityElem = document.getElementById('edit-link-visibility');
-  if (!(visibilityElem instanceof HTMLSelectElement)) {
-    throw new Error('Could not find edit link visibility');
-  }
-  const isPublic = visibilityElem.value === 'public';
+  const isPublic = visibility === 'public';
 
   try {
     await updateLink(+linkId, {
@@ -68,28 +63,26 @@ async function handleEditFormSubmit(event: Event) {
     await loadLinks();
     await loadTags(tagOnClick);
   } catch (error) {
+    console.log(error);
     showNotification('Failed to update link', 'danger');
   }
 }
 
 function closeEditForm() {
-  const editForm = document.getElementById('edit-link-form');
-  if (editForm) {
-    editForm.remove();
-  }
+  getElementById('edit-link-form', HTMLFormElement).remove();
 }
 
-async function handleAddLinkFormSubmit(event) {
+async function handleAddLinkFormSubmit(event: Event) {
   event.preventDefault();
+  const [title, url, description, rawTags, visibility] = getValuesOrThrow([
+    'add-link-title',
+    'add-link-url',
+    'add-link-description',
+    'add-link-tags',
+    'link-visibility',
+  ]);
 
-  const title = document.getElementById('add-link-title').value;
-  const url = document.getElementById('add-link-url').value;
-  const description = document.getElementById('add-link-description').value;
-  const tags = document
-    .getElementById('add-link-tags')
-    .value.split(',')
-    .map((tag) => tag.trim());
-  const visibility = document.getElementById('link-visibility').value;
+  const tags = rawTags.split(',').map((tag) => tag.trim());
   const isPublic = visibility === 'public';
 
   await createLink({
@@ -99,105 +92,126 @@ async function handleAddLinkFormSubmit(event) {
     isPublic,
     description,
   });
-  document.getElementById('add-link-form').reset();
-  loadLinks();
+  getElementById('add-link-form', HTMLFormElement).reset();
+  return loadLinks();
 }
 
-wsHandler.on('scrapeFQDN', (data: ScrapeFQDNResponseData) => {
-  const { title, description, url } = data;
-  const titleElem = document.getElementById('add-link-title');
-  if (titleElem instanceof HTMLInputElement && !titleElem.value) {
-    titleElem.value = title;
-  }
-  const descriptionElem = document.getElementById('add-link-description');
-  if (descriptionElem instanceof HTMLInputElement && !descriptionElem.value) {
-    descriptionElem.value = description;
-  }
-  const urlElem = document.getElementById('add-link-url');
-  if (urlElem instanceof HTMLInputElement && !urlElem.value) {
-    urlElem.value = url;
-  }
+wsHandler.on('scrapeFQDN', (data) => {
+  const { title, description, url } = data as ScrapeFQDNResponseData;
+  getElementById('add-link-title', HTMLInputElement).value ||= title;
+  getElementById('add-link-description', HTMLInputElement).value ||= description;
+  getElementById('add-link-url', HTMLInputElement).value ||= url;
 });
 
 // Add event listener to the URL input field
-const urlInput = document.getElementById('add-link-url');
-if (urlInput) {
-  urlInput.addEventListener('focusout', (event) => {
-    const url = event.target.value;
-    if (url) {
-      wsHandler.send('scrapeFQDN', url);
-    }
-  });
+let addLinkForm;
+try {
+  addLinkForm = getElementById('add-link-form', HTMLFormElement);
+} catch (error) {
+  // Ignore
 }
+addLinkForm?.addEventListener('focusout', (event) => {
+  if (!isInputElem(event.target)) {
+    return;
+  }
+  const url = event.target.value;
+  if (url) {
+    wsHandler.send('scrapeFQDN', { url });
+  }
+});
 
-const editLinkTemplate = document.getElementById('edit-link-template');
-function showEditForm(link) {
-  const editFormFragment = editLinkTemplate.content.cloneNode(true);
+function showEditForm(link: Link) {
+  const editLinkTemplate = getElementById('edit-link-template', HTMLTemplateElement);
+  const editFrag = editLinkTemplate.content.cloneNode(true) as typeof editLinkTemplate.content;
 
-  editFormFragment.querySelector('#edit-link-form').dataset.id = link.id;
-  editFormFragment.querySelector('#edit-link-title').value = link.title;
-  editFormFragment.querySelector('#edit-link-url').value = link.url;
-  editFormFragment.querySelector('#edit-link-tags').value = (link.tags ?? []).join(', ');
+  const editLinkForm = editFrag.querySelector('#edit-link-form');
+  if (!isFormElem(editLinkForm)) {
+    throw new Error('Could not find edit link form');
+  }
+  editLinkForm.dataset.id = `${link.id}`;
+
+  setValuesOrThrow([
+    { querySel: '#edit-link-title', value: link.title },
+    { querySel: '#edit-link-url', value: link.url },
+    { querySel: '#edit-link-tags', value: (link.tags ?? []).join(', ') },
+  ], editFrag);
+
   const linkVisibility = link.isPublic ? 'public' : 'private';
-  editFormFragment.querySelector(`#edit-link-visibility option[value="${linkVisibility}"]`).selected = true;
+  const visibilityElem = editFrag.querySelector(`#edit-link-visibility option[value="${linkVisibility}"]`);
+  if (!(visibilityElem instanceof HTMLOptionElement)) {
+    throw new Error('Could not find visibility element');
+  }
+  visibilityElem.selected = true;
 
-  const editForm = editFormFragment.querySelector('#edit-link-form');
+  const linkItem = document.querySelector(`[data-id="${link.id}"]`)?.closest('.link-item');
+  if (!linkItem) {
+    throw new Error('Could not find link item');
+  }
+  linkItem.appendChild(editFrag);
 
-  const linkItem = document.querySelector(`[data-id="${link.id}"]`).closest('.link-item');
-  linkItem.appendChild(editFormFragment);
+  editLinkForm.addEventListener('submit', (event) => {
+    handleEditFormSubmit(event).catch((_err) => {
+      console.log(_err);
+      showNotification('Failed to update link', 'danger');
+    });
+  });
 
-  editForm.addEventListener('submit', handleEditFormSubmit);
-  document.getElementById('cancel-edit').addEventListener('click', () => {
-    editForm.remove();
+  getElementById('cancel-edit', HTMLButtonElement).addEventListener('click', () => {
+    editLinkForm.remove();
   });
 }
 
-/**
- * Create a link list item element
- * @param {Link} link One link object to render
- * @returns Link list item element
- */
-function renderLinkItem(link) {
-  const linkItemTemplate = document.getElementById('link-item-template');
-  const fragment = linkItemTemplate.content.cloneNode(true);
-  const linkItem = fragment.querySelector('.link-item');
-  linkItem.dataset.id = link.id;
+function renderLinkItem(link: Link) {
+  const linkItemTemplate = getElementById('link-item-template', HTMLTemplateElement);
+  const fragment = linkItemTemplate.content.cloneNode(true) as typeof linkItemTemplate.content;
+  const linkItem = querySelectorInFragment(fragment, '.link-item', HTMLElement);
+  function fromLinkItem<T extends HTMLElement>(sel: string, type: new () => T): T {
+    return querySelectorInFragment<T>(linkItem, sel, type);
+  }
+  linkItem.dataset.id = `${link.id}`;
 
-  const titleLink = linkItem.querySelector('.link-item-title > a');
+  const titleLink = fromLinkItem('.link-item-title > a', HTMLAnchorElement);
   titleLink.href = link.url;
   titleLink.textContent = link.title;
 
-  const tagsSpan = linkItem.querySelector('.link-item-tags-description > span:first-child');
+  const tagsSpan = fromLinkItem('.link-item-tags-description > span:first-child', HTMLSpanElement);
   if (link.tags.length && link.tags[0] !== '') {
     link.tags.forEach((tag) => {
       tagsSpan.appendChild(
         createTagLink(tag, {
           onClick: tagOnClick,
-        })
+        }),
       );
     });
   }
 
-  const descrSpan = linkItem.querySelector('.link-item-tags-description > span:last-child');
-  descrSpan.textContent = link.description ? link.description : '';
+  const descrSpan = fromLinkItem('.link-item-tags-description > span:last-child', HTMLSpanElement);
+  descrSpan.textContent = link.description ?? '';
 
   if (link.tags.length && link.tags[0] !== '' && link.description) {
     tagsSpan.insertAdjacentText('beforeend', ' | ');
   }
 
-  const dateSpan = linkItem.querySelector('.link-item-date-actions > span:first-child');
   const dateAgo = timeAgo(new Date(link.savedAt));
 
-  const isLoggedIn = !!link.userId;
+  const isLoggedIn = !!link.userId && localStorage.getItem('token');
+  const dateSpan = fromLinkItem('.link-item-date-actions > span:first-child', HTMLSpanElement);
   if (isLoggedIn) {
     dateSpan.textContent = `Saved ${dateAgo} | `;
-    const editLink = linkItem.querySelector('.link-item-date-actions > span:last-child > a:first-child');
-    editLink.addEventListener('click', async () => {
+    const editLink = fromLinkItem('.link-item-date-actions > span:last-child > a:first-child', HTMLAnchorElement);
+    const clickEditHandler = async (e: Event) => {
+      e.preventDefault();
       const linkData = await getLink(link.id);
       showEditForm(linkData);
+    };
+    editLink.addEventListener('click', (e) => {
+      clickEditHandler(e).catch((_err) => {
+        console.log(_err);
+        showNotification('Failed to show edit form', 'danger');
+      });
     });
 
-    const removeLink = linkItem.querySelector('.link-item-date-actions > span:last-child > a:last-child');
+    const removeLink = fromLinkItem('.link-item-date-actions > span:last-child > a:last-child', HTMLAnchorElement);
     const cancelLink = document.createElement('a');
     const confirmLink = document.createElement('a');
 
@@ -209,14 +223,14 @@ function renderLinkItem(link) {
     };
 
     // Show the remove link and hide the cancel and confirm links
-    const hideConfirmation = (e) => {
+    const hideConfirmation = (e: Event) => {
       e.preventDefault();
       removeLink.style.display = 'inline';
       cancelLink.style.display = 'none';
       confirmLink.style.display = 'none';
     };
 
-    const removeSpan = linkItem.querySelector('.link-item-date-actions > span:last-child');
+    const removeSpan = fromLinkItem('.link-item-date-actions > span:last-child', HTMLSpanElement);
     removeLink.addEventListener('click', showConfirmation);
 
     // Add the cancel and confirm links
@@ -234,25 +248,23 @@ function renderLinkItem(link) {
     cancelLink.addEventListener('click', hideConfirmation);
     confirmLink.addEventListener('click', (e) => {
       e.preventDefault();
-      deleteLink(link.id).then(() => {
-        loadLinks();
-      });
+      deleteLink(link.id)
+        .then(() => loadLinks())
+        .catch((_err) => {
+          showNotification('Failed to delete link', 'danger');
+        });
     });
   } else {
-    dateSpan.textContent = `Saved ${dateAgo} by ${link.User.username}`;
-    const editRemoveSpan = linkItem.querySelector('.link-item-date-actions > span:last-child');
+    dateSpan.textContent = `Saved ${dateAgo} by ${link.User?.username || 'anonymous'}`;
+    const editRemoveSpan = fromLinkItem('.link-item-date-actions > span:last-child', HTMLSpanElement);
     editRemoveSpan.remove();
   }
 
   return fragment;
 }
-/**
- * Fetch links from the API and render them in the DOM
- * @param {string} searchQuery optional search query to filter links
- * @throws {Error} if the request fails
- */
+
 async function loadLinks(page = 1, pageSize = DEFAULT_PER_PAGE) {
-  const searchInput = document.getElementById('search-input');
+  const searchInput = getElementById('search-input', HTMLInputElement);
   const searchQuery = searchInput?.value.trim() ?? '';
 
   const linkList = document.getElementById('link-list');

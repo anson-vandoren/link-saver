@@ -3,7 +3,7 @@ import { handleLogoutButtonClick } from './auth/logout';
 import { handleChangePasswordSubmit } from './auth/passwordChange';
 import { handleSignupForm } from './auth/signup';
 import { exportBookmarks } from './exportBookmarks';
-import './importBookmarks';
+import { handleImportButton } from './importBookmarks';
 import { handleAddLinkFormSubmit, loadLinks, tagOnClick } from './links';
 import initModals from './modals';
 import { updateSearch } from './search';
@@ -38,6 +38,7 @@ function initBookmarks(): void {
 }
 
 function initSettings() {
+  handleImportButton();
   const importButton = document.getElementById('import-btn');
   const fileInput = document.querySelector('#import-bookmarks-file input[type=file]');
   if (fileInput instanceof HTMLInputElement && importButton instanceof HTMLButtonElement) {

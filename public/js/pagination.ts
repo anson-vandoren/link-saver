@@ -1,4 +1,6 @@
-type LoadLinksCallback = (page: number) => void;
+import { showNotification } from './notification';
+
+type LoadLinksCallback = (page: number) => void | Promise<void>;
 function createPaginationItem(pageNumber: number, currentPage: number, cb: LoadLinksCallback) {
   const listItem = document.createElement('li');
   const paginationLink = document.createElement('a');
@@ -10,7 +12,12 @@ function createPaginationItem(pageNumber: number, currentPage: number, cb: LoadL
     paginationLink.setAttribute('aria-current', 'page');
   } else {
     paginationLink.addEventListener('click', () => {
-      cb(pageNumber);
+      const res = cb(pageNumber);
+      if (res instanceof Promise) {
+        res.catch((_err) => {
+          showNotification('Failed to load links', 'danger');
+        });
+      }
     });
   }
   listItem.appendChild(paginationLink);
@@ -96,7 +103,12 @@ export function updatePagination(currentPage: number, totalPages: number, cb: Lo
   } else {
     prevBtnClone.removeAttribute('disabled');
     prevBtnClone.addEventListener('click', () => {
-      cb(currentPage - 1);
+      const res = cb(currentPage - 1);
+      if (res instanceof Promise) {
+        res.catch((_err) => {
+          showNotification('Failed to load links', 'danger');
+        });
+      }
     });
   }
 
@@ -105,7 +117,12 @@ export function updatePagination(currentPage: number, totalPages: number, cb: Lo
   } else {
     nextBtnClone.removeAttribute('disabled');
     nextBtnClone.addEventListener('click', () => {
-      cb(currentPage + 1);
+      const res = cb(currentPage + 1);
+      if (res instanceof Promise) {
+        res.catch((_err) => {
+          showNotification('Failed to load links', 'danger');
+        });
+      }
     });
   }
 }

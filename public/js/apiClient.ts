@@ -1,6 +1,6 @@
 import { GetLinksResponse, Link, Tag } from '../../shared/apiTypes';
 import { DEFAULT_PER_PAGE } from './constants';
-import { getToken } from './utils';
+import { getToken, hasToken } from './utils';
 
 async function updateLink(id: number, data: Partial<Link>) {
   const response = await fetch(`/api/links/${id}`, {
@@ -31,7 +31,7 @@ async function deleteLink(id: number) {
   }
 }
 
-async function getLink(id: number) {
+async function getLink(id: number): Promise<Link> {
   const response = await fetch(`/api/links/${id}`, {
     headers: {
       'Content-Type': 'application/json',
@@ -40,7 +40,7 @@ async function getLink(id: number) {
   });
 
   if (response.ok) {
-    return response.json();
+    return response.json() as Promise<Link>;
   }
   throw new Error('Failed to load link');
 }
@@ -74,11 +74,13 @@ async function getLinks(searchQuery = '', page = 1, pageSize = DEFAULT_PER_PAGE)
 }
 
 async function getTags(): Promise<Tag[]> {
+  const authHeader = hasToken() ? { Authorization: `Bearer ${getToken()}` } : {};
+  const headers = { 'Content-Type': 'application/json' } as Record<string, string>;
+  if (authHeader.Authorization) {
+    headers.Authorization = authHeader.Authorization;
+  }
   const response = await fetch('/api/tags', {
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${getToken()}`,
-    },
+    headers,
   });
 
   if (response.ok) {
@@ -87,7 +89,7 @@ async function getTags(): Promise<Tag[]> {
   throw new Error('Failed to load link');
 }
 
-async function createLink(linkData) {
+async function createLink(linkData: Partial<Link>) {
   const response = await fetch('/api/links', {
     method: 'POST',
     headers: {

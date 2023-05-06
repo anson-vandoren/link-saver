@@ -1,4 +1,5 @@
 import { showNotification } from './notification';
+import { getToken } from './utils';
 
 export async function exportBookmarks() {
   try {
@@ -6,7 +7,7 @@ export async function exportBookmarks() {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${localStorage.getItem('token')}`,
+        Authorization: `Bearer ${getToken()}`,
       },
     });
 

@@ -1,8 +1,12 @@
 {
   "extends": "./tsconfig.base.json",
   "compilerOptions": {
-    "outDir": "./public/dist/"
+    "outDir": "./public/dist/",
+    "module": "esnext",
+    "moduleResolution": "node",
+    "target": "ES2020",
+    "sourceMap": true
   },
   "include": ["public/js/**/*"],
-  "exclude": ["node_modules", "public/dist"]
+  "exclude": ["node_modules", "public/dist", "src"]
 }

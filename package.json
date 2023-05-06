@@ -5,9 +5,11 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "start": "node src/index.js",
-    "dev": "nodemon --inspect=9229 src/index.js",
-    "build:ui": "webpack --config webpack.ui.config.js",
+    "start": "NODE_ENV=production node src/index.js",
+    "start:ui": "webpack serve --env env=dev --config webpack.ui.config.js",
+    "start:dev": "nodemon --inspect=9229 src/index.js",
+    "build:ui:dev": "webpack --env env=dev --config webpack.ui.config.js",
+    "build:ui:prod": "webpack --env env=prod --config webpack.ui.config.js",
     "build:server": "webpack --config webpack.server.config.js"
   },
   "keywords": [],
@@ -37,6 +39,8 @@
     "ts-loader": "^9.4.2",
     "typescript": "^5.0.4",
     "webpack": "^5.82.0",
-    "webpack-cli": "^5.0.2"
+    "webpack-cli": "^5.0.2",
+    "webpack-dev-server": "^4.13.3",
+    "webpack-merge": "^5.8.0"
   }
 }

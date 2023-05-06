@@ -28,7 +28,7 @@ const defaultCreateTagOpts = {
   onClick: () => {},
 };
 
-export function createTagLink(tag: string, opts = defaultCreateTagOpts) {
+export function createTagLink(tag: string, opts: Partial<typeof defaultCreateTagOpts>) {
   const { shouldShowHash, isFirst, onClick } = { ...defaultCreateTagOpts, ...opts };
   const tagLink = document.createElement('a');
   tagLink.classList.add('has-text-info');

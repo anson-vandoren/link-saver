@@ -6,7 +6,6 @@ import Tag from '../models/tag.js';
 import LinkTag from '../models/linkTag.js';
 import wsHandler from '../websocket.js';
 import logger from '../logger.js';
-import { GetLinksResponse } from '../../shared/apiTypes';
 
 const DEFAULT_PER_PAGE = 25;
 
@@ -99,7 +98,7 @@ async function getLinks(req, res, next) {
     });
 
     const totalLinks = result.count;
-    const data: GetLinksResponse = { links, currentPage: page, totalPages: Math.ceil(totalLinks / limit) };
+    const data = { links, currentPage: page, totalPages: Math.ceil(totalLinks / limit) };
     res.status(200).json(data);
   } catch (error) {
     next(error);
@@ -150,12 +149,12 @@ function exportBookmarks(links) {
   const bookmarks = links
     .map((link) => {
       const {
-        title, url, description, tags, isPublic, savedAt,
+        title, url, description, Tags, isPublic, savedAt,
       } = link;
 
       const dt = Math.floor(new Date(savedAt).getTime() / 1000);
 
-      const firstLine = `\t<DT><A HREF="${url}" ADD_DATE="${dt}" PRIVATE="${isPublic ? '0' : '1'}" TAGS="${tags.join(
+      const firstLine = `\t<DT><A HREF="${url}" ADD_DATE="${dt}" PRIVATE="${isPublic ? '0' : '1'}" TAGS="${Tags.join(
         ',',
       )}">${title}</A>\n`;
       if (!description) {

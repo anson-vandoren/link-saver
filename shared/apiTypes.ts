@@ -1,12 +1,21 @@
+export type User = {
+  username: string;
+  id?: number;
+  password?: string;
+};
+
 export type Tag = string;
+
 export type Link = {
+  description: string;
   id: number;
   url: string;
   title: string;
   tags: Tag[];
   isPublic: boolean;
   savedAt: string;
-  userId: number;
+  userId?: number;
+  User?: User;
 };
 
 export type ScrapeFQDNResponseData = {
@@ -18,11 +27,6 @@ export type ScrapeFQDNResponseData = {
 export type GetLinksResponse = {
   links: Link[];
   totalPages: number;
-};
-
-export type User = {
-  id: number;
-  username: string;
 };
 
 export type RegisterUserResponse = {
