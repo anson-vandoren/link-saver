@@ -36,8 +36,9 @@ export type RegisterUserResponse = {
 };
 
 export type LoginUserResponse = {
-  message: string;
-  token: string;
+  message?: string;
+  token?: string;
+  error?: { message: string }
 };
 
 export type ErrorResponse = {

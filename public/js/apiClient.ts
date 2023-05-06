@@ -1,4 +1,4 @@
-import { GetLinksResponse, Link, Tag } from '../../shared/apiTypes';
+import { GetLinksResponse, Link, LoginUserResponse, Tag } from '../../shared/apiTypes';
 import { DEFAULT_PER_PAGE } from './constants';
 import { getToken, hasToken } from './utils';
 
@@ -116,6 +116,20 @@ async function createLink(linkData: Partial<Link>) {
   if (!response.ok) {
     throw new Error('Failed to add link');
   }
+}
+
+export async function doLogin(username: string, password: string): Promise<LoginUserResponse> {
+  const response = await fetch('/api/users/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, password }),
+  });
+
+  if (response.ok) {
+    const { token } = await response.json() as LoginUserResponse;
+    return { token };
+  }
+  return {};
 }
 
 export {

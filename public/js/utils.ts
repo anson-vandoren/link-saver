@@ -101,14 +101,15 @@ export function querySelectorInFragment<T extends Selectable>(
   return element;
 }
 
-export function getElementById<T extends HTMLElement>(id: string, type: new () => T): T {
+export function getElementById<T extends HTMLElement>(id: string, type?: new () => T): T {
+  if (!type) type = HTMLElement as new () => T;
   const element = document.getElementById(id);
   if (!element) {
     throw new Error(`Element not found for id: ${id}`);
   }
 
   if (!(element instanceof type)) {
-    throw new Error(`Element with id "${id}" is not of expected type: ${type.name}`);
+    throw new Error(`Element with id "${id}" is not of expected type: ${type.name} - ${element.constructor.name}`);
   }
 
   return element;

@@ -1,69 +1,43 @@
-import { LoginUserResponse } from '../../../shared/apiTypes';
+import { doLogin } from '../apiClient';
 import { showNotification } from '../notification';
+import { getElementById } from '../utils';
 
-export function loginDropdownHandler() {
-  const loginForm = document.getElementById('login-dropdown');
-  if (!loginForm) {
-    throw new Error('Could not find login dropdown');
-  }
-  const usernameField = document.getElementById('login-username');
-  if (!usernameField) {
-    throw new Error('Could not find username field');
-  }
+export function handleLogin() {
+  const loginDiv = getElementById('login-dropdown');
+  const loginForm = getElementById('login-form', HTMLFormElement);
+  const usernameField = getElementById('login-username', HTMLInputElement);
+  const passwordField = getElementById('login-password', HTMLInputElement);
 
-  loginForm.addEventListener('click', (e: Event) => {
+  // dropdown handler
+  loginDiv.addEventListener('click', (e: Event) => {
     if (e.target instanceof HTMLElement && e.target.classList.contains('navbar-link')) {
-      loginForm.classList.toggle('is-active');
+      loginDiv.classList.toggle('is-active');
 
-      if (loginForm.classList.contains('is-active')) {
+      if (loginDiv.classList.contains('is-active')) {
         usernameField.focus();
       }
     }
   });
-}
 
-async function handleLoginFormSubmit(event: Event) {
-  event.preventDefault();
-  const usernameField = document.getElementById('login-username');
-  if (!(usernameField instanceof HTMLInputElement)) {
-    throw new Error('Could not find username field');
-  }
-  const passwordField = document.getElementById('login-password');
-  if (!(passwordField instanceof HTMLInputElement)) {
-    throw new Error('Could not find password field');
-  }
-  const password = passwordField.value;
-
-  const response = await fetch('/api/users/login', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ username: usernameField.value, password }),
-  });
-
-  if (response.ok) {
-    const { token } = await response.json() as LoginUserResponse;
-    localStorage.setItem('token', token);
-    window.location.href = 'bookmarks.html';
-  } else {
-    showNotification('Error logging in. Please check your credentials.', 'danger');
-    usernameField.focus();
-  }
-}
-
-export function loginSubmitHandler() {
-  const loginForm = document.getElementById('login-form');
-  if (!(loginForm instanceof HTMLFormElement)) {
-    throw new Error('Could not find login form');
-  }
-
+  // submit handler
   loginForm.addEventListener('submit', (e: Event) => {
-    handleLoginFormSubmit(e).catch((error: unknown) => {
-      const message = error instanceof Error ? error.message : 'Unknown error';
-      showNotification(message, 'danger');
-    }).finally(() => {
-      loginForm.reset();
-    });
+    e.preventDefault();
+    doLogin(usernameField.value, passwordField.value)
+      .then((response) => {
+        if (response.token) {
+          localStorage.setItem('token', response.token);
+          window.location.href = 'bookmarks.html';
+        } else {
+          showNotification('Error logging in. Please check your credentials.', 'danger');
+          usernameField.focus();
+        }
+      })
+      .catch((error: unknown) => {
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        showNotification(message, 'danger');
+      })
+      .finally(() => {
+        loginForm.reset();
+      });
   });
 }

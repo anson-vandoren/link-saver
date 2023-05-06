@@ -1,4 +1,4 @@
-import { loginDropdownHandler, loginSubmitHandler } from './auth/login';
+import { handleLogin } from './auth/login';
 import { handleLogoutButtonClick } from './auth/logout';
 import { handleChangePasswordSubmit } from './auth/passwordChange';
 import { handleSignupForm } from './auth/signup';
@@ -13,28 +13,27 @@ import { populateThemeDropdown, saveThemeHandler } from './theme';
 import { hasToken } from './utils';
 
 function initBookmarks(): void {
-  if (localStorage.getItem('token')) {
-    // Event listeners
-    document.getElementById('search-button')?.addEventListener('click', () => {
-      updateSearch();
-      loadLinks();
-    });
-    document.getElementById('search-input')?.addEventListener('keyup', (e) => {
-      if (e.key === 'Enter') {
-        updateSearch();
-        loadLinks();
-      }
-    });
-
-    document.getElementById('logout-btn')?.addEventListener('click', handleLogoutButtonClick);
-    document.getElementById('add-link-form')?.addEventListener('submit', handleAddLinkFormSubmit);
-    initModals();
-    loadLinks();
-  } else {
+  if (!hasToken()) {
     window.location.href = '/';
   }
-  updateSearch(true);
+
+  // Event listeners
+  document.getElementById('search-button')?.addEventListener('click', () => {
+    updateSearch();
+    loadLinks();
+  });
+  document.getElementById('search-input')?.addEventListener('keyup', (e) => {
+    if (e.key === 'Enter') {
+      updateSearch();
+      loadLinks();
+    }
+  });
+
+  document.getElementById('logout-btn')?.addEventListener('click', handleLogoutButtonClick);
+  document.getElementById('add-link-form')?.addEventListener('submit', handleAddLinkFormSubmit);
+  initModals();
   loadLinks();
+  updateSearch(true);
   loadTags(tagOnClick);
 }
 
@@ -71,8 +70,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (hasToken()) {
       window.location.href = '/bookmarks.html';
     }
-    loginDropdownHandler();
-    loginSubmitHandler();
+    handleLogin();
     loadLinks();
     loadTags(tagOnClick);
   } else if (window.location.pathname === '/signup.html') {
