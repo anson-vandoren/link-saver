@@ -1,5 +1,5 @@
 import { DataTypes, Model } from 'sequelize';
-import sequelize from '../database.js';
+import sequelize from '../database.ts';
 
 class Tag extends Model {}
 

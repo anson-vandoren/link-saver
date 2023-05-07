@@ -1,4 +1,4 @@
-import logger from '../logger.js';
+import logger from '../logger.ts';
 
 function errorHandler(err, _req, res, _next) {
   logger.error('Error in request', { error: err.stack });

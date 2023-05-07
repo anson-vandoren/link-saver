@@ -1,12 +1,12 @@
 import { Op, QueryTypes } from 'sequelize';
-import sequelize from '../database.js';
 import { JSDOM } from 'jsdom';
+import sequelize from '../database.ts';
 import Link from '../models/link.js';
 import User from '../models/user.js';
 import Tag from '../models/tag.js';
 import LinkTag from '../models/linkTag.js';
-import wsHandler from '../websocket.js';
-import logger from '../logger.js';
+import wsHandler from '../websocket.ts';
+import logger from '../logger.ts';
 
 const DEFAULT_PER_PAGE = 25;
 

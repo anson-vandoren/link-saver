@@ -1,6 +1,6 @@
 import { URL } from 'url';
 // config.js must be first to ensure .env variables are loaded before anything else
-import './config.js';
+import './config.ts';
 import express from 'express';
 import cors from 'cors';
 import { join } from 'path';
@@ -13,9 +13,9 @@ import linkRoutes from './routes/link.js';
 import tagRoutes from './routes/tag.js';
 import errorHandler from './middleware/errorHandler.js';
 import checkUserRegistered from './middleware/checkUserRegistered.js';
-import sequelize from './database.js';
-import wsHandler from './websocket.js';
-import logger from './logger.js';
+import sequelize from './database.ts';
+import wsHandler from './websocket.ts';
+import logger from './logger.ts';
 
 const app = express();
 const PORT = process.env.PORT || 3001;

@@ -1,6 +1,6 @@
 import { Sequelize } from 'sequelize';
-import sequelize from '../database.js';
-import logger from '../logger.js';
+import sequelize from '../database.ts';
+import logger from '../logger.ts';
 import Link from '../models/link.js';
 import Tag from '../models/tag.js';
 

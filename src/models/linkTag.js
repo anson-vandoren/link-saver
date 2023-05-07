@@ -1,5 +1,5 @@
 import { Model } from 'sequelize';
-import sequelize from '../database.js';
+import sequelize from '../database.ts';
 import Link from './link.js';
 import Tag from './tag.js';
 

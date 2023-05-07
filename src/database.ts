@@ -1,5 +1,5 @@
 import { Sequelize } from 'sequelize';
-import logger from './logger.js';
+import logger from './logger';
 
 const DB_PATH = process.env.DB_PATH || './dev.sqlite3';
 logger.info('Opening database at', { DB_PATH });

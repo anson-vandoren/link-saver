@@ -1,7 +1,7 @@
 import { hash, compare } from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import User from '../models/user.js';
-import logger from '../logger.js';
+import logger from '../logger.ts';
 
 const jwtSecret = process.env.JWT_SECRET;
 

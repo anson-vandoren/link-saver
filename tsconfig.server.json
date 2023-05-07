@@ -1,7 +1,10 @@
 {
   "extends": "./tsconfig.base.json",
   "compilerOptions": {
-    "outDir": "./dist"
+    "outDir": "./dist",
+    "moduleResolution": "node",
+    "target": "ES2020",
+    "rootDirs": ["src", "shared"],
   },
   "include": ["src/**/*.ts"],
   "exclude": ["node_modules"]

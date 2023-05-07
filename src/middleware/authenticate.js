@@ -1,5 +1,5 @@
 import { verify } from 'jsonwebtoken';
-import logger from '../logger.js';
+import logger from '../logger.ts';
 
 function authenticate(req, res, next) {
   const authHeader = req.headers.authorization;

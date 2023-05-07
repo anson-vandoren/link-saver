@@ -2,9 +2,6 @@ import path from 'path';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import nodeExternals from 'webpack-node-externals';
 
-// eslint-disable-next-line @typescript-eslint/naming-convention
-const __dirname = path.dirname(new URL(import.meta.url).pathname);
-
 export default {
   mode: 'production',
   target: 'node',
@@ -15,10 +12,14 @@ export default {
   entry: './src/index.js',
   output: {
     path: path.resolve('dist'),
-    filename: 'bundle.js',
+    filename: 'bundle.cjs',
+    // library: {
+    //   type: 'commonjs2',
+    // },
   },
   resolve: {
     extensions: ['.ts', '.js'],
+    mainFields: ['main', 'module'],
   },
   module: {
     rules: [
