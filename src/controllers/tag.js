@@ -8,32 +8,28 @@ import Tag from '../models/tag.js';
 async function getTags(req, res, next) {
   try {
     const sortBy = req.query.sortBy || 'name';
-    const search = req.query.search || '';
+    const searchQuery = req.query.search || '';
 
-    const searchTerms = search.split(' ');
+    const searchTerms = searchQuery.split(' ');
 
-    const titleDescriptionFilter = searchTerms
-      .filter((term) => !term.startsWith('#'))
-      .map(
-        (term) => `
-        (l.title LIKE :${term} OR l.description LIKE :${term} OR l.url LIKE :${term})
-      `
-      )
+    const titleUrlFilter = searchTerms
+      .filter((term) => !term.startsWith('#') && term !== '')
+      .map((term) => `(l.title LIKE :${term} OR l.description LIKE :${term} OR l.url LIKE :${term})`)
       .join(' AND ');
 
     const tagsFilter = searchTerms
       .filter((term) => term.startsWith('#'))
       .map((term) => term.slice(1))
-      .map((tagSearch, index) => `t.name LIKE :tagTerm${index}`)
+      .map((tagSearch, index) => `(SELECT COUNT(*) FROM LinkTags lt2 INNER JOIN Tags t2 ON lt2.tagId = t2.id WHERE lt2.linkId = l.id AND t2.name LIKE :tagTerm${index}) = 1`)
       .join(' AND ');
 
     const whereClause = `
-      WHERE (${titleDescriptionFilter.length > 0 ? titleDescriptionFilter : '1=1'})
+      WHERE (${titleUrlFilter.length > 0 ? titleUrlFilter : '1=1'})
       ${tagsFilter.length > 0 ? `AND (${tagsFilter})` : ''}
     `;
 
     const replacements = searchTerms.reduce((acc, term) => {
-      if (!term.startsWith('#')) {
+      if (!term.startsWith('#') && term !== '') {
         acc[term] = `%${term}%`;
       }
       return acc;
@@ -46,8 +42,7 @@ async function getTags(req, res, next) {
         replacements[`tagTerm${index}`] = `%${tagSearch}%`;
       });
 
-    const tags = await sequelize.query(
-      `
+    const tags = await sequelize.query(`
       SELECT t.name, COUNT(lt.linkId) as link_count
       FROM Tags t
       LEFT JOIN LinkTags lt ON t.id = lt.tagId
@@ -56,12 +51,10 @@ async function getTags(req, res, next) {
       GROUP BY t.id, t.name
       HAVING link_count > 0
       ORDER BY ${sortBy === 'links' ? 'link_count DESC, LOWER(name) ASC' : 'LOWER(name) ASC'}
-    `,
-      {
-        replacements,
-        type: Sequelize.QueryTypes.SELECT,
-      }
-    );
+    `, {
+      replacements,
+      type: Sequelize.QueryTypes.SELECT,
+    });
 
     const tagNames = tags.map((tag) => tag.name);
     res.status(200).json(tagNames);
@@ -69,6 +62,7 @@ async function getTags(req, res, next) {
     next(error);
   }
 }
+
 
 async function purgeUnusedTags(_req, res, next) {
   try {

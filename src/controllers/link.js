@@ -49,7 +49,7 @@ async function getLinks(req, res, next) {
     const titleDescriptionFilter = searchTerms
       .filter((term) => !term.startsWith('#'))
       .map((term) => ({
-        [Op.or]: [{ title: { [Op.like]: `%${term}%` } }, { description: { [Op.like]: `%${term}%` } }],
+        [Op.or]: [{ title: { [Op.like]: `%${term}%` } }, { description: { [Op.like]: `%${term}%` }, url: { [Op.like]: `%${term}%` } }],
       }));
 
     const tagsFilter = searchTerms

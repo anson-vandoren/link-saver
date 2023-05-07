@@ -19,7 +19,7 @@ import {
 import { wsHandler } from './ws';
 
 export const tagOnClick = () => {
-  updateSearch();
+  updateSearch(true);
   loadLinks()
     .then(() => {
       scrollToTop();
