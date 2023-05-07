@@ -57,7 +57,9 @@ function generateTagsHtml(tags: Tag[], onClick: () => void, group = true) {
 async function fetchAndRenderTags(onClick: () => void, order: 'name' | 'links') {
   const tagsList = document.getElementById('tagsList');
   if (!tagsList) return;
-  const tags = await getTags(order);
+  const searchInput = document.getElementById('search-input');
+  const searchTerm = searchInput instanceof HTMLInputElement ? searchInput.value : '';
+  const tags = await getTags(order, searchTerm);
 
   const group = order === 'name';
   const tagsContainer = generateTagsHtml(tags, onClick, group);
@@ -75,6 +77,8 @@ export async function loadTags(onClick: () => void) {
     toggleSort.addEventListener('change', () => {
       sortBy = toggleSort.checked ? 'links' : 'name';
       fetchAndRenderTags(onClick, sortBy);
+      // defocus the toggle button
+      toggleSort.blur();
     })
   }
   await fetchAndRenderTags(onClick, sortBy);

@@ -1,3 +1,6 @@
+import { loadTags } from "./tagsBar";
+import { tagOnClick } from "./links";
+
 export function updateSearch(append = false) {
   const doAppend = typeof append === 'boolean' ? append : false;
   const searchInput = document.getElementById('search-input');
@@ -22,6 +25,7 @@ export function updateSearch(append = false) {
   const currentPath = window.location.pathname;
   const urlPath = newQuery.length > 0 ? `${currentPath}?search=${encodeURIComponent(newQuery)}` : currentPath;
   window.history.pushState(null, '', urlPath);
+  loadTags(tagOnClick);
 }
 
 export function clearSearch() {
@@ -32,4 +36,5 @@ export function clearSearch() {
   // clear the search query from the URL
   const newPath = currentPath.split('?')[0];
   window.history.pushState(null, '', newPath);
+  loadTags(tagOnClick);
 }
