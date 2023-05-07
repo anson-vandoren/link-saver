@@ -77,27 +77,35 @@ async function getLinks(req, res, next) {
 
     const whereClause = {
       ...baseClause,
-      [Op.and]: [
-        ...titleDescriptionUrlFilter,
-      ],
+      [Op.and]: [...titleDescriptionUrlFilter],
     };
 
     if (tagsFilter.length > 0) {
-      const linkIds = await sequelize.query(`
-        SELECT lt.linkId FROM LinkTags lt
-        INNER JOIN Tags t ON lt.tagId = t.id
-        WHERE ${tagsFilter.map((_, index) => `t.name LIKE :tag${index + 1}`).join(' OR ')}
-        GROUP BY lt.linkId
-        HAVING COUNT(DISTINCT t.id) = :tagCount
-      `, {
-        replacements: tagsFilter.reduce((acc, tag, index) => {
-          acc[`tag${index + 1}`] = tag.name[Op.like];
-          return acc;
-        }, { tagCount: tagsFilter.length }),
-        type: QueryTypes.SELECT,
-      });
+      const linkIds = await sequelize.query(
+        `
+    SELECT lt.linkId
+    FROM LinkTags lt
+    INNER JOIN Tags t ON lt.tagId = t.id
+    WHERE ${tagsFilter
+      .map(
+        (_, index) =>
+          `lt.linkId IN (SELECT lt2.linkId FROM LinkTags lt2 INNER JOIN Tags t2 ON lt2.tagId = t2.id WHERE t2.name LIKE :tag${
+            index + 1
+          })`
+      )
+      .join(' AND ')}
+    GROUP BY lt.linkId
+  `,
+        {
+          replacements: tagsFilter.reduce((acc, tag, index) => {
+            acc[`tag${index + 1}`] = tag.name[Op.like];
+            return acc;
+          }, {}),
+          type: QueryTypes.SELECT,
+        }
+      );
 
-      const linkIdArray = linkIds.map(link => link.linkId);
+      const linkIdArray = linkIds.map((link) => link.linkId);
       whereClause.id = { [Op.in]: linkIdArray };
     }
 
@@ -133,7 +141,6 @@ async function getLinks(req, res, next) {
     next(error);
   }
 }
-
 
 async function getAllLinks(userId) {
   let whereClause;
@@ -178,14 +185,12 @@ function exportBookmarks(links) {
 
   const bookmarks = links
     .map((link) => {
-      const {
-        title, url, description, Tags, isPublic, savedAt,
-      } = link;
+      const { title, url, description, Tags, isPublic, savedAt } = link;
 
       const dt = Math.floor(new Date(savedAt).getTime() / 1000);
 
       const firstLine = `\t<DT><A HREF="${url}" ADD_DATE="${dt}" PRIVATE="${isPublic ? '0' : '1'}" TAGS="${Tags.join(
-        ',',
+        ','
       )}">${title}</A>\n`;
       if (!description) {
         return firstLine;
@@ -351,9 +356,7 @@ async function addBookmarksToDatabase(bookmarks, userId) {
 
   for (let i = 0; i < totalBookmarks; i++) {
     const bookmark = bookmarks[i];
-    const {
-      url, title, tags, description, addDate, isPublic,
-    } = bookmark;
+    const { url, title, tags, description, addDate, isPublic } = bookmark;
 
     // Add the new link to the database
     const newLink = await Link.create({
@@ -386,7 +389,7 @@ async function addBookmarksToDatabase(bookmarks, userId) {
         JSON.stringify({
           type: 'import-progress',
           data: { progress: (i / totalBookmarks) * 100 },
-        }),
+        })
       );
     }
   }
@@ -408,6 +411,4 @@ async function importLinks(req, res, next) {
   return res.status(200).json({ message: 'Links imported successfully' });
 }
 
-export {
-  createLink, exportLinks, getLink, getLinks, updateLink, deleteLink, importLinks,
-};
+export { createLink, exportLinks, getLink, getLinks, updateLink, deleteLink, importLinks };
