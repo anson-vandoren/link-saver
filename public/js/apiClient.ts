@@ -1,6 +1,16 @@
 import { GetLinksResponse, Link, LoginUserResponse, Tag } from '../../shared/apiTypes';
 import { DEFAULT_PER_PAGE } from './constants';
 import { getToken, hasToken } from './utils';
+// import { createTRPCProxyClient, httpBatchLink } from '@trpc/client';
+// import type { AppRouter } from '../../src/index';
+
+// const trpc = createTRPCProxyClient<AppRouter>({
+//   links: [
+//     httpBatchLink({
+//       url: 'http://localhost:3002',
+//     }),
+//   ],
+// });
 
 async function updateLink(id: number, data: Partial<Link>) {
   const response = await fetch(`/api/links/${id}`, {
@@ -18,6 +28,7 @@ async function updateLink(id: number, data: Partial<Link>) {
 }
 
 async function deleteLink(id: number) {
+  // trpc.link.delete.mutate(id);
   const response = await fetch(`/api/links/${id}`, {
     method: 'DELETE',
     headers: {

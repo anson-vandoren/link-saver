@@ -16,6 +16,9 @@ import checkUserRegistered from './middleware/checkUserRegistered.js';
 import sequelize from './database.ts';
 import wsHandler from './websocket.ts';
 import logger from './logger.ts';
+import { appRouter } from './index.ts';
+import { inferAsyncReturnType, initTRPC } from '@trpc/server';
+import { createHTTPServer } from '@trpc/server/adapters/standalone';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -122,6 +125,16 @@ async function fetchUrlData(url) {
     request.end();
   });
 }
+
+// tRPC
+createHTTPServer({
+  middleware: cors(), // TODO: configure CORS
+  router: appRouter,
+  createContext() {
+    console.log('context 3');
+    return {};
+  },
+}).listen(3002);
 
 // Start the server
 try {

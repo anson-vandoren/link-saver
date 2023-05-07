@@ -1,7 +1,7 @@
 import { Sequelize } from 'sequelize';
 import sequelize from '../database.ts';
 import logger from '../logger.ts';
-import Link from '../models/link.js';
+import Link from '../models/link.ts';
 import Tag from '../models/tag.js';
 
 // TODO: rate limit

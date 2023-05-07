@@ -1,8 +1,8 @@
 import { Op, QueryTypes } from 'sequelize';
 import { JSDOM } from 'jsdom';
 import sequelize from '../database.ts';
-import Link from '../models/link.js';
-import User from '../models/user.js';
+import Link from '../models/link.ts';
+import User from '../models/user.ts';
 import Tag from '../models/tag.js';
 import LinkTag from '../models/linkTag.js';
 import wsHandler from '../websocket.ts';

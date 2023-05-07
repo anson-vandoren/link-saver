@@ -1,4 +1,4 @@
-import User from '../models/user.js';
+import User from '../models/user.ts';
 
 async function checkUserRegistered(req, res, next) {
   const isHtml = req.path.endsWith('.html') || req.path === '/';

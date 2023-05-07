@@ -18,6 +18,7 @@
     "project": "./tsconfig.base.json"
   },
   "rules": {
+    "import/prefer-default-export": 0,
     "no-use-before-define": [
       "error",
       { "functions": false }

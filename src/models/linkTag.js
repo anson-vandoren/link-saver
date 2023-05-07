@@ -1,6 +1,6 @@
 import { Model } from 'sequelize';
 import sequelize from '../database.ts';
-import Link from './link.js';
+import Link from './link.ts';
 import Tag from './tag.js';
 
 class LinkTag extends Model {}

@@ -1,6 +1,6 @@
 import Sequelize, { DataTypes, Model } from 'sequelize';
-import sequelize from '../database.ts';
-import User from './user.js';
+import sequelize from '../database';
+import User from './user';
 
 class Link extends Model {}
 
