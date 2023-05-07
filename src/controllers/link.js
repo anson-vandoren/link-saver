@@ -1,4 +1,5 @@
-import { Op } from 'sequelize';
+import { Op, QueryTypes } from 'sequelize';
+import sequelize from '../database.js';
 import { JSDOM } from 'jsdom';
 import Link from '../models/link.js';
 import User from '../models/user.js';
@@ -37,6 +38,16 @@ async function createLink(req, res, next) {
 }
 
 // TODO: disallow more than 100 per request if not signed in
+/**
+ * Get links handler.
+ * @async
+ * @function
+ * @param {import('express').Request} req - Express request object.
+ * @param {import('express').Response} res - Express response object.
+ * @param {import('express').NextFunction} next - Express next function.
+ * @throws {Error} Throws an error if there is a problem retrieving the links.
+ * @returns {Promise<void>}
+ */
 async function getLinks(req, res, next) {
   try {
     const searchQuery = req.query.search || '';
@@ -46,30 +57,48 @@ async function getLinks(req, res, next) {
 
     const searchTerms = searchQuery.split(' ');
 
-    const titleDescriptionFilter = searchTerms
-      .filter((term) => !term.startsWith('#'))
-      .map((term) => ({
-        [Op.or]: [{ title: { [Op.like]: `%${term}%` } }, { description: { [Op.like]: `%${term}%` }, url: { [Op.like]: `%${term}%` } }],
-      }));
-
     const tagsFilter = searchTerms
       .filter((term) => term.startsWith('#'))
       .map((term) => term.slice(1))
       .map((tagSearch) => ({ name: { [Op.like]: `%${tagSearch}%` } }));
 
-    let whereClause;
+    const titleDescriptionUrlFilter = searchTerms
+      .filter((term) => !term.startsWith('#'))
+      .map((term) => ({
+        [Op.or]: [
+          { title: { [Op.like]: `%${term}%` } },
+          { description: { [Op.like]: `%${term}%` } },
+          { url: { [Op.like]: `%${term}%` } },
+        ],
+      }));
 
     const userId = req.user?.id;
-    if (userId) {
-      whereClause = {
-        userId,
-        [Op.and]: titleDescriptionFilter,
-      };
-    } else {
-      whereClause = {
-        isPublic: true,
-        [Op.and]: titleDescriptionFilter,
-      };
+    const baseClause = userId ? { userId } : { isPublic: true };
+
+    const whereClause = {
+      ...baseClause,
+      [Op.and]: [
+        ...titleDescriptionUrlFilter,
+      ],
+    };
+
+    if (tagsFilter.length > 0) {
+      const linkIds = await sequelize.query(`
+        SELECT lt.linkId FROM LinkTags lt
+        INNER JOIN Tags t ON lt.tagId = t.id
+        WHERE ${tagsFilter.map((_, index) => `t.name LIKE :tag${index + 1}`).join(' OR ')}
+        GROUP BY lt.linkId
+        HAVING COUNT(DISTINCT t.id) = :tagCount
+      `, {
+        replacements: tagsFilter.reduce((acc, tag, index) => {
+          acc[`tag${index + 1}`] = tag.name[Op.like];
+          return acc;
+        }, { tagCount: tagsFilter.length }),
+        type: QueryTypes.SELECT,
+      });
+
+      const linkIdArray = linkIds.map(link => link.linkId);
+      whereClause.id = { [Op.in]: linkIdArray };
     }
 
     const result = await Link.findAndCountAll({
@@ -78,7 +107,6 @@ async function getLinks(req, res, next) {
         {
           model: Tag,
           through: { attributes: [] },
-          where: tagsFilter.length > 0 ? { [Op.and]: tagsFilter } : undefined,
         },
         { model: User, attributes: ['username'] },
       ],
@@ -105,6 +133,7 @@ async function getLinks(req, res, next) {
     next(error);
   }
 }
+
 
 async function getAllLinks(userId) {
   let whereClause;
