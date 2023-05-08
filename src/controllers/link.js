@@ -3,8 +3,8 @@ import { JSDOM } from 'jsdom';
 import sequelize from '../database.ts';
 import Link from '../models/link.ts';
 import User from '../models/user.ts';
-import Tag from '../models/tag.js';
-import LinkTag from '../models/linkTag.js';
+import Tag from '../models/tag.ts';
+import LinkTag from '../models/linkTag.ts';
 import wsHandler from '../websocket.ts';
 import logger from '../logger.ts';
 
@@ -253,64 +253,6 @@ async function getLink(req, res, next) {
   }
 }
 
-async function updateLink(req, res, next) {
-  try {
-    const { id } = req.params;
-    const { url, title, tags, isPublic } = req.body;
-    const userId = req.user.id;
-
-    const link = await Link.findOne({ where: { id, userId }, include: [Tag] });
-    if (!link) {
-      res.status(404).json({ error: { message: 'Link not found' } });
-      return;
-    }
-
-    await link.update({ url, title, isPublic });
-
-    // Remove old tag associations
-    await LinkTag.destroy({ where: { linkId: link.id } });
-
-    // Add new tag associations
-    if (tags && tags.length > 0) {
-      for (const tagName of tags) {
-        const [tagInstance] = await Tag.findOrCreate({ where: { name: tagName } });
-        await LinkTag.create({ linkId: link.id, tagId: tagInstance.id });
-      }
-    }
-
-    // Retrieve the updated link with tags
-    const updatedLink = await Link.findByPk(link.id, {
-      include: [
-        { model: Tag, through: { attributes: [] } },
-        { model: User, attributes: ['username'] },
-      ],
-    });
-
-    res.status(200).json({ message: 'Link updated successfully', link: updatedLink });
-  } catch (error) {
-    next(error);
-  }
-}
-
-async function deleteLink(req, res, next) {
-  try {
-    const { id } = req.params;
-    const userId = req.user.id;
-
-    const link = await Link.findOne({ where: { id, userId } });
-    if (!link) {
-      res.status(404).json({ error: { message: 'Link not found' } });
-      return;
-    }
-
-    await link.destroy();
-
-    res.status(200).json({ message: 'Link deleted successfully', link });
-  } catch (error) {
-    next(error);
-  }
-}
-
 function parseNetscapeHTML(htmlContent) {
   const bookmarks = [];
   const dom = new JSDOM(htmlContent);
@@ -411,4 +353,4 @@ async function importLinks(req, res, next) {
   return res.status(200).json({ message: 'Links imported successfully' });
 }
 
-export { createLink, exportLinks, getLink, getLinks, updateLink, deleteLink, importLinks };
+export { createLink, exportLinks, getLink, getLinks, importLinks };

@@ -2,7 +2,7 @@ import { Router } from 'express';
 import multer from 'multer';
 import {
   createLink, exportLinks, getLink, getLinks,
-  updateLink, deleteLink, importLinks,
+  importLinks,
 } from '../controllers/link.js';
 import { authenticate, authenticateOptional } from '../middleware/authenticate.js';
 
@@ -15,8 +15,6 @@ router.get('/', authenticateOptional, getLinks);
 // Must be above the get('/:id') route
 router.get('/export', authenticate, exportLinks);
 router.get('/:id', authenticate, getLink);
-router.put('/:id', authenticate, updateLink);
-router.delete('/:id', authenticate, deleteLink);
 // import links from Netscape HTML Bookmarks File
 router.post('/import', authenticate, upload.single('file'), importLinks);
 

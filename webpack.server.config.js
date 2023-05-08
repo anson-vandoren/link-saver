@@ -3,7 +3,8 @@ import path from 'path';
 import nodeExternals from 'webpack-node-externals';
 
 export default {
-  mode: 'production',
+  mode: 'development',
+  devtool: 'eval-source-map',
   target: 'node',
   experiments: {
     topLevelAwait: true,

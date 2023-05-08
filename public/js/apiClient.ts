@@ -1,43 +1,44 @@
 import { GetLinksResponse, Link, LoginUserResponse, Tag } from '../../shared/apiTypes';
 import { DEFAULT_PER_PAGE } from './constants';
 import { getToken, hasToken } from './utils';
-// import { createTRPCProxyClient, httpBatchLink } from '@trpc/client';
-// import type { AppRouter } from '../../src/index';
+import { createTRPCProxyClient, httpBatchLink, loggerLink } from '@trpc/client';
+import type { AppRouter } from '../../src/index';
+import type { UpdateLinkRequest } from '../../src/routers/link';
 
-// const trpc = createTRPCProxyClient<AppRouter>({
-//   links: [
-//     httpBatchLink({
-//       url: 'http://localhost:3002',
-//     }),
-//   ],
-// });
+const trpc = createTRPCProxyClient<AppRouter>({
+  links: [
+    loggerLink({
+      enabled: (opts) =>
+        (process.env.NODE_ENV === 'development' && typeof window !== 'undefined') ||
+        (opts.direction === 'down' && opts.result instanceof Error),
+    }),
+    httpBatchLink({
+      url: 'http://localhost:3002',
+      headers() {
+        if (!hasToken()) {
+          return {};
+        }
+        return {
+          Authorization: `Bearer ${getToken()}`,
+        };
+      },
+    }),
+  ],
+});
 
-async function updateLink(id: number, data: Partial<Link>) {
-  const response = await fetch(`/api/links/${id}`, {
-    method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${getToken()}`,
-    },
-    body: JSON.stringify(data),
-  });
-
-  if (!response.ok) {
+async function updateLink(data: UpdateLinkRequest) {
+  const result = await trpc.link.update.mutate(data);
+  if (!result.success) {
+    // TODO: proper typed error handling
     throw new Error('Failed to update link');
   }
+  return result.link;
 }
 
-async function deleteLink(id: number) {
-  // trpc.link.delete.mutate(id);
-  const response = await fetch(`/api/links/${id}`, {
-    method: 'DELETE',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${getToken()}`,
-    },
-  });
-
-  if (!response.ok) {
+async function deleteLink(id: number): Promise<void> {
+  const { success } = await trpc.link.delete.mutate(id);
+  if (!success) {
+    // TODO: proper typed error handling
     throw new Error('Failed to delete link');
   }
 }
@@ -64,7 +65,7 @@ async function getLink(id: number): Promise<Link> {
 type GetLinksRes = {
   links: Link[];
   totalPages: number;
-}
+};
 async function getLinks(searchQuery = '', page = 1, pageSize = DEFAULT_PER_PAGE): Promise<GetLinksRes> {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
 
@@ -88,7 +89,7 @@ async function getLinks(searchQuery = '', page = 1, pageSize = DEFAULT_PER_PAGE)
   }
 
   if (response.ok) {
-    const res = await response.json() as GetLinksResponse;
+    const res = (await response.json()) as GetLinksResponse;
 
     return {
       links: res.links,
@@ -140,17 +141,10 @@ export async function doLogin(username: string, password: string): Promise<Login
   });
 
   if (response.ok) {
-    const { token } = await response.json() as LoginUserResponse;
+    const { token } = (await response.json()) as LoginUserResponse;
     return { token };
   }
   return {};
 }
 
-export {
-  createLink,
-  deleteLink,
-  getLink,
-  getLinks,
-  getTags,
-  updateLink,
-};
+export { createLink, deleteLink, getLink, getLinks, getTags, updateLink };

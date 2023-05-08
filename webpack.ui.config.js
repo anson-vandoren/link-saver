@@ -18,7 +18,7 @@ const baseConfig = {
         test: /\.tsx?$/,
         use: {
           loader: 'ts-loader',
-          options: { configFile: 'tsconfig.base.json' },
+          options: { configFile: 'tsconfig.ui.json' },
         },
         exclude: /node_modules/,
         include: [path.resolve(__dirname, 'public')],

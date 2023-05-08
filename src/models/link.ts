@@ -1,8 +1,17 @@
-import Sequelize, { DataTypes, Model } from 'sequelize';
+import Sequelize, { CreationOptional, DataTypes, InferAttributes, InferCreationAttributes, Model } from 'sequelize';
 import sequelize from '../database';
 import User from './user';
 
-class Link extends Model {}
+// eslint-disable-next-line no-use-before-define
+class Link extends Model<InferAttributes<Link>, InferCreationAttributes<Link>> {
+  declare id: CreationOptional<number>;
+  declare url: string;
+  declare title: CreationOptional<string>;
+  declare description: CreationOptional<string>;
+  declare savedAt: Date;
+  declare isPublic: boolean;
+  declare userId: number;
+}
 
 Link.init(
   {

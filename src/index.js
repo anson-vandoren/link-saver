@@ -7,7 +7,7 @@ import { join } from 'path';
 import { JSDOM } from 'jsdom';
 import * as https from 'https';
 import * as http from 'http';
-import './models/associations.js'; // needs to be near the top
+import './models/associations.ts'; // needs to be near the top
 import userRoutes from './routes/user.js';
 import linkRoutes from './routes/link.js';
 import tagRoutes from './routes/tag.js';
@@ -17,8 +17,8 @@ import sequelize from './database.ts';
 import wsHandler from './websocket.ts';
 import logger from './logger.ts';
 import { appRouter } from './index.ts';
-import { inferAsyncReturnType, initTRPC } from '@trpc/server';
 import { createHTTPServer } from '@trpc/server/adapters/standalone';
+import { createContext } from './context.ts';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -130,10 +130,8 @@ async function fetchUrlData(url) {
 createHTTPServer({
   middleware: cors(), // TODO: configure CORS
   router: appRouter,
-  createContext() {
-    console.log('context 3');
-    return {};
-  },
+  createContext,
+  basePath: '/api/v2'
 }).listen(3002);
 
 // Start the server

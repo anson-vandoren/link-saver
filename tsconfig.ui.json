@@ -4,8 +4,9 @@
     "outDir": "./public/dist/",
     "moduleResolution": "node",
     "target": "ES2020",
-    "sourceMap": true
+    "sourceMap": true,
+    "rootDirs": ["public/js", "shared"],
   },
   "include": ["public/js/**/*"],
-  "exclude": ["node_modules", "public/dist", "src"]
+  "exclude": ["node_modules", "public/dist", "src", "dist", "./dist"]
 }

@@ -2,7 +2,7 @@ import { Sequelize } from 'sequelize';
 import sequelize from '../database.ts';
 import logger from '../logger.ts';
 import Link from '../models/link.ts';
-import Tag from '../models/tag.js';
+import Tag from '../models/tag.ts';
 
 // TODO: rate limit
 async function getTags(req, res, next) {

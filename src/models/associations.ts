@@ -1,6 +1,6 @@
-import User from './user.ts';
-import Link from './link.ts';
-import Tag from './tag.js';
+import User from './user';
+import Link from './link';
+import Tag from './tag';
 
 User.hasMany(Link, { foreignKey: 'userId' });
 Link.belongsTo(User, { foreignKey: 'userId' });

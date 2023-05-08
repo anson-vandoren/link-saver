@@ -51,7 +51,8 @@ async function handleEditFormSubmit(event: Event) {
   const isPublic = visibility === 'public';
 
   try {
-    await updateLink(+linkId, {
+    await updateLink({
+      id: +linkId,
       title,
       url,
       tags,
