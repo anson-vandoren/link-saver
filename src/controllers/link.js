@@ -10,33 +10,6 @@ import logger from '../logger.ts';
 
 const DEFAULT_PER_PAGE = 25;
 
-async function createLink(req, res, next) {
-  try {
-    const { url, title, tags, isPublic, description } = req.body;
-    const userId = req.user.id;
-
-    const newLink = await Link.create({ url, title, isPublic, description, userId });
-
-    if (tags && tags.length > 0) {
-      for (const tagName of tags) {
-        const [tagInstance] = await Tag.findOrCreate({ where: { name: tagName } });
-        await LinkTag.create({ linkId: newLink.id, tagId: tagInstance.id });
-      }
-    }
-
-    const createdLink = await Link.findByPk(newLink.id, {
-      include: [
-        { model: Tag, through: { attributes: [] } },
-        { model: User, attributes: ['username'] },
-      ],
-    });
-
-    res.status(201).json({ message: 'Link created successfully', link: createdLink });
-  } catch (error) {
-    next(error);
-  }
-}
-
 // TODO: disallow more than 100 per request if not signed in
 /**
  * Get links handler.
@@ -353,4 +326,4 @@ async function importLinks(req, res, next) {
   return res.status(200).json({ message: 'Links imported successfully' });
 }
 
-export { createLink, exportLinks, getLink, getLinks, importLinks };
+export { exportLinks, getLink, getLinks, importLinks };

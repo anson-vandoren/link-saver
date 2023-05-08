@@ -8,7 +8,7 @@ class Link extends Model<InferAttributes<Link>, InferCreationAttributes<Link>> {
   declare url: string;
   declare title: CreationOptional<string>;
   declare description: CreationOptional<string>;
-  declare savedAt: Date;
+  declare savedAt: CreationOptional<Date>;
   declare isPublic: boolean;
   declare userId: number;
 }

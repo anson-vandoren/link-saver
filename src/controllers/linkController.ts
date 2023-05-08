@@ -3,7 +3,7 @@ import Link from '../models/link';
 import LinkTag from '../models/linkTag';
 import Tag from '../models/tag';
 import User from '../models/user';
-import type { UpdateLinkRequest } from '../routers/link';
+import type { CreateLinkRequest, UpdateLinkRequest } from '../routers/link';
 
 type LinkOperationResult = Promise<{
   success: boolean;
@@ -49,6 +49,32 @@ export async function updateLink(linkId: number, userId: number, data: UpdateLin
 
   // retrieve updated link
   const newLink = await Link.findByPk(linkId, {
+    include: [
+      { model: Tag, through: { attributes: [] } },
+      { model: User, attributes: ['username'] },
+    ],
+  }) ?? undefined;
+  return { success: true, newLink };
+}
+
+export async function createLink(userId: number, data: CreateLinkRequest): LinkOperationResult {
+  const { tags, ...linkData } = data;
+  if (!linkData.isPublic) {
+    linkData.isPublic = false;
+  }
+  const link = await Link.create({ ...linkData, userId });
+  if (tags && tags.length) {
+    for (const tagName of tags) {
+      try {
+        const [tagInstance] = await Tag.findOrCreate({ where: { name: tagName } });
+        await LinkTag.create({ linkId: link.id, tagId: tagInstance.id });
+      } catch (err) {
+        logger.error(err);
+        return { success: false, reason: `Failed to create tag ${tagName}` };
+      }
+    }
+  }
+  const newLink = await Link.findByPk(link.id, {
     include: [
       { model: Tag, through: { attributes: [] } },
       { model: User, attributes: ['username'] },

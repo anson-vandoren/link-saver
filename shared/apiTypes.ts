@@ -29,14 +29,6 @@ export type GetLinksResponse = {
   totalPages: number;
 };
 
-export type CreateLinkRequest = {
-  url: string;
-  title?: string;
-  tags?: Tag[];
-  description?: string;
-  isPublic?: boolean;
-};
-
 export type RegisterUserResponse = {
   message: string;
   user: User;

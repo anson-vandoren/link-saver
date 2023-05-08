@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import multer from 'multer';
 import {
-  createLink, exportLinks, getLink, getLinks,
+  exportLinks, getLink, getLinks,
   importLinks,
 } from '../controllers/link.js';
 import { authenticate, authenticateOptional } from '../middleware/authenticate.js';
@@ -9,7 +9,6 @@ import { authenticate, authenticateOptional } from '../middleware/authenticate.j
 const upload = multer({ storage: multer.memoryStorage() });
 const router = Router();
 
-router.post('/', authenticate, createLink);
 router.get('/', authenticateOptional, getLinks);
 // Export links as Netscape HTML Bookmarks File
 // Must be above the get('/:id') route

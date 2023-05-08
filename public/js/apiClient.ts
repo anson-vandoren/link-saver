@@ -3,7 +3,7 @@ import { DEFAULT_PER_PAGE } from './constants';
 import { getToken, hasToken } from './utils';
 import { createTRPCProxyClient, httpBatchLink, loggerLink } from '@trpc/client';
 import type { AppRouter } from '../../src/index';
-import type { UpdateLinkRequest } from '../../src/routers/link';
+import type { CreateLinkRequest, UpdateLinkRequest } from '../../src/routers/link';
 
 const trpc = createTRPCProxyClient<AppRouter>({
   links: [
@@ -40,6 +40,13 @@ async function deleteLink(id: number): Promise<void> {
   if (!success) {
     // TODO: proper typed error handling
     throw new Error('Failed to delete link');
+  }
+}
+
+async function createLink(linkData: CreateLinkRequest) {
+  const { success } = await trpc.link.create.mutate(linkData);
+  if (!success) {
+    throw new Error('Failed to create link');
   }
 }
 
@@ -116,21 +123,6 @@ async function getTags(sortBy: 'name' | 'links' = 'name', filter = ''): Promise<
     return response.json() as Promise<Tag[]>;
   }
   throw new Error('Failed to load link');
-}
-
-async function createLink(linkData: Partial<Link>) {
-  const response = await fetch('/api/links', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${getToken()}`,
-    },
-    body: JSON.stringify(linkData),
-  });
-
-  if (!response.ok) {
-    throw new Error('Failed to add link');
-  }
 }
 
 export async function doLogin(username: string, password: string): Promise<LoginUserResponse> {

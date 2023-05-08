@@ -100,7 +100,7 @@ wsHandler.on('scrapeFQDN', (data) => {
   const { title, description, url } = data as ScrapeFQDNResponseData;
   getElementById('add-link-title', HTMLInputElement).value ||= title;
   getElementById('add-link-description', HTMLTextAreaElement).value ||= description;
-  getElementById('add-link-url', HTMLInputElement).value ||= url;
+  getElementById('add-link-url', HTMLInputElement).value = url; // override since backend adds http(s)://
 });
 
 // Add event listener to the URL input field
