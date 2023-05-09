@@ -57,23 +57,29 @@ export async function updateLink(linkId: number, userId: number, data: UpdateLin
   return { success: true, newLink };
 }
 
+type LinkAssocCreate = {
+  linkId: number;
+  tagId: number;
+}[];
 export async function createLink(userId: number, data: CreateLinkRequest): LinkOperationResult {
   const { tags, ...linkData } = data;
   if (!linkData.isPublic) {
     linkData.isPublic = false;
   }
   const link = await Link.create({ ...linkData, userId });
+  const associationsToCreate: LinkAssocCreate = [];
   if (tags && tags.length) {
     for (const tagName of tags) {
       try {
         const [tagInstance] = await Tag.findOrCreate({ where: { name: tagName } });
-        await LinkTag.create({ linkId: link.id, tagId: tagInstance.id });
+        associationsToCreate.push({ linkId: link.id, tagId: tagInstance.id });
       } catch (err) {
         logger.error(err);
         return { success: false, reason: `Failed to create tag ${tagName}` };
       }
     }
   }
+  await LinkTag.bulkCreate(associationsToCreate);
   const newLink = await Link.findByPk(link.id, {
     include: [
       { model: Tag, through: { attributes: [] } },

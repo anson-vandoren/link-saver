@@ -269,6 +269,7 @@ async function addBookmarksToDatabase(bookmarks, userId) {
   const tagCache = new Map();
   let queriesSaved = 0;
 
+  const associationsToCreate = [];
   for (let i = 0; i < totalBookmarks; i++) {
     const bookmark = bookmarks[i];
     const { url, title, tags, description, addDate, isPublic } = bookmark;
@@ -294,7 +295,7 @@ async function addBookmarksToDatabase(bookmarks, userId) {
         } else {
           queriesSaved += 1;
         }
-        await LinkTag.create({ linkId: newLink.id, tagId });
+        associationsToCreate.push({ linkId: newLink.id, tagId });
       }
     }
 
@@ -307,6 +308,9 @@ async function addBookmarksToDatabase(bookmarks, userId) {
         })
       );
     }
+  }
+  if (associationsToCreate.length > 0) {
+    await LinkTag.bulkCreate(associationsToCreate);
   }
   logger.info(`Saved ${totalBookmarks} bookmarks to database (${queriesSaved} queries saved)`);
 
