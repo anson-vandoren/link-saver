@@ -1,23 +1,86 @@
-import { ForeignKey, InferAttributes, InferCreationAttributes, Model } from 'sequelize';
-import sequelize from '../database';
-import Link from './link';
-import Tag from './tag';
+import { z } from 'zod';
+import db from '../db';
 
-// eslint-disable-next-line no-use-before-define
-class LinkTag extends Model<InferAttributes<LinkTag>, InferCreationAttributes<LinkTag>> {
-  declare linkId: ForeignKey<number>;
-  declare tagId: ForeignKey<number>;
+export const LinkTagSchema = z.object({
+  linkId: z.number(),
+  tagId: z.number(),
+});
+
+export type LinkTag = z.infer<typeof LinkTagSchema>;
+
+export function createLinkTag(input: LinkTag): LinkTag {
+  const { linkId, tagId } = input;
+
+  const insert = db.prepare(`
+    INSERT INTO LinkTags (linkId, tagId)
+    VALUES (@linkId, @tagId)
+  `);
+
+  insert.run({ linkId, tagId });
+
+  return input;
 }
 
-LinkTag.init(
-  {},
-  {
-    sequelize,
-    modelName: 'LinkTag',
-  },
-);
+export function createLinkTags(linkId: number, tagIds: number[]): LinkTag[] {
+  // insert as many rows as there are tagIds, each with the same linkId
+  const placeholders = tagIds.map(() => '(?, ?)').join(', ');
+  const insert = db.prepare(`
+    INSERT INTO LinkTags (linkId, tagId)
+    VALUES ${placeholders}
+  `);
 
-Link.belongsToMany(Tag, { through: LinkTag, foreignKey: 'linkId' });
-Tag.belongsToMany(Link, { through: LinkTag, foreignKey: 'tagId' });
+  const params = tagIds.flatMap((tagId) => [linkId, tagId]);
+  insert.run(...params);
 
-export default LinkTag;
+  const linkTags = tagIds.map((tagId) => ({ linkId, tagId }));
+
+  return linkTags;
+}
+
+export function getLinkTagsByLinkId(linkId: number): LinkTag[] {
+  const select = db.prepare(`
+    SELECT linkId, tagId
+    FROM LinkTags
+    WHERE linkId = ?
+  `);
+
+  const linkTags: LinkTag[] = select.all(linkId) as LinkTag[];
+
+  return linkTags;
+}
+
+export function getLinkTagsByTagId(tagId: number): LinkTag[] {
+  const select = db.prepare(`
+    SELECT linkId, tagId
+    FROM LinkTags
+    WHERE tagId = ?
+  `);
+
+  const linkTags: LinkTag[] = select.all(tagId) as LinkTag[];
+
+  return linkTags;
+}
+
+export function deleteLinkTag(input: LinkTag): boolean {
+  const { linkId, tagId } = input;
+
+  const deleteStmt = db.prepare(`
+    DELETE FROM LinkTags
+    WHERE linkId = ? AND tagId = ?
+  `);
+
+  const result = deleteStmt.run(linkId, tagId);
+
+  return result.changes > 0;
+}
+
+export function deleteLinkTagByLinkId(linkId: number): boolean {
+  const deleteStmt = db.prepare(`
+    DELETE FROM LinkTags
+    WHERE linkId = ?
+  `);
+
+  const result = deleteStmt.run(linkId);
+
+  return result.changes > 0;
+}

@@ -3,13 +3,16 @@ import { Context } from '../context';
 
 export const t = initTRPC.context<Context>().create();
 
-const isLoggedIn = t.middleware((opts) => {
-  const { ctx } = opts;
+const isLoggedIn = t.middleware(({ next, ctx }) => {
   if (!ctx.user) {
     throw new TRPCError({ code: 'UNAUTHORIZED' });
   }
   // TODO: check if user is authorized
-  return opts.next(opts);
+  return next({
+    ctx: {
+      user: ctx.user,
+    },
+  });
 });
 
 // you can reuse this for any procedure

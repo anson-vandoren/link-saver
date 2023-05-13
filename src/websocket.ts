@@ -5,7 +5,6 @@ import https from 'https';
 import logger from './logger';
 import { WebSocketMessage } from '../shared/apiTypes';
 
-
 function parseRawData(message: RawData): WebSocketMessage | undefined {
   const asString = message.toString();
   const rawParsed: unknown = JSON.parse(asString);
@@ -161,6 +160,10 @@ class WSHandler {
 
   off(type: string): void {
     this.handlers.delete(type);
+  }
+
+  connectionFor(userId: number): ws | undefined {
+    return this.connections.get(userId);
   }
 }
 
