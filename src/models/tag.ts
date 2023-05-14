@@ -1,18 +1,9 @@
-import { z } from 'zod';
 import db from '../db';
 import logger from '../logger';
+import { TagSchema } from '../schemas/tag';
+import type { Tag } from '../schemas/tag';
 
-export const TagSchema = z.object({
-  id: z.number(),
-  name: z.string(),
-});
-
-export const CreateTagInputSchema = TagSchema.omit({ id: true });
-
-export type Tag = z.infer<typeof TagSchema>;
-export type CreateTagInput = z.infer<typeof CreateTagInputSchema>;
-
-export function createTag(name: string): Tag {
+function _createTag(name: string): Tag {
   const insert = db.prepare(`
     INSERT INTO Tags (name)
     VALUES (@name)
@@ -28,7 +19,7 @@ export function createTag(name: string): Tag {
   return { id, name };
 }
 
-export function createTags(names: string[]): Tag[] {
+function createTags(names: string[]): Tag[] {
   const placeholders = names.map(() => '(?)').join(', ');
   const insert = db.prepare(`INSERT INTO Tags (name) VALUES ${placeholders}`);
 
@@ -41,7 +32,7 @@ export function createTags(names: string[]): Tag[] {
   return tags;
 }
 
-export function getTagById(id: number): Tag | undefined {
+function getTagById(id: number): Tag | undefined {
   const row = db.prepare('SELECT * FROM Tags WHERE id = ?').get(id);
 
   if (!row) {
@@ -60,7 +51,7 @@ export function getTagsById(tagIds: number[]): Tag[] {
   return rows.map((row) => TagSchema.parse(row));
 }
 
-export function deleteTag(id: number): boolean {
+function _deleteTag(id: number): boolean {
   const deleteStmt = db.prepare('DELETE FROM Tags WHERE id = ?');
 
   const result = deleteStmt.run(id);
@@ -92,7 +83,7 @@ export function getOrCreateTagsByName(tagNames: string[]): Tag[] {
   return [...results, ...newTags];
 }
 
-export function updateTag(id: number, input: Partial<Omit<Tag, 'id'>>): Tag | undefined {
+function _updateTag(id: number, input: Partial<Omit<Tag, 'id'>>): Tag | undefined {
   if (input.name === undefined) {
     return undefined;
   }
@@ -110,4 +101,60 @@ export function updateTag(id: number, input: Partial<Omit<Tag, 'id'>>): Tag | un
 
   logger.debug('Updated tag', { id, ...input });
   return getTagById(id);
+}
+
+export function dbSearchTags(tagTerms: string[], linkTerms: string[], sortBy: string): string[] {
+  const nonTagFilter = linkTerms.map(() => '(l.title LIKE ? OR l.description LIKE ? OR l.url LIKE ?)').join(' AND ');
+
+  const tagsFilter = tagTerms
+    .map(
+      () => `
+    (
+      SELECT COUNT(*)
+      FROM LinkTags lt2
+      INNER JOIN Tags t2 ON lt2.tagId = t2.id
+      WHERE lt2.linkId = l.id AND t2.name LIKE ?
+    ) = 1`,
+    )
+    .join(' AND ');
+
+  const whereClause = `
+      WHERE (${nonTagFilter.length > 0 ? nonTagFilter : '1=1'})
+      ${tagsFilter.length > 0 ? `AND (${tagsFilter})` : ''}
+    `;
+
+  const titleUrlParams = linkTerms
+    .flatMap((term) => [`%${term}%`, `%${term}%`, `%${term}%`]);
+  const tagSearchParams = tagTerms.map((term) => `%${term}%`);
+  const allParams = [...titleUrlParams, ...tagSearchParams];
+
+  const orderBy = sortBy === 'links' ? 'linkCount DESC, LOWER(name) ASC' : 'LOWER(name) ASC';
+
+  const rows = db
+    .prepare(
+      `
+    SELECT t.name, COUNT(lt.linkId) as linkCount
+    FROM Tags t
+    LEFT JOIN LinkTags lt ON t.id = lt.tagId
+    LEFT JOIN Links l ON lt.linkId = l.id
+    ${whereClause}
+    GROUP BY t.id, t.name
+    HAVING linkCount > 0
+    ORDER BY ${orderBy}
+  `,
+    )
+    .all(allParams) as { name: string; linkCount: number }[];
+
+  return rows.map((row) => row.name);
+}
+
+export function dbGetUnusedTags(): Tag[] {
+  const rows = db.prepare(`
+    SELECT t.*
+    FROM Tags t
+    LEFT JOIN LinkTags lt ON t.id = lt.tagId
+    WHERE lt.linkId IS NULL
+  `).all();
+
+  return rows.map((row) => TagSchema.parse(row));
 }

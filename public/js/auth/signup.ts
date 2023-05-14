@@ -1,5 +1,6 @@
-import { ErrorResponse, RegisterUserResponse } from '../../../shared/apiTypes';
+import { doSignup } from '../apiClient';
 import { showNotification } from '../notification';
+import { setToken } from '../utils';
 
 async function handleSignupFormSubmit(event: Event) {
   event.preventDefault();
@@ -13,20 +14,13 @@ async function handleSignupFormSubmit(event: Event) {
   const username = formData.get('username') as string;
   const password = formData.get('password') as string;
 
-  const response = await fetch('/api/users/register', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ username, password }),
-  });
+  const response = await doSignup(username, password);
 
-  if (response.ok) {
-    const { token } = await response.json() as RegisterUserResponse;
-    localStorage.setItem('token', token);
+  if (response.token) {
+    setToken(response.token);
     window.location.href = 'bookmarks.html';
   } else {
-    const { error } = await response.json() as ErrorResponse;
+    const error = 'Failed to signup - check server logs for details.'
     showNotification(error, 'danger');
     if (submitButton) {
       submitButton.disabled = false;

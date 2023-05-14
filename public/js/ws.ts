@@ -1,4 +1,4 @@
-import { WebSocketMessage } from '../../shared/apiTypes';
+import { WebSocketMessage } from '../../src/schemas';
 import { getToken } from './utils';
 
 function establishWebSocket(token: string) {
@@ -12,7 +12,6 @@ function establishWebSocket(token: string) {
 
   return socket;
 }
-
 
 class WSHandler {
   private socket: WebSocket | undefined;
@@ -29,9 +28,10 @@ class WSHandler {
       return;
     }
     this.socket.addEventListener('message', (event: { data: string }) => {
-      const { type, data } = JSON.parse(event.data) as WebSocketMessage;
+      // TODO: parse w/ zod instead
+      const { type, payload } = JSON.parse(event.data) as WebSocketMessage;
       if (this.handlers.has(type)) {
-        this.handlers.get(type)?.(data);
+        this.handlers.get(type)?.(payload);
       }
     });
   }

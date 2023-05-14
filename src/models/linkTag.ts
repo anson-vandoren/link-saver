@@ -1,14 +1,14 @@
 import { z } from 'zod';
 import db from '../db';
 
-export const LinkTagSchema = z.object({
+const LinkTagSchema = z.object({
   linkId: z.number(),
   tagId: z.number(),
 });
 
-export type LinkTag = z.infer<typeof LinkTagSchema>;
+type LinkTag = z.infer<typeof LinkTagSchema>;
 
-export function createLinkTag(input: LinkTag): LinkTag {
+function _createLinkTag(input: LinkTag): LinkTag {
   const { linkId, tagId } = input;
 
   const insert = db.prepare(`
@@ -49,7 +49,7 @@ export function getLinkTagsByLinkId(linkId: number): LinkTag[] {
   return linkTags;
 }
 
-export function getLinkTagsByTagId(tagId: number): LinkTag[] {
+function _getLinkTagsByTagId(tagId: number): LinkTag[] {
   const select = db.prepare(`
     SELECT linkId, tagId
     FROM LinkTags
@@ -61,7 +61,7 @@ export function getLinkTagsByTagId(tagId: number): LinkTag[] {
   return linkTags;
 }
 
-export function deleteLinkTag(input: LinkTag): boolean {
+function _deleteLinkTag(input: LinkTag): boolean {
   const { linkId, tagId } = input;
 
   const deleteStmt = db.prepare(`

@@ -1,11 +1,12 @@
-import { GetLinksResponse, Link, LoginUserResponse, Tag } from '../../shared/apiTypes';
+import superjson from 'superjson';
 import { DEFAULT_PER_PAGE } from './constants';
 import { getToken, hasToken } from './utils';
 import { createTRPCProxyClient, httpBatchLink, loggerLink } from '@trpc/client';
-import type { AppRouter } from '../../src/index';
-import type { CreateLinkRequest, UpdateLinkRequest } from '../../src/routers/link';
+import type { AppRouter } from '../../src/routers/';
+import type { CreateLinkReq, LinkRes, MultiLink, ScrapedURLRes, UpdateLinkReq, UserCredRes } from '../../src/schemas';
 
 const trpc = createTRPCProxyClient<AppRouter>({
+  transformer: superjson,
   links: [
     loggerLink({
       enabled: (opts) =>
@@ -13,7 +14,7 @@ const trpc = createTRPCProxyClient<AppRouter>({
         (opts.direction === 'down' && opts.result instanceof Error),
     }),
     httpBatchLink({
-      url: 'http://localhost:3002',
+      url: 'http://localhost:3001',
       headers() {
         if (!hasToken()) {
           return {};
@@ -26,7 +27,7 @@ const trpc = createTRPCProxyClient<AppRouter>({
   ],
 });
 
-async function updateLink(data: UpdateLinkRequest) {
+async function updateLink(data: UpdateLinkReq) {
   const result = await trpc.link.update.mutate(data);
   if (!result.success) {
     // TODO: proper typed error handling
@@ -43,100 +44,78 @@ async function deleteLink(id: number): Promise<void> {
   }
 }
 
-async function createLink(linkData: CreateLinkRequest) {
+async function createLink(linkData: CreateLinkReq): Promise<void> {
   const { success } = await trpc.link.create.mutate(linkData);
   if (!success) {
     throw new Error('Failed to create link');
   }
 }
 
-async function getLink(id: number): Promise<Link> {
-  const response = await fetch(`/api/links/${id}`, {
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${getToken()}`,
-    },
-  });
+async function getLink(id: number): Promise<LinkRes> {
+  const result = await trpc.link.getOne.query(id);
 
-  if (response.redirected) {
-    window.location.href = response.url;
-    return {} as Link;
+  if (!result.success || !result.link) {
+    throw new Error('Failed to load link');
   }
-
-  if (response.ok) {
-    return response.json() as Promise<Link>;
-  }
-  throw new Error('Failed to load link');
+  return result.link;
 }
 
-type GetLinksRes = {
-  links: Link[];
-  totalPages: number;
-};
-async function getLinks(searchQuery = '', page = 1, pageSize = DEFAULT_PER_PAGE): Promise<GetLinksRes> {
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-
-  const token = localStorage.getItem('token');
-  if (token) {
-    headers.Authorization = `Bearer ${token}`;
-  }
-
-  const { origin } = window.location;
-  const apiPath = '/api/links';
-  const url = new URL(`${origin}${apiPath}`);
-  url.searchParams.append('search', searchQuery);
-  url.searchParams.append('page', `${page}`);
-  url.searchParams.append('pageSize', `${pageSize}`);
-
-  const response = await fetch(url.toString(), { headers });
-
-  if (response.redirected) {
-    window.location.href = response.url;
-    return {} as GetLinksRes;
-  }
-
-  if (response.ok) {
-    const res = (await response.json()) as GetLinksResponse;
-
-    return {
-      links: res.links,
-      totalPages: res.totalPages,
-    };
-  }
-  throw new Error('Failed to load links');
-}
-
-async function getTags(sortBy: 'name' | 'links' = 'name', filter = ''): Promise<Tag[]> {
-  const authHeader = hasToken() ? { Authorization: `Bearer ${getToken()}` } : {};
-  const headers = { 'Content-Type': 'application/json' } as Record<string, string>;
-  if (authHeader.Authorization) {
-    headers.Authorization = authHeader.Authorization;
-  }
-  const query = new URLSearchParams();
-  query.append('sortBy', sortBy);
-  query.append('search', filter);
-  const response = await fetch(`/api/tags?${query.toString()}`, {
-    headers,
+async function getLinks(query = '', page = 1, limit = DEFAULT_PER_PAGE): Promise<MultiLink> {
+  const result = await trpc.link.getMany.query({
+    query,
+    page,
+    limit,
   });
 
-  if (response.ok) {
-    return response.json() as Promise<Tag[]>;
+  if (!result.success) {
+    throw new Error(result.reason);
   }
-  throw new Error('Failed to load link');
+
+  return {
+    links: result.links,
+    totalPages: result.totalPages,
+    currentPage: result.currentPage,
+  };
 }
 
-export async function doLogin(username: string, password: string): Promise<LoginUserResponse> {
-  const response = await fetch('/api/users/login', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username, password }),
+async function getTags(sortBy: 'name' | 'links' = 'name', query = ''): Promise<string[]> {
+  const result = await trpc.tag.get.query({
+    query,
+    sortBy,
   });
 
-  if (response.ok) {
-    const { token } = (await response.json()) as LoginUserResponse;
-    return { token };
+  if (!result.success) {
+    throw new Error(result.reason);
   }
-  return {};
+
+  return result.tags;
+}
+
+export async function doLogin(username: string, password: string): Promise<string> {
+  const result = await trpc.user.login.query({
+    username,
+    password,
+  });
+
+  // TODO: figure out error handling
+  return result.token;
+}
+
+export async function doSignup(username: string, password: string): Promise<UserCredRes> {
+  return await trpc.user.register.mutate({
+    username,
+    password,
+  });
+}
+
+export async function populateFromFQDN(url: string, title?: string, description?: string): Promise<ScrapedURLRes> {
+  const result = await trpc.link.populateFromFQDN.query(url);
+
+  if (!result.success) {
+    throw new Error(result.reason);
+  }
+
+  return result;
 }
 
 export { createLink, deleteLink, getLink, getLinks, getTags, updateLink };

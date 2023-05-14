@@ -1,9 +1,16 @@
+import { z } from 'zod';
 import { JwtPayload, verify, VerifyErrors } from 'jsonwebtoken';
 import ws, { RawData } from 'ws';
 import http from 'http';
 import https from 'https';
-import logger from './logger';
-import { WebSocketMessage } from '../shared/apiTypes';
+import logger from '../logger';
+
+const WebSocketMessageSchema = z.object({
+  type: z.string(),
+  data: z.unknown(),
+});
+
+export type WebSocketMessage = z.infer<typeof WebSocketMessageSchema>;
 
 function parseRawData(message: RawData): WebSocketMessage | undefined {
   const asString = message.toString();
@@ -170,3 +177,5 @@ class WSHandler {
 const wsHandler = new WSHandler();
 
 export default wsHandler;
+
+export type { WSHandler };

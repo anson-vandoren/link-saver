@@ -23,9 +23,9 @@ export function handleLogin() {
   loginForm.addEventListener('submit', (e: Event) => {
     e.preventDefault();
     doLogin(usernameField.value, passwordField.value)
-      .then((response) => {
-        if (response.token) {
-          localStorage.setItem('token', response.token);
+      .then((token) => {
+        if (token) {
+          localStorage.setItem('token', token);
           window.location.href = 'bookmarks.html';
         } else {
           showNotification('Error logging in. Please check your credentials.', 'danger');

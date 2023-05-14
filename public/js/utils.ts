@@ -48,6 +48,10 @@ export function hasToken(): boolean {
   return localStorage.getItem('token') != null;
 }
 
+export function setToken(token: string): void {
+  localStorage.setItem('token', token);
+}
+
 export function isDefined<T>(x: T | null): x is T {
   return x != null;
 }

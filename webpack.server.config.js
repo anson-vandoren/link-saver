@@ -10,7 +10,7 @@ export default {
     topLevelAwait: true,
   },
   externals: [nodeExternals()],
-  entry: './src/index.js',
+  entry: './src/index.ts',
   output: {
     path: path.resolve('dist'),
     filename: 'bundle.cjs',

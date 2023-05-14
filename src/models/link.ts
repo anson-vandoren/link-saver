@@ -1,67 +1,6 @@
-import { z } from 'zod';
 import db from '../db';
-
-export const LinkSchema = z.object({
-  id: z.number(),
-  url: z.string(),
-  title: z.string().optional(),
-  description: z.string().optional(),
-  savedAt: z.instanceof(Date),
-  isPublic: z.boolean(),
-  userId: z.number(),
-});
-
-const baseLinkReqSchema = LinkSchema.omit({
-  savedAt: true,
-  userId: true,
-});
-
-const tagsSchema = z.object({
-  tags: z.array(z.string()).optional(),
-});
-
-// No `id`, `savedAt`, or `userId` fields when creating a link - `userId` comes from auth token
-export const CreateLinkReqSchema = baseLinkReqSchema
-  .omit({
-    id: true,
-  })
-  .and(tagsSchema);
-
-// No `savedAt` or `userId` fields when updating a link - `userId` comes from auth token
-export const UpdateLinkReqSchema = baseLinkReqSchema.and(tagsSchema);
-
-// Response schema includes `tags` field
-export const LinkResSchema = LinkSchema.omit({
-  userId: true,
-}).and(tagsSchema);
-
-export const GetLinkReqSchema = z.object({
-  id: z.number(),
-});
-
-export const GetLinksReqSchema = z.object({
-  query: z.string().optional().default(''),
-  page: z.number().optional().default(1),
-  limit: z.number().optional().default(25),
-});
-
-const LinkWithTagRowSchema = LinkSchema.extend({
-  tagName: z.string().nullable(),
-});
-
-const LinkImportSchema = LinkSchema.omit({
-  id: true,
-}).extend({
-  tags: z.array(z.string()).optional(),
-});
-
-export type Link = z.infer<typeof LinkSchema>;
-export type CreateLinkReq = z.infer<typeof CreateLinkReqSchema>;
-export type UpdateLinkReq = z.infer<typeof UpdateLinkReqSchema>;
-export type LinkRes = z.infer<typeof LinkResSchema>;
-export type GetLinkReq = z.infer<typeof GetLinkReqSchema>;
-export type GetLinksReq = z.infer<typeof GetLinksReqSchema>;
-export type LinkImport = z.infer<typeof LinkImportSchema>;
+import type { CreateLinkReq, Link, LinkImport, LinkRes, LinkWithTags } from '../schemas/link';
+import { LinkSchema, LinkSchemaWithTags, LinkWithTagRowSchema } from '../schemas/link';
 
 export function dbCreateLink(userId: number, input: CreateLinkReq): Link {
   const { url, title, description, isPublic } = input;
@@ -139,32 +78,35 @@ export function dbImportLinks(links: LinkImport[]): number[] {
   return createdIds;
 }
 
-export function dbGetLink(id: number): Link | undefined {
-  const row = db.prepare('SELECT * FROM Links WHERE id = ?').get(id);
+export function dbGetLink(id: number, includeUserId = true): Link | undefined {
+  const select = `L.id, L.url, L.title, L.description, L.savedAt, L.isPublic, ${includeUserId ? 'L.userId' : ''}`;
+  const row = db.prepare(`SELECT ${select} FROM Links WHERE id = ?`).get(id);
 
   return row ? LinkSchema.parse(row) : undefined;
 }
 
-export function dbGetAllLinks(userId?: number): Link[] {
+export function dbGetAllLinks(userId?: number): LinkWithTags[] {
   // if userId is undefined, return all links where isPublic: true
   // otherwise, return all links where userId = userId
 
   const whereClause = userId === undefined ? 'isPublic = 1' : 'userId = ?';
-  const rows = db
-    .prepare(
-      `
-    SELECT *
-    FROM Links
-    WHERE ${whereClause}
+  const query = `
+    SELECT
+      L.*, T.name AS tagName
+    FROM
+      Links L
+      LEFT JOIN LinkTags LT ON L.id = LT.linkId
+      LEFT JOIN Tags T ON LT.tagId = T.id
+    WHERE
+      ${whereClause}
     ORDER BY savedAt DESC
-`,
-    )
-    .all(userId);
+  `;
+  const rows = db.prepare(query).all(userId);
 
-  return rows.map((row) => LinkSchema.parse(row));
+  return rows.map((row) => LinkSchemaWithTags.parse(row));
 }
 
-export function dbFindLinks(terms: string[], tagTerms: string[], offset: number, limit: number): LinkRes[] | undefined {
+export function dbFindLinks(terms: string[], tagTerms: string[], offset: number, limit: number, includeUserId = true): LinkRes[] | undefined {
   const termsLikeQuery = terms.map(() => '(url LIKE ? OR title LIKE ? OR description LIKE ?)').join(' OR ');
 
   const tagTermsInQuery = tagTerms.map(() => '?').join(', ');
@@ -172,7 +114,8 @@ export function dbFindLinks(terms: string[], tagTerms: string[], offset: number,
   // TODO: probably not ordered correctly
   const query = `
     SELECT
-      L.*, T.name AS tagName
+      L.id, L.url, L.title, L.description, L.savedAt, L.isPublic, ${includeUserId ? 'L.userId,' : ''},
+      T.name AS tagName
     FROM
       Links L
       LEFT JOIN LinkTags LT ON L.id = LT.linkId
@@ -248,7 +191,7 @@ export function dbUpdateLink(id: number, updates: Partial<CreateLinkReq>): Link 
   }
 
   // updates may include tags, which we don't want to save here, so we omit them
-  const { tags, ...updatesWithoutTags } = updates;
+  const { tags: _tags, ...updatesWithoutTags } = updates;
 
   const newLink = {
     ...currentLink,

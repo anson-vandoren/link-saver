@@ -2,8 +2,17 @@ import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
 import { publicProcedure, router } from '../trpc';
 import { loggedInProcedure } from '../middleware/authenticate';
-import { createLink, deleteLink, updateLink, getLink, getLinks, exportLinks, importLinks } from '../controllers/link';
-import { CreateLinkReqSchema, GetLinkReqSchema, GetLinksReqSchema, UpdateLinkReqSchema } from '../models/link';
+import {
+  createLink,
+  deleteLink,
+  updateLink,
+  getLink,
+  getLinks,
+  exportLinks,
+  importLinks,
+  scrapeFQDN,
+} from '../controllers/link';
+import { CreateLinkReqSchema, GetLinksReqSchema, baseLinkReqSchema } from '../schemas/link';
 
 export const linkRouter = router({
   create: loggedInProcedure.input(CreateLinkReqSchema).mutation((opts) => {
@@ -14,7 +23,7 @@ export const linkRouter = router({
     if (!result.success) {
       throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: result.reason });
     }
-    return { success: true, link: result.newLink };
+    return { success: true, link: result.link };
   }),
   delete: loggedInProcedure.input(z.number()).mutation((opts) => {
     const { input, ctx } = opts;
@@ -27,7 +36,7 @@ export const linkRouter = router({
     }
     return { success: true };
   }),
-  update: loggedInProcedure.input(UpdateLinkReqSchema).mutation((opts) => {
+  update: loggedInProcedure.input(baseLinkReqSchema).mutation((opts) => {
     const { input, ctx } = opts;
     const { user } = ctx;
     const { id: userId } = user;
@@ -35,16 +44,20 @@ export const linkRouter = router({
     if (!result.success) {
       throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: result.reason });
     }
-    return { success: true, link: result.newLink };
+    return { success: true, link: result.link };
   }),
-  getOne: publicProcedure.input(GetLinkReqSchema).query((opts) => {
-    const { input } = opts;
-    const { id: linkId } = input;
-    const result = getLink(linkId);
+  getOne: publicProcedure.input(z.number()).query((opts) => {
+    const { input, ctx } = opts;
+    const { user } = ctx;
+    let userId: number | undefined;
+    if (user) {
+      userId = user.id;
+    }
+    const result = getLink(input, userId);
     if (!result.success) {
       throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: result.reason });
     }
-    return { success: true, link: result.newLink };
+    return { success: true, link: result.link };
   }),
   getMany: publicProcedure.input(GetLinksReqSchema).query((opts) => {
     const { input } = opts;
@@ -53,12 +66,7 @@ export const linkRouter = router({
     if (!result.success) {
       throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: result.reason });
     }
-    return {
-      success: true,
-      links: result.newLinks,
-      currentPage: result.currentPage,
-      totalPages: result.totalPages,
-    };
+    return result;
   }),
   export: loggedInProcedure.query((opts) => {
     const { ctx } = opts;
@@ -66,7 +74,10 @@ export const linkRouter = router({
     const { id: userId } = user;
     const result = exportLinks(userId);
     if (!result.success || !result.attachment) {
-      throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Error exporting links. See server logs for details' });
+      throw new TRPCError({
+        code: 'INTERNAL_SERVER_ERROR',
+        message: 'Error exporting links. See server logs for details',
+      });
     }
     const base64Attachment = Buffer.from(result.attachment).toString('base64');
     return { success: true, attachment: base64Attachment };
@@ -81,5 +92,10 @@ export const linkRouter = router({
       throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: result.reason });
     }
     return { success: true };
+  }),
+  populateFromFQDN: loggedInProcedure.input(z.string()).query(async (opts) => {
+    const { input: url } = opts;
+    const scrapedData = await scrapeFQDN(url);
+    return scrapedData;
   }),
 });

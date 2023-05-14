@@ -1,5 +1,7 @@
-import { verify } from 'jsonwebtoken';
-import { User, getUserById } from './models/user';
+import jwt from 'jsonwebtoken';
+import { getUserById } from './models/user';
+import type { User } from './schemas/user';
+import logger from './logger';
 
 export function decodeAndVerifyJwtToken(token: string): User {
   const { JWT_SECRET } = process.env;
@@ -9,7 +11,7 @@ export function decodeAndVerifyJwtToken(token: string): User {
 
   // Verify the token, decode it and return the user
   // TODO: correctly type the JWT payload and look at security best practices here.
-  const decodedPayload = verify(token, JWT_SECRET) as { id: number };
+  const decodedPayload = jwt.verify(token, JWT_SECRET) as { id: number };
   const user = getUserById(decodedPayload.id);
 
   if (!user) {
@@ -17,4 +19,16 @@ export function decodeAndVerifyJwtToken(token: string): User {
   }
 
   return user;
+}
+
+export function createJwtToken(user: User): string {
+  const { JWT_SECRET } = process.env;
+  if (!JWT_SECRET) {
+    throw new Error('Missing JWT_SECRET env var. Set it and restart the server');
+  }
+
+  const token = jwt.sign({ id: user.id }, JWT_SECRET, { expiresIn: '1d' });
+  logger.info('Created JWT token for user', { username: user.username, id: user.id });
+
+  return token;
 }

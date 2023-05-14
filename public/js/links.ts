@@ -1,5 +1,4 @@
-import { Link, ScrapeFQDNResponseData } from '../../shared/apiTypes';
-import { createLink, deleteLink, getLink, getLinks, updateLink } from './apiClient';
+import { createLink, deleteLink, getLink, getLinks, populateFromFQDN, updateLink } from './apiClient';
 import { DEFAULT_PER_PAGE } from './constants';
 import { showNotification } from './notification';
 import { updatePagination } from './pagination';
@@ -16,7 +15,7 @@ import {
   setValuesOrThrow,
   timeAgo,
 } from './utils';
-import { wsHandler } from './ws';
+import type { LinkRes } from '../../src/schemas';
 
 export const tagOnClick = () => {
   updateSearch(true);
@@ -96,13 +95,6 @@ async function handleAddLinkFormSubmit(event: Event) {
   return loadLinks();
 }
 
-wsHandler.on('scrapeFQDN', (data) => {
-  const { title, description, url } = data as ScrapeFQDNResponseData;
-  getElementById('add-link-title', HTMLInputElement).value ||= title;
-  getElementById('add-link-description', HTMLTextAreaElement).value ||= description;
-  getElementById('add-link-url', HTMLInputElement).value = url; // override since backend adds http(s)://
-});
-
 // Add event listener to the URL input field
 let addLinkForm: HTMLFormElement | null = null;
 try {
@@ -115,12 +107,21 @@ addLinkForm?.addEventListener('focusout', (event) => {
     return;
   }
   const url = event.target.value;
-  if (url) {
-    wsHandler.send('scrapeFQDN', { url });
-  }
+  const result = populateFromFQDN(url);
+  result.then((data) => {
+    const titleElem = getElementById('add-link-title', HTMLInputElement);
+    const descriptionElem = getElementById('add-link-description', HTMLTextAreaElement);
+    const urlElem = getElementById('add-link-url', HTMLInputElement);
+    titleElem.value ||= data.title;
+    descriptionElem.value ||= data.description;
+    urlElem.value = data.url; // override since backend adds http(s)://
+  }).catch((error) => {
+    console.error(error);
+  });
+  
 });
 
-function showEditForm(link: Link) {
+function showEditForm(link: LinkRes) {
   const editLinkTemplate = getElementById('edit-link-template', HTMLTemplateElement);
   const editFrag = editLinkTemplate.content.cloneNode(true) as typeof editLinkTemplate.content;
 
@@ -160,7 +161,7 @@ function showEditForm(link: Link) {
   });
 }
 
-function renderLinkItem(link: Link) {
+function renderLinkItem(link: LinkRes) {
   const linkItemTemplate = getElementById('link-item-template', HTMLTemplateElement);
   const fragment = linkItemTemplate.content.cloneNode(true) as typeof linkItemTemplate.content;
   const linkItem = querySelectorInFragment(fragment, '.link-item', HTMLElement);
@@ -255,7 +256,7 @@ function renderLinkItem(link: Link) {
         });
     });
   } else {
-    dateSpan.textContent = `Saved ${dateAgo} by ${link.User?.username || 'anonymous'}`;
+    dateSpan.textContent = `Saved ${dateAgo} by ${link.username || 'anonymous'}`;
     const editRemoveSpan = fromLinkItem('.link-item-date-actions > span:last-child', HTMLSpanElement);
     editRemoveSpan.remove();
   }

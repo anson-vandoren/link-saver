@@ -19,14 +19,8 @@
   },
   "rules": {
     "import/prefer-default-export": 0,
-    "no-use-before-define": [
-      "error",
-      { "functions": false }
-    ],
-    "@typescript-eslint/no-use-before-define": [
-      "error",
-      { "functions": false }
-    ],
+    "no-use-before-define": ["error", { "functions": false }],
+    "@typescript-eslint/no-use-before-define": ["error", { "functions": false }],
     "no-plusplus": 0,
     "object-curly-newline": [
       "warn",
@@ -74,15 +68,49 @@
         "message": "`with` is disallowed in strict mode because it makes code impossible to predict and optimize."
       }
     ],
-    "max-len": [
-      "warn"
-    ],
+    "max-len": ["warn"],
     "@typescript-eslint/lines-between-class-members": "off",
     "@typescript-eslint/no-unused-vars": [
       "warn",
       {
         "argsIgnorePattern": "^_",
         "varsIgnorePattern": "^_"
+      }
+    ],
+    "@typescript-eslint/naming-convention": [
+      "warn",
+      {
+        "selector": "default",
+        "format": ["camelCase", "PascalCase"],
+        "leadingUnderscore": "allowDouble",
+        "trailingUnderscore": "forbid"
+      },
+      {
+        "selector": "variable",
+        "format": ["camelCase", "UPPER_CASE", "PascalCase"],
+        "leadingUnderscore": "allow",
+        "trailingUnderscore": "forbid"
+      },
+      {
+        "selector": "function",
+        "format": ["camelCase", "PascalCase"],
+        "leadingUnderscore": "allow",
+        "trailingUnderscore": "forbid"
+      },
+      {
+        "selector": "parameter",
+        "format": ["camelCase"],
+        "leadingUnderscore": "allow"
+      },
+      {
+        "selector": "memberLike",
+        "modifiers": ["private"],
+        "format": ["camelCase"],
+        "leadingUnderscore": "allow"
+      },
+      {
+        "selector": "typeLike",
+        "format": ["PascalCase"]
       }
     ]
   }

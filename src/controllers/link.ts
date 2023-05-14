@@ -1,12 +1,8 @@
-import { z } from 'zod';
+import { get as httpGet } from 'http';
+import { get as httpsGet } from 'https';
 import { JSDOM } from 'jsdom';
 import logger from '../logger';
 import {
-  CreateLinkReq,
-  LinkImport,
-  LinkRes,
-  LinkResSchema,
-  UpdateLinkReq,
   dbCreateLink,
   dbDeleteLink,
   dbFindLinks,
@@ -18,37 +14,24 @@ import {
 } from '../models/link';
 import { createLinkTags, deleteLinkTagByLinkId, getLinkTagsByLinkId } from '../models/linkTag';
 import { getOrCreateTagsByName, getTagsById } from '../models/tag';
+import type {
+  CreateLinkReq,
+  ExportLinksRes,
+  LinkImport,
+  LinkOpRes,
+  LinkRes,
+  MultiLinkOpRes,
+  ScrapedURLRes,
+  UpdateLinkReq,
+} from '../schemas/link';
+import {
+  ExportLinksResSchema,
+  LinkOpResSchema,
+  LinkResSchema,
+  MultiLinkOpResSchema,
+} from '../schemas/link';
+import { OpMeta, OpMetaSchema } from '../schemas/util';
 import wsHandler from '../websocket';
-
-export const LinkOpResSchema = z.object({
-  success: z.boolean(),
-  reason: z.string().optional(),
-  newLink: LinkResSchema.optional(),
-});
-
-export const MultiLinkOpResSchema = z.object({
-  success: z.boolean(),
-  reason: z.string().optional(),
-  newLinks: z.array(LinkResSchema).optional(),
-  currentPage: z.number().optional(),
-  totalPages: z.number().optional(),
-});
-
-export const ExportLinksResSchema = z.object({
-  success: z.boolean(),
-  reason: z.string().optional(),
-  attachment: z.string().optional(),
-});
-
-export const ImportLinksResSchema = z.object({
-  success: z.boolean(),
-  reason: z.string().optional(),
-});
-
-export type LinkOpRes = z.infer<typeof LinkOpResSchema>;
-export type MultiLinkOpRes = z.infer<typeof MultiLinkOpResSchema>;
-export type ExportLinksRes = z.infer<typeof ExportLinksResSchema>;
-export type ImportLinksRes = z.infer<typeof ImportLinksResSchema>;
 
 export function deleteLink(linkId: number, userId: number): LinkOpRes {
   const link = dbGetLink(linkId);
@@ -83,7 +66,7 @@ export function updateLink(userId: number, data: UpdateLinkReq): LinkOpRes {
 
   if (!data.tags) {
     logger.debug('Updated link - no tag changes', { linkId, userId });
-    return { success: true, newLink };
+    return { success: true, link: { ...data, ...newLink } };
   }
 
   // delete old LinkTag associations
@@ -105,7 +88,7 @@ export function createLink(userId: number, data: CreateLinkReq): LinkOpRes {
   if (!linkData.isPublic) {
     linkData.isPublic = false;
   }
-  const link = dbCreateLink(userId, linkData);
+  const link = dbCreateLink(userId, data);
 
   if (!link) {
     return { success: false, reason: 'Failed to create link' };
@@ -121,8 +104,9 @@ export function createLink(userId: number, data: CreateLinkReq): LinkOpRes {
   return LinkOpResSchema.parse({ success: true, newLink: res });
 }
 
-export function getLink(linkId: number): LinkOpRes {
-  const link = dbGetLink(linkId);
+export function getLink(linkId: number, userId?: number): LinkOpRes {
+  const includeUserId = userId !== undefined;
+  const link = dbGetLink(linkId, includeUserId);
 
   if (!link) {
     return { success: false, reason: `Failed to get link with id ${linkId}` };
@@ -131,13 +115,13 @@ export function getLink(linkId: number): LinkOpRes {
   const tagIds = getLinkTagsByLinkId(linkId).map((linkTag) => linkTag.tagId);
   const tags = getTagsById(tagIds);
 
-  const res = LinkResSchema.parse({ ...link, tags });
+  const res = LinkResSchema.parse({ ...link, tags }); // remove userId if not passed in
 
   return LinkOpResSchema.parse({ success: true, newLink: res });
 }
 
 // TODO: disallow more than 100 per request if not signed in
-export function getLinks(query: string, page: number, limit: number): MultiLinkOpRes {
+export function getLinks(query: string, page: number, limit: number, userId?: number): MultiLinkOpRes {
   const offset = (page - 1) * limit;
 
   const searchTerms = query.split(' ').filter((term) => term.length > 0);
@@ -151,7 +135,8 @@ export function getLinks(query: string, page: number, limit: number): MultiLinkO
     .filter((term) => !term.startsWith('#'))
     .filter((term) => term.length > 0);
 
-  const results = dbFindLinks(titleDescriptionUrlFilter, tagsFilter, offset, limit);
+  const includeUserId = userId !== undefined;
+  const results = dbFindLinks(titleDescriptionUrlFilter, tagsFilter, offset, limit, includeUserId);
   const totalLinks = dbFindLinksCount(titleDescriptionUrlFilter, tagsFilter);
   const totalPages = Math.ceil(totalLinks / limit);
 
@@ -226,7 +211,7 @@ function parseNetscapeHTML(htmlContent: string, userId: number): LinkImport[] {
       if (!url) {
         return;
       }
-      const title = aElement.textContent?.trim();
+      const title = aElement.textContent?.trim() ?? '';
       const tags = (aElement.getAttribute('tags') || '').split(',').map((tag) => tag.trim());
       const addTimestamp = aElement.getAttribute('add_date');
       const savedAt = addTimestamp ? new Date(parseInt(addTimestamp, 10) * 1000) : new Date();
@@ -274,6 +259,7 @@ function addBookmarksToDatabase(bookmarks: LinkImport[]): void {
     }
 
     // Send progress update after each link creation
+    // TODO: consider moving to tRPC subscription
     if (i % 10 === 0) {
       sock?.send(
         JSON.stringify({
@@ -288,8 +274,67 @@ function addBookmarksToDatabase(bookmarks: LinkImport[]): void {
   sock?.send(JSON.stringify({ type: 'import-progress', data: { progress: 100 } }));
 }
 
-export function importLinks(htmlContent: string, userId: number): ImportLinksRes {
+export function importLinks(htmlContent: string, userId: number): OpMeta {
   const bookmarks = parseNetscapeHTML(htmlContent, userId);
   addBookmarksToDatabase(bookmarks);
-  return ImportLinksResSchema.parse({ success: true });
+  return OpMetaSchema.parse({ success: true });
+}
+
+export async function scrapeFQDN(url: string): Promise<ScrapedURLRes> {
+  let actualUrl = url;
+  if (!url.startsWith('http') && !url.startsWith('https')) {
+    actualUrl = `http://${url}`;
+  }
+  const { data, finalUrl } = await fetchHTML(actualUrl);
+  const dom = new JSDOM(data);
+  const title = dom.window.document.querySelector('head > title')?.textContent?.trim() ?? '';
+  const description = dom.window.document.querySelector('head > meta[name="description"]')?.getAttribute('content') ?? '';
+
+  return {
+    success: true,
+    url: finalUrl,
+    title,
+    description,
+  };
+}
+
+type FetchedHTML = {
+  data: string;
+  finalUrl: string;
+};
+async function fetchHTML(url: string): Promise<FetchedHTML> {
+  const get = url.startsWith('https') ? httpsGet : httpGet;
+
+  return new Promise((resolve, reject) => {
+    const request = get(url, (res) => {
+      const statusCode = res.statusCode || 0;
+      if (statusCode >= 300 && statusCode < 400 && res.headers.location) {
+        // Follow redirect
+        const redirectUrl = new URL(res.headers.location, url).href;
+        fetchHTML(redirectUrl)
+          .then((redirectData) => {
+            resolve({ data: redirectData.data, finalUrl: redirectData.finalUrl });
+          })
+          .catch(reject);
+      } else if (statusCode >= 200 && statusCode < 300) {
+        let data = '';
+
+        res.on('data', (chunk) => {
+          data += chunk;
+        });
+
+        res.on('end', () => {
+          resolve({ data, finalUrl: url });
+        });
+      } else {
+        reject(new Error(`Request failed with status code ${res.statusCode ?? 'undefined'}`));
+      }
+    });
+
+    request.on('error', (err) => {
+      reject(err);
+    });
+
+    request.end();
+  });
 }

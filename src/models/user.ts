@@ -1,25 +1,8 @@
-import { z } from 'zod';
 import db from '../db';
+import { UserSchema } from '../schemas/user';
+import type { CreateUserInput, User } from '../schemas/user';
 
-export const UserSchema = z.object({
-  id: z.number(),
-  username: z.string(),
-  password: z.string(),
-  createdAt: z.instanceof(Date),
-  updatedAt: z.instanceof(Date),
-});
-
-export const CreateUserInputSchema = UserSchema.omit(
-  {
-    id: true, createdAt: true, updatedAt: true,
-  },
-);
-
-export type User = z.infer<typeof UserSchema>;
-export type CreateUserInput = z.infer<typeof CreateUserInputSchema>;
-
-export function createUser(input: CreateUserInput): User {
-  const { username, password } = input;
+export function createUser(username: string, hashedPassword: string): User {
   const createdAt = new Date();
   const updatedAt = createdAt;
 
@@ -28,19 +11,29 @@ export function createUser(input: CreateUserInput): User {
     VALUES (@username, @password, @createdAt, @updatedAt)
   `);
   const id: number | bigint = insert.run(
-    { username, password, createdAt, updatedAt },
+    { username, password: hashedPassword, createdAt, updatedAt },
   ).lastInsertRowid;
 
   if (typeof id === 'bigint') {
     throw new Error('Created enough users that next id is a bigint...');
   }
 
-  return { id, username, password, createdAt, updatedAt };
+  return { id, username, password: hashedPassword, createdAt, updatedAt };
 }
 
 export function getUserById(id: number): User | undefined {
   const row = db.prepare('SELECT * FROM Users WHERE id = ?').get(id);
   return row ? UserSchema.parse(row) : undefined;
+}
+
+export function getUserByUsername(username: string): User | undefined {
+  const row = db.prepare('SELECT * FROM Users WHERE username = ?').get(username);
+  return row ? UserSchema.parse(row) : undefined;
+}
+
+export function hasRegisteredUsers(): boolean {
+  const row = db.prepare('SELECT COUNT(*) AS count FROM Users').get() as { count: number };
+  return row.count === 1;
 }
 
 export function updateUser(id: number, update: Partial<CreateUserInput>): User {
@@ -65,7 +58,7 @@ export function updateUser(id: number, update: Partial<CreateUserInput>): User {
   return updatedUser;
 }
 
-export function deleteUser(id: number): boolean {
+function _deleteUser(id: number): boolean {
   const deleteStmt = db.prepare('DELETE FROM Users WHERE id = ?');
   const { changes } = deleteStmt.run(id);
   return changes > 0;

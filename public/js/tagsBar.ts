@@ -1,8 +1,7 @@
 import { createTagLink } from './tags';
 import { getTags } from './apiClient';
-import { Tag } from '../../shared/apiTypes';
 
-function generateTagsHtml(tags: Tag[], onClick: () => void, group = true) {
+function generateTagsHtml(tags: string[], onClick: () => void, group = true) {
   if (!group) {
     const tagsFragment = document.createDocumentFragment();
     tags.forEach((tag: string, index: number) => {
