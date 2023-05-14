@@ -16,7 +16,7 @@ import { decodeAndVerifyJwtToken } from './jwt';
 const PORT = process.env.PORT || 3001;
 
 // tRPC
-const tRPChandler = createHTTPHandler({
+const tRpcHandler = createHTTPHandler({
   middleware: cors(), // TODO: configure CORS
   router: appRouter,
   createContext,
@@ -26,7 +26,6 @@ const tRPChandler = createHTTPHandler({
 const isProd = process.env.NODE_ENV === 'production';
 const staticRootPath = isProd ? join(__dirname, '..', 'public', 'dist') : join(__dirname, '..', 'public');
 const staticHandler = serveStatic(staticRootPath, {
-  index: true,
   extensions: ['html'],
 });
 
@@ -35,33 +34,34 @@ const corsMiddleware = cors(); // TODO: configure CORS
 const server = http.createServer((req, res) => {
   // if an API call, send to tRPC
   if (req.url?.startsWith('/api/v2')) {
-    tRPChandler(req, res).catch((err: Error) => {
+    logger.info('Incoming tRPC request', { path: req.url, method: req.method });
+    req.url = req.url.replace('/api/v2', '');
+    tRpcHandler(req, res).catch((err: Error) => {
       logger.error('Failed to handle tRPC request:', { error: err });
       res.statusCode = 500;
       res.end('Failed to handle tRPC request');
     });
     return;
   }
+  const isHtmlRequest = req.headers.accept?.includes('text/html');
   // if no users, send to signup.html
-  if (!hasRegisteredUsers()) {
+  if (isHtmlRequest && !hasRegisteredUsers() && req.url !== '/signup.html') {
+    logger.info('No registered users, redirecting to signup.html');
     res.writeHead(302, { Location: '/signup.html' });
     res.end();
     return;
   }
   // if not logged in, but there is at least one user, send to index.html
-  const token = req.headers.authorization?.split(' ')[1];
-  if (!token) {
-    res.writeHead(302, { Location: '/index.html' });
-    res.end();
-    return;
-  }
-  try {
-    decodeAndVerifyJwtToken(token);
-  } catch (error) {
-    logger.error('Failed to decode and verify JWT token:', { error, token: token ?? 'undefined' });
-    res.writeHead(302, { Location: '/index.html' });
-    res.end();
-    return;
+  const token = req.headers.authorization?.split(' ')[1] ?? '';
+  if (isHtmlRequest && token && req.url !== '/index.html' && req.url !== '/signup.html') {
+    try {
+      decodeAndVerifyJwtToken(token ?? '');
+    } catch (error) {
+      logger.error('Failed to decode and verify JWT token:', { error, token: token ?? 'undefined' });
+      res.writeHead(302, { Location: '/index.html' });
+      res.end();
+      return;
+    }
   }
   corsMiddleware(req, res, (err: Error) => {
     logger.debug('Incoming request', { path: req.url, method: req.method });
@@ -71,7 +71,7 @@ const server = http.createServer((req, res) => {
       res.end('Failed to serve static content');
       return;
     }
-
+    logger.debug('Serving static content', { path: req.url, method: req.method });
     staticHandler(req, res, () => {
       res.statusCode = 404;
       res.end('Not found');

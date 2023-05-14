@@ -16,7 +16,7 @@ export default {
       writeToDisk: true,
     },
     proxy: {
-      '/api': 'http://localhost:3001',
+      '/trpc': 'http://localhost:3001/trpc',
     },
     watchFiles: ['public/**/*'],
   },

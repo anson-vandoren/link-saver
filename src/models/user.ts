@@ -5,13 +5,15 @@ import type { CreateUserInput, User } from '../schemas/user';
 export function createUser(username: string, hashedPassword: string): User {
   const createdAt = new Date();
   const updatedAt = createdAt;
+  const caISO = createdAt.toISOString();
+  const uaISO = updatedAt.toISOString();
 
   const insert = db.prepare(`
     INSERT INTO Users (username, password, createdAt, updatedAt)
     VALUES (@username, @password, @createdAt, @updatedAt)
   `);
   const id: number | bigint = insert.run(
-    { username, password: hashedPassword, createdAt, updatedAt },
+    { username, password: hashedPassword, createdAt: caISO, updatedAt: uaISO },
   ).lastInsertRowid;
 
   if (typeof id === 'bigint') {

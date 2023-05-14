@@ -3,8 +3,8 @@ export const createUsersTableSQL = `
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     username TEXT UNIQUE NOT NULL,
     password TEXT NOT NULL,
-    createdAt DATETIME NOT NULL,
-    updatedAt DATETIME NOT NULL
+    createdAt INTEGER NOT NULL,
+    updatedAt INTEDER NOT NULL
   );
 `;
 
@@ -14,7 +14,7 @@ export const createLinksTableSQL = `
     url TEXT NOT NULL,
     title TEXT,
     description TEXT DEFAULT '',
-    savedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    savedAt INTEGER NOT NULL DEFAULT CURRENT_TIMESTAMP,
     isPublic BOOLEAN NOT NULL DEFAULT FALSE,
     userId INTEGER NOT NULL REFERENCES Users(id)
   );

@@ -3,14 +3,14 @@ import path from 'path';
 import nodeExternals from 'webpack-node-externals';
 
 export default {
+  entry: './src/index.ts',
   mode: 'development',
-  devtool: 'eval-source-map',
+  devtool: 'inline-source-map',
   target: 'node',
   experiments: {
     topLevelAwait: true,
   },
   externals: [nodeExternals()],
-  entry: './src/index.ts',
   output: {
     path: path.resolve('dist'),
     filename: 'bundle.cjs',

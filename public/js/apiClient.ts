@@ -14,7 +14,7 @@ const trpc = createTRPCProxyClient<AppRouter>({
         (opts.direction === 'down' && opts.result instanceof Error),
     }),
     httpBatchLink({
-      url: 'http://localhost:3001',
+      url: 'http://localhost:3001/api/v2',
       headers() {
         if (!hasToken()) {
           return {};
