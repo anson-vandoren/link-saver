@@ -297,7 +297,10 @@ function parseNetscapeHTML(htmlContent: string, userId: number): DbNewLink[] {
         return;
       }
       const title = aElement.textContent?.trim() ?? '';
-      const tags = (aElement.getAttribute('tags') || '').split(',').map((tag) => tag.trim());
+      const tags = (aElement.getAttribute('tags') || '')
+        .split(',')
+        .map((tag) => tag.trim())
+        .filter((tag) => tag.length > 0);
       const addTimestamp = aElement.getAttribute('add_date');
       const savedAt = addTimestamp ? parseInt(addTimestamp, 10) * 1000 : Date.now();
       const isPrivate = aElement.getAttribute('private') === '1';
