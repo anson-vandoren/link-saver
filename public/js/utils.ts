@@ -52,6 +52,10 @@ export function setToken(token: string): void {
   localStorage.setItem('token', token);
 }
 
+export function removeToken(): void {
+  localStorage.removeItem('token');
+}
+
 export function isDefined<T>(x: T | null): x is T {
   return x != null;
 }

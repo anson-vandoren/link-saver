@@ -4,7 +4,7 @@ import { createUsersTableSQL, createLinkTagsTableSQL, createLinksTableSQL, creat
 
 const DB_PATH = process.env.DB_PATH || './dev.sqlite3';
 logger.info('Opening database at', { DB_PATH });
-const db = new Database(DB_PATH, { verbose: logger.silly });
+const db = new Database(DB_PATH, { verbose: logger.debug });
 db.pragma('journal_mode = WAL');
 
 export function createTables() {

@@ -10,7 +10,7 @@ import { clearSearch, updateSearch } from './search';
 import { handlePurgeUnusedTags } from './tags';
 import { loadTags } from './tagsBar';
 import { populateThemeDropdown, saveThemeHandler } from './theme';
-import { hasToken } from './utils';
+import { hasToken, removeToken } from './utils';
 
 function initBookmarks(): void {
   if (!hasToken()) {
@@ -88,6 +88,9 @@ document.addEventListener('DOMContentLoaded', () => {
     loadLinks();
     loadTags(tagOnClick);
   } else if (window.location.pathname === '/signup.html') {
+    if (hasToken()) {
+      removeToken();
+    }
     handleSignupForm();
   } else if (window.location.pathname === '/bookmarks.html') {
     initBookmarks();

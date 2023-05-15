@@ -3,7 +3,8 @@ import { DEFAULT_PER_PAGE } from './constants';
 import { getToken, hasToken } from './utils';
 import { createTRPCProxyClient, httpBatchLink, loggerLink } from '@trpc/client';
 import type { AppRouter } from '../../src/routers/';
-import type { CreateLinkReq, LinkRes, MultiLink, ScrapedURLRes, UpdateLinkReq, UserCredRes } from '../../src/schemas';
+import type { ApiLink, ApiLinks, UserCredRes } from '../../src/schemas';
+import type { ScrapedURLRes } from '../../src/schemas/link';
 
 const trpc = createTRPCProxyClient<AppRouter>({
   transformer: superjson,
@@ -27,54 +28,54 @@ const trpc = createTRPCProxyClient<AppRouter>({
   ],
 });
 
-async function updateLink(data: UpdateLinkReq) {
+async function updateLink(data: ApiLink) {
   const result = await trpc.link.update.mutate(data);
-  if (!result.success) {
+  if (!result) {
     // TODO: proper typed error handling
     throw new Error('Failed to update link');
   }
-  return result.link;
+  return result;
 }
 
 async function deleteLink(id: number): Promise<void> {
-  const { success } = await trpc.link.delete.mutate(id);
+  const success = await trpc.link.delete.mutate(id);
   if (!success) {
     // TODO: proper typed error handling
     throw new Error('Failed to delete link');
   }
 }
 
-async function createLink(linkData: CreateLinkReq): Promise<void> {
-  const { success } = await trpc.link.create.mutate(linkData);
-  if (!success) {
+async function createLink(linkData: ApiLink): Promise<void> {
+  const link = await trpc.link.create.mutate(linkData);
+  if (!link) {
     throw new Error('Failed to create link');
   }
 }
 
-async function getLink(id: number): Promise<LinkRes> {
-  const result = await trpc.link.getOne.query(id);
+async function getLink(id: number): Promise<ApiLink> {
+  const link = await trpc.link.getOne.query(id);
 
-  if (!result.success || !result.link) {
+  if (!link) {
     throw new Error('Failed to load link');
   }
-  return result.link;
+  return link;
 }
 
-async function getLinks(query = '', page = 1, limit = DEFAULT_PER_PAGE): Promise<MultiLink> {
-  const result = await trpc.link.getMany.query({
+async function getLinks(query = '', page = 1, limit = DEFAULT_PER_PAGE): Promise<ApiLinks> {
+  const links = await trpc.link.getMany.query({
     query,
     page,
     limit,
   });
 
-  if (!result.success) {
-    throw new Error(result.reason);
+  if (!links) {
+    throw new Error('Failed to load links');
   }
 
   return {
-    links: result.links,
-    totalPages: result.totalPages,
-    currentPage: result.currentPage,
+    links: links.links,
+    totalPages: links.totalPages,
+    currentPage: links.currentPage,
   };
 }
 
@@ -111,8 +112,8 @@ export async function doSignup(username: string, password: string): Promise<User
 export async function populateFromFQDN(url: string, title?: string, description?: string): Promise<ScrapedURLRes> {
   const result = await trpc.link.populateFromFQDN.query(url);
 
-  if (!result.success) {
-    throw new Error(result.reason);
+  if (!result) {
+    throw new Error('Failed to populate link');
   }
 
   return result;

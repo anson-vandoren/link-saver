@@ -12,75 +12,73 @@ import {
   importLinks,
   scrapeFQDN,
 } from '../controllers/link';
-import { CreateLinkReqSchema, GetLinksReqSchema, baseLinkReqSchema } from '../schemas/link';
+import { ApiLinkSchema } from '../schemas/link';
 
 export const linkRouter = router({
-  create: loggedInProcedure.input(CreateLinkReqSchema).mutation((opts) => {
+  create: loggedInProcedure.input(ApiLinkSchema).mutation((opts) => {
     const { input, ctx } = opts;
     const { user } = ctx;
     const { id: userId } = user;
     const result = createLink(userId, input);
     if (!result.success) {
-      throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: result.reason });
+      throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: result.error });
     }
-    return { success: true, link: result.link };
+    return result.data;
   }),
   delete: loggedInProcedure.input(z.number()).mutation((opts) => {
     const { input, ctx } = opts;
     const { user } = ctx;
     const { id: userId } = user;
     const linkId = input;
-    const result = deleteLink(linkId, userId);
-    if (!result.success) {
-      throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: result.reason });
+    const success = deleteLink(linkId, userId);
+    if (!success) {
+      throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to delete link' });
     }
-    return { success: true };
+    return true;
   }),
-  update: loggedInProcedure.input(baseLinkReqSchema).mutation((opts) => {
+  update: loggedInProcedure.input(ApiLinkSchema).mutation((opts) => {
     const { input, ctx } = opts;
     const { user } = ctx;
     const { id: userId } = user;
     const result = updateLink(userId, input);
     if (!result.success) {
-      throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: result.reason });
+      throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: result.error });
     }
-    return { success: true, link: result.link };
+    return result.data;
   }),
   getOne: publicProcedure.input(z.number()).query((opts) => {
     const { input, ctx } = opts;
     const { user } = ctx;
-    let userId: number | undefined;
-    if (user) {
-      userId = user.id;
-    }
+    const userId = user?.id;
     const result = getLink(input, userId);
     if (!result.success) {
-      throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: result.reason });
+      throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: result.error });
     }
-    return { success: true, link: result.link };
+    return result.data;
   }),
-  getMany: publicProcedure.input(GetLinksReqSchema).query((opts) => {
-    const { input } = opts;
+  getMany: publicProcedure.input(ApiLinkSchema).query((opts) => {
+    const { input, ctx } = opts;
     const { query, page, limit } = input;
-    const result = getLinks(query, page, limit);
+    const { user } = ctx;
+    const userId = user?.id;
+    const result = getLinks(query, page, limit, userId);
     if (!result.success) {
-      throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: result.reason });
+      throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: result.error });
     }
-    return result;
+    return result.data;
   }),
   export: loggedInProcedure.query((opts) => {
     const { ctx } = opts;
     const { user } = ctx;
     const { id: userId } = user;
     const result = exportLinks(userId);
-    if (!result.success || !result.attachment) {
+    if (!result) {
       throw new TRPCError({
         code: 'INTERNAL_SERVER_ERROR',
         message: 'Error exporting links. See server logs for details',
       });
     }
-    const base64Attachment = Buffer.from(result.attachment).toString('base64');
-    return { success: true, attachment: base64Attachment };
+    return Buffer.from(result).toString('base64');
   }),
   import: loggedInProcedure.input(z.string()).mutation((opts) => {
     const { input, ctx } = opts;

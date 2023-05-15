@@ -1,10 +1,10 @@
 import db from '../db';
-import type { CreateLinkReq, Link, LinkImport, LinkRes, LinkWithTags } from '../schemas/link';
-import { LinkSchema, LinkSchemaWithTags, LinkWithTagRowSchema } from '../schemas/link';
+import type { DbLink, DbLinkWithTags, NewDbLink } from '../schemas/link';
+import { DbLinkRowWithTagSchema, DbLinkSchema, DbLinkWithTagsSchema } from '../schemas/link';
 
-export function dbCreateLink(userId: number, input: CreateLinkReq): Link {
+export function dbCreateLink(userId: number, input: NewDbLink): DbLink {
   const { url, title, description, isPublic } = input;
-  const savedAt = new Date();
+  const savedAt = Date.now();
 
   const insert = db.prepare(`
     INSERT INTO Links (url, title, description, savedAt, isPublic, userId)
@@ -36,7 +36,7 @@ export function dbCreateLink(userId: number, input: CreateLinkReq): Link {
   };
 }
 
-export function dbImportLinks(links: LinkImport[]): number[] {
+export function dbImportLinks(links: NewDbLink[]): number[] {
   const numProperties = Object.getOwnPropertyNames(links[0]).length;
   // SQLite has a default limit of 999 parameters per query
   const batchSize = Math.floor(999 / numProperties);
@@ -78,14 +78,14 @@ export function dbImportLinks(links: LinkImport[]): number[] {
   return createdIds;
 }
 
-export function dbGetLink(id: number, includeUserId = true): Link | undefined {
+export function dbGetLink(id: number, includeUserId = true): DbLink | undefined {
   const select = `L.id, L.url, L.title, L.description, L.savedAt, L.isPublic, ${includeUserId ? 'L.userId' : ''}`;
   const row = db.prepare(`SELECT ${select} FROM Links WHERE id = ?`).get(id);
 
-  return row ? LinkSchema.parse(row) : undefined;
+  return row ? DbLinkSchema.parse(row) : undefined;
 }
 
-export function dbGetAllLinks(userId?: number): LinkWithTags[] {
+export function dbGetAllLinks(userId?: number): DbLinkWithTags[] {
   // if userId is undefined, return all links where isPublic: true
   // otherwise, return all links where userId = userId
 
@@ -103,26 +103,38 @@ export function dbGetAllLinks(userId?: number): LinkWithTags[] {
   `;
   const rows = db.prepare(query).all(userId);
 
-  return rows.map((row) => LinkSchemaWithTags.parse(row));
+  return rows.map((row) => DbLinkWithTagsSchema.parse(row));
 }
 
-export function dbFindLinks(terms: string[], tagTerms: string[], offset: number, limit: number, includeUserId = true): LinkRes[] | undefined {
+export function dbFindLinks(
+  terms: string[],
+  tagTerms: string[],
+  offset: number,
+  limit: number,
+): DbLinkWithTags[] | undefined {
   const termsLikeQuery = terms.map(() => '(url LIKE ? OR title LIKE ? OR description LIKE ?)').join(' OR ');
 
   const tagTermsInQuery = tagTerms.map(() => '?').join(', ');
 
+  const whereClauses: string[] = [];
+  if (termsLikeQuery) {
+    whereClauses.push(`(${termsLikeQuery})`);
+  }
+  if (tagTermsInQuery) {
+    whereClauses.push(`T.name IN (${tagTermsInQuery})`);
+  }
+  const whereClause = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' OR ')}` : '';
+
   // TODO: probably not ordered correctly
   const query = `
     SELECT
-      L.id, L.url, L.title, L.description, L.savedAt, L.isPublic, ${includeUserId ? 'L.userId,' : ''},
-      T.name AS tagName
+      L.id, L.url, L.title, L.description, L.savedAt, L.isPublic, L.userId,
+      T.name AS tag
     FROM
       Links L
       LEFT JOIN LinkTags LT ON L.id = LT.linkId
       LEFT JOIN Tags T ON LT.tagId = T.id
-    WHERE
-      (${termsLikeQuery})
-      OR T.name IN (${tagTermsInQuery})
+    ${whereClause}
     LIMIT ? OFFSET ?
   `;
 
@@ -130,9 +142,9 @@ export function dbFindLinks(terms: string[], tagTerms: string[], offset: number,
   const allParams = [...termsParams, ...tagTerms, limit, offset];
 
   const rows = db.prepare(query).all(allParams);
-  const validatedRows = rows.map((row) => LinkWithTagRowSchema.parse(row));
+  const validatedRows = rows.map((row) => DbLinkRowWithTagSchema.parse(row));
 
-  const linksMap: Map<number, LinkRes & { tags: string[] }> = new Map();
+  const linksMap: Map<number, DbLinkWithTags> = new Map();
 
   for (const row of validatedRows) {
     const linkId = row.id;
@@ -146,13 +158,14 @@ export function dbFindLinks(terms: string[], tagTerms: string[], offset: number,
         description: row.description,
         savedAt: row.savedAt,
         isPublic: row.isPublic,
+        userId: row.userId,
         tags: [],
       };
       linksMap.set(linkId, link);
     }
 
-    if (row.tagName && !link.tags.includes(row.tagName)) {
-      link.tags.push(row.tagName);
+    if (row.tag && !link.tags.includes(row.tag)) {
+      link.tags.push(row.tag);
     }
   }
 
@@ -164,6 +177,15 @@ export function dbFindLinksCount(terms: string[], tagTerms: string[]): number {
 
   const tagTermsInQuery = tagTerms.map(() => '?').join(', ');
 
+  const whereClauses: string[] = [];
+  if (termsLikeQuery) {
+    whereClauses.push(`(${termsLikeQuery})`);
+  }
+  if (tagTermsInQuery) {
+    whereClauses.push(`T.name IN (${tagTermsInQuery})`);
+  }
+  const whereClause = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' OR ')}` : '';
+
   const query = `
     SELECT
       COUNT(DISTINCT L.id) AS totalCount
@@ -171,9 +193,7 @@ export function dbFindLinksCount(terms: string[], tagTerms: string[]): number {
       Links L
       LEFT JOIN LinkTags LT ON L.id = LT.linkId
       LEFT JOIN Tags T ON LT.tagId = T.id
-    WHERE
-      (${termsLikeQuery})
-      OR T.name IN (${tagTermsInQuery})
+    ${whereClause}
   `;
 
   const termsParams = terms.flatMap((term) => [`%${term}%`, `%${term}%`, `%${term}%`]);
@@ -183,15 +203,15 @@ export function dbFindLinksCount(terms: string[], tagTerms: string[]): number {
   return result?.totalCount ?? 0;
 }
 
-export function dbUpdateLink(id: number, updates: Partial<CreateLinkReq>): Link | undefined {
+export function dbUpdateLink(id: number, updates: Partial<DbLinkWithTags>): DbLinkWithTags | undefined {
   const currentLink = dbGetLink(id);
 
   if (!currentLink) {
     return undefined;
   }
 
-  // updates may include tags, which we don't want to save here, so we omit them
-  const { tags: _tags, ...updatesWithoutTags } = updates;
+  // Tags should be updated separately
+  const { tags, ...updatesWithoutTags } = updates;
 
   const newLink = {
     ...currentLink,
@@ -215,7 +235,10 @@ export function dbUpdateLink(id: number, updates: Partial<CreateLinkReq>): Link 
 
   update.run(newLink);
 
-  return newLink;
+  return {
+    ...newLink,
+    tags: tags ?? [],
+  };
 }
 
 export function dbDeleteLink(id: number): boolean {

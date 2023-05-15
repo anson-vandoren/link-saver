@@ -15,7 +15,7 @@ import {
   setValuesOrThrow,
   timeAgo,
 } from './utils';
-import type { LinkRes } from '../../src/schemas';
+import type { ApiLink } from '../../src/schemas';
 
 export const tagOnClick = () => {
   updateSearch(true);
@@ -39,9 +39,10 @@ async function handleEditFormSubmit(event: Event) {
   if (!linkId) {
     throw new Error('Could not find link id');
   }
-  const [title, url, rawTags, visibility] = getValuesOrThrow([
+  const [title, url, description, rawTags, visibility] = getValuesOrThrow([
     'edit-link-title',
     'edit-link-url',
+    'edit-link-description',
     'edit-link-tags',
     'edit-link-visibility',
   ]);
@@ -54,6 +55,7 @@ async function handleEditFormSubmit(event: Event) {
       id: +linkId,
       title,
       url,
+      description,
       tags,
       isPublic,
     });
@@ -107,6 +109,9 @@ addLinkForm?.addEventListener('focusout', (event) => {
     return;
   }
   const url = event.target.value;
+  if (!url) {
+    return;
+  }
   const result = populateFromFQDN(url);
   result.then((data) => {
     const titleElem = getElementById('add-link-title', HTMLInputElement);
@@ -121,7 +126,7 @@ addLinkForm?.addEventListener('focusout', (event) => {
   
 });
 
-function showEditForm(link: LinkRes) {
+function showEditForm(link: ApiLink) {
   const editLinkTemplate = getElementById('edit-link-template', HTMLTemplateElement);
   const editFrag = editLinkTemplate.content.cloneNode(true) as typeof editLinkTemplate.content;
 
@@ -132,8 +137,8 @@ function showEditForm(link: LinkRes) {
   editLinkForm.dataset.id = `${link.id}`;
 
   setValuesOrThrow([
-    { querySel: '#edit-link-title', value: link.title },
-    { querySel: '#edit-link-url', value: link.url },
+    { querySel: '#edit-link-title', value: link.title ?? '' },
+    { querySel: '#edit-link-url', value: link.url ?? '' },
     { querySel: '#edit-link-tags', value: (link.tags ?? []).join(', ') },
   ], editFrag);
 
@@ -161,7 +166,7 @@ function showEditForm(link: LinkRes) {
   });
 }
 
-function renderLinkItem(link: LinkRes) {
+function renderLinkItem(link: ApiLink) {
   const linkItemTemplate = getElementById('link-item-template', HTMLTemplateElement);
   const fragment = linkItemTemplate.content.cloneNode(true) as typeof linkItemTemplate.content;
   const linkItem = querySelectorInFragment(fragment, '.link-item', HTMLElement);
@@ -171,11 +176,11 @@ function renderLinkItem(link: LinkRes) {
   linkItem.dataset.id = `${link.id}`;
 
   const titleLink = fromLinkItem('.link-item-title > a', HTMLAnchorElement);
-  titleLink.href = link.url;
-  titleLink.textContent = link.title;
+  titleLink.href = link.url ?? '';
+  titleLink.textContent = link.title ?? '';
 
   const tagsSpan = fromLinkItem('.link-item-tags-description > span:first-child', HTMLSpanElement);
-  if (link.tags.length && link.tags[0] !== '') {
+  if (link.tags?.length && link.tags[0] !== '') {
     link.tags.forEach((tag) => {
       tagsSpan.appendChild(
         createTagLink(tag, {
@@ -188,11 +193,12 @@ function renderLinkItem(link: LinkRes) {
   const descrSpan = fromLinkItem('.link-item-tags-description > span:last-child', HTMLSpanElement);
   descrSpan.textContent = link.description ?? '';
 
-  if (link.tags.length && link.tags[0] !== '' && link.description) {
+  if (link.tags?.length && link.tags[0] !== '' && link.description) {
     tagsSpan.insertAdjacentText('beforeend', ' | ');
   }
 
-  const dateAgo = timeAgo(new Date(link.savedAt));
+  const savedAt = link.savedAt ? new Date(link.savedAt) : new Date();
+  const dateAgo = timeAgo(savedAt);
 
   // TODO: remove window location check when combined
   const isLoggedIn = !!link.userId && localStorage.getItem('token') && window.location.pathname === '/bookmarks.html';
@@ -202,6 +208,9 @@ function renderLinkItem(link: LinkRes) {
     const editLink = fromLinkItem('.link-item-date-actions > span:last-child > a:first-child', HTMLAnchorElement);
     const clickEditHandler = async (e: Event) => {
       e.preventDefault();
+      if (!link.id) {
+        throw new Error('Link ID not found');
+      }
       const linkData = await getLink(link.id);
       showEditForm(linkData);
     };
@@ -249,6 +258,9 @@ function renderLinkItem(link: LinkRes) {
     cancelLink.addEventListener('click', hideConfirmation);
     confirmLink.addEventListener('click', (e) => {
       e.preventDefault();
+      if (!link.id) {
+        throw new Error('Link ID not found');
+      }
       deleteLink(link.id)
         .then(() => loadLinks())
         .catch((_err) => {

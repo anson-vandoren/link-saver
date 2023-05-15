@@ -1,5 +1,5 @@
-import { get as httpGet } from 'http';
-import { get as httpsGet } from 'https';
+import { z } from 'zod';
+import axios from 'axios';
 import { JSDOM } from 'jsdom';
 import logger from '../logger';
 import {
@@ -15,58 +15,87 @@ import {
 import { createLinkTags, deleteLinkTagByLinkId, getLinkTagsByLinkId } from '../models/linkTag';
 import { getOrCreateTagsByName, getTagsById } from '../models/tag';
 import type {
-  CreateLinkReq,
-  ExportLinksRes,
-  LinkImport,
-  LinkOpRes,
-  LinkRes,
-  MultiLinkOpRes,
+  ApiLink,
+  ApiLinks,
+  DbLinkWithTags,
+  NewDbLink,
   ScrapedURLRes,
-  UpdateLinkReq,
+  WrappedApiLink,
+  WrappedApiLinks,
 } from '../schemas/link';
 import {
-  ExportLinksResSchema,
-  LinkOpResSchema,
-  LinkResSchema,
-  MultiLinkOpResSchema,
+  LinkApiToDbSchema,
+  LinkDbToApiWithTagsSchema,
 } from '../schemas/link';
 import { OpMeta, OpMetaSchema } from '../schemas/util';
 import wsHandler from '../websocket';
+import { DEFAULT_PER_PAGE } from '../../public/js/constants';
+import { getUserById } from '../models/user';
 
-export function deleteLink(linkId: number, userId: number): LinkOpRes {
+export function deleteLink(linkId: number, userId: number): boolean {
   const link = dbGetLink(linkId);
   if (!link) {
-    return { success: false, reason: `Cannot delete link with id ${linkId} - not found` };
+    logger.warn('Cannot delete link - not found', { linkId, userId });
+    return false;
   }
   if (link.userId !== userId) {
-    return { success: false, reason: `Cannot delete link with id ${linkId} - not owned by user ${userId}` };
+    logger.warn('Cannot delete link - not owned by user', { linkId, userId });
+    return false;
   }
 
   dbDeleteLink(linkId);
   deleteLinkTagByLinkId(linkId);
 
-  return { success: true };
+  logger.debug('Deleted link', { linkId, userId });
+  return true;
 }
 
-export function updateLink(userId: number, data: UpdateLinkReq): LinkOpRes {
+export function updateLink(userId: number, data: ApiLink): WrappedApiLink {
   const { id: linkId } = data;
+  if (!linkId) {
+    logger.warn('Cannot update link - no id', { linkId, userId });
+    return {
+      success: false,
+      error: 'No link id',
+    };
+  }
   const link = dbGetLink(linkId);
   if (!link) {
-    return { success: false, reason: `Cannot update link with id ${linkId} - not found` };
+    logger.warn('Cannot update link - not found', { linkId, userId });
+    return {
+      success: false,
+      error: 'Link not found',
+    };
   }
   if (link.userId !== userId) {
-    return { success: false, reason: `Cannot update link with id ${linkId} - not owned by user ${userId}` };
+    logger.warn('Cannot update link - not owned by user', { linkId, userId });
+    return {
+      success: false,
+      error: 'User does not own link',
+    };
   }
 
-  const newLink = dbUpdateLink(linkId, data); // ignores tags
+  const asDbLink = LinkApiToDbSchema.parse(data);
+  const dbLinkRes = dbUpdateLink(linkId, asDbLink); // ignores tags
+  const newLink = LinkDbToApiWithTagsSchema.parse({
+    ...dbLinkRes,
+    tags: data.tags ?? [],
+  });
 
   if (!newLink) {
-    return { success: false, reason: `Failed to update link with id ${linkId}` };
+    logger.warn('Failed to update link', { linkId, userId });
+    return {
+      success: false,
+      error: 'Failed to update link',
+    };
   }
 
   if (!data.tags) {
     logger.debug('Updated link - no tag changes', { linkId, userId });
-    return { success: true, link: { ...data, ...newLink } };
+    return {
+      success: true,
+      data: newLink,
+    };
   }
 
   // delete old LinkTag associations
@@ -78,20 +107,26 @@ export function updateLink(userId: number, data: UpdateLinkReq): LinkOpRes {
 
   logger.debug('Updated link - tag changes', { linkId, userId });
 
-  const res = LinkResSchema.parse({ ...newLink, tags: data.tags });
-
-  return LinkOpResSchema.parse({ success: true, newLink: res });
+  return {
+    success: true,
+    data: newLink,
+  };
 }
 
-export function createLink(userId: number, data: CreateLinkReq): LinkOpRes {
+export function createLink(userId: number, data: ApiLink): WrappedApiLink {
   const { tags, ...linkData } = data;
   if (!linkData.isPublic) {
     linkData.isPublic = false;
   }
-  const link = dbCreateLink(userId, data);
+  const dbLinkData = LinkApiToDbSchema.parse(linkData);
+  const link = dbCreateLink(userId, dbLinkData);
 
   if (!link) {
-    return { success: false, reason: 'Failed to create link' };
+    logger.warn('Failed to create link', { userId, data });
+    return {
+      success: false,
+      error: 'Failed to create link',
+    };
   }
 
   if (tags) {
@@ -99,29 +134,48 @@ export function createLink(userId: number, data: CreateLinkReq): LinkOpRes {
     createLinkTags(link.id, tagIdsForLink);
   }
 
-  const res = LinkResSchema.parse({ ...link, tags });
+  const parsed = LinkDbToApiWithTagsSchema.parse({
+    ...link,
+    tags: tags ?? [],
+  });
 
-  return LinkOpResSchema.parse({ success: true, newLink: res });
+  logger.debug('Created link', { userId, data });
+  return {
+    success: true,
+    data: parsed,
+  };
 }
 
-export function getLink(linkId: number, userId?: number): LinkOpRes {
+export function getLink(linkId: number, userId?: number): WrappedApiLink {
   const includeUserId = userId !== undefined;
   const link = dbGetLink(linkId, includeUserId);
 
   if (!link) {
-    return { success: false, reason: `Failed to get link with id ${linkId}` };
+    logger.warn('Failed to get link', { linkId, userId });
+    return {
+      success: false,
+      error: 'Failed to get link',
+    };
   }
 
   const tagIds = getLinkTagsByLinkId(linkId).map((linkTag) => linkTag.tagId);
   const tags = getTagsById(tagIds);
 
-  const res = LinkResSchema.parse({ ...link, tags }); // remove userId if not passed in
+  const parsed = LinkDbToApiWithTagsSchema.parse({
+    ...link,
+    tags,
+  });
 
-  return LinkOpResSchema.parse({ success: true, newLink: res });
+  logger.debug('Got link', { linkId, userId });
+  return {
+    success: true,
+    data: parsed,
+  };
 }
 
 // TODO: disallow more than 100 per request if not signed in
-export function getLinks(query: string, page: number, limit: number, userId?: number): MultiLinkOpRes {
+export function getLinks(query = '', page = 1, limit = DEFAULT_PER_PAGE, userId?: number): WrappedApiLinks {
+  // TODO: check pagination logic
   const offset = (page - 1) * limit;
 
   const searchTerms = query.split(' ').filter((term) => term.length > 0);
@@ -135,20 +189,46 @@ export function getLinks(query: string, page: number, limit: number, userId?: nu
     .filter((term) => !term.startsWith('#'))
     .filter((term) => term.length > 0);
 
-  const includeUserId = userId !== undefined;
-  const results = dbFindLinks(titleDescriptionUrlFilter, tagsFilter, offset, limit, includeUserId);
+  const dbResults = dbFindLinks(titleDescriptionUrlFilter, tagsFilter, offset, limit) ?? [];
+  const results = dbResults.map((link) => LinkDbToApiWithTagsSchema.parse(link));
   const totalLinks = dbFindLinksCount(titleDescriptionUrlFilter, tagsFilter);
   const totalPages = Math.ceil(totalLinks / limit);
 
+  let sanitizedResults: ApiLink[] = [];
+  const includeUserId = userId !== undefined;
+  if (!includeUserId) {
+    // add username instead
+    const foundUserId = results[0]?.userId;
+    const username = getUserById(foundUserId)?.username;
+    results.forEach((link) => {
+      sanitizedResults.push({
+        ...link,
+        userId: undefined,
+        username,
+      });
+    });
+  } else {
+    sanitizedResults = results;
+  }
+
   logger.debug('getLinks', {
-    query, page, limit, offset, totalLinks, totalPages, results: results?.length ?? 0,
+    query,
+    page,
+    limit,
+    offset,
+    totalLinks,
+    totalPages,
+    results: sanitizedResults?.length ?? 0,
   });
-  return MultiLinkOpResSchema.parse({
-    success: true,
-    newLinks: results,
+  const result: ApiLinks = {
+    links: sanitizedResults ?? [],
     currentPage: page,
     totalPages,
-  });
+  };
+  return {
+    success: true,
+    data: result,
+  };
 }
 
 function replaceUnusualWhitespace(text: string): string {
@@ -157,7 +237,7 @@ function replaceUnusualWhitespace(text: string): string {
   return text.replace(unusualWhitespaceRegex, ' ');
 }
 
-function exportBookmarks(links: LinkRes[]): string {
+function exportBookmarks(links: DbLinkWithTags[]): string {
   const header = `<!DOCTYPE NETSCAPE-Bookmark-file-1>
 
 <META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=UTF-8">
@@ -173,14 +253,14 @@ function exportBookmarks(links: LinkRes[]): string {
 
   const bookmarks = links
     .map((link) => {
-      const {
-        title, url, description, tags, isPublic, savedAt,
-      } = link;
+      const { title, url, description, tags, isPublic, savedAt } = link;
 
-      const dt = Math.floor(new Date(savedAt).getTime() / 1000);
+      const dt = Math.floor(savedAt);
 
       const tagsSection = tags && tags.length > 0 ? ` TAGS="${tags.join(',')}"` : '';
-      const firstLine = `\t<DT><A HREF="${url}" ADD_DATE="${dt}" PRIVATE="${isPublic ? '0' : '1'}" ${tagsSection}>${title ?? ''}</A>\n`;
+      const firstLine = `\t<DT><A HREF="${url}" ADD_DATE="${dt}" PRIVATE="${isPublic}" ${tagsSection}>${
+        title ?? ''
+      }</A>\n`;
       if (!description) {
         return firstLine;
       }
@@ -192,15 +272,15 @@ function exportBookmarks(links: LinkRes[]): string {
   return replaceUnusualWhitespace(bookmarkHTML);
 }
 
-export function exportLinks(userId: number): ExportLinksRes {
+export function exportLinks(userId: number): string {
   const links = dbGetAllLinks(userId);
   logger.debug('exporting links', { userId, count: links.length });
   const bookmarks = exportBookmarks(links);
-  return ExportLinksResSchema.parse({ success: true, bookmarks });
+  return bookmarks;
 }
 
-function parseNetscapeHTML(htmlContent: string, userId: number): LinkImport[] {
-  const bookmarks: LinkImport[] = [];
+function parseNetscapeHTML(htmlContent: string, userId: number):NewDbLink[] {
+  const bookmarks: NewDbLink[] = [];
   const dom = new JSDOM(htmlContent);
   const dtElements = dom.window.document.querySelectorAll('DT');
 
@@ -214,11 +294,12 @@ function parseNetscapeHTML(htmlContent: string, userId: number): LinkImport[] {
       const title = aElement.textContent?.trim() ?? '';
       const tags = (aElement.getAttribute('tags') || '').split(',').map((tag) => tag.trim());
       const addTimestamp = aElement.getAttribute('add_date');
-      const savedAt = addTimestamp ? new Date(parseInt(addTimestamp, 10) * 1000) : new Date();
+      const savedAt = addTimestamp ? parseInt(addTimestamp, 10) * 1000 : Date.now();
       const isPrivate = aElement.getAttribute('private') === '1';
+      const isPublic = isPrivate ? 0 : 1;
 
       const ddElement = dtElement.nextElementSibling;
-      const description = ddElement && ddElement.tagName === 'DD' ? ddElement.textContent?.trim() : '';
+      const description = (ddElement && ddElement.tagName === 'DD' ? ddElement.textContent?.trim() : '') ?? '';
 
       bookmarks.push({
         url,
@@ -226,7 +307,7 @@ function parseNetscapeHTML(htmlContent: string, userId: number): LinkImport[] {
         tags,
         description,
         savedAt,
-        isPublic: !isPrivate,
+        isPublic,
         userId,
       });
     }
@@ -235,7 +316,7 @@ function parseNetscapeHTML(htmlContent: string, userId: number): LinkImport[] {
   return bookmarks;
 }
 
-function addBookmarksToDatabase(bookmarks: LinkImport[]): void {
+function addBookmarksToDatabase(bookmarks: NewDbLink[]): void {
   // TODO: perf++: use bulkCreate or queued promises w/ concurrency control
   const { userId } = bookmarks[0]; // all bookmarks should have the same userId
   const sock = wsHandler.connectionFor(userId);
@@ -281,6 +362,10 @@ export function importLinks(htmlContent: string, userId: number): OpMeta {
 }
 
 export async function scrapeFQDN(url: string): Promise<ScrapedURLRes> {
+  if (!url) {
+    throw new Error('The input URL is empty');
+  }
+
   let actualUrl = url;
   if (!url.startsWith('http') && !url.startsWith('https')) {
     actualUrl = `http://${url}`;
@@ -291,7 +376,6 @@ export async function scrapeFQDN(url: string): Promise<ScrapedURLRes> {
   const description = dom.window.document.querySelector('head > meta[name="description"]')?.getAttribute('content') ?? '';
 
   return {
-    success: true,
     url: finalUrl,
     title,
     description,
@@ -302,39 +386,32 @@ type FetchedHTML = {
   data: string;
   finalUrl: string;
 };
+const axiosResponseSchema = z.object({
+  status: z.number(),
+  data: z.string(),
+  request: z.object({
+    res: z.object({
+      responseUrl: z.string(),
+    }),
+  }),
+});
 async function fetchHTML(url: string): Promise<FetchedHTML> {
-  const get = url.startsWith('https') ? httpsGet : httpGet;
+  try {
+    const rawRes = await axios.get(url, { maxRedirects: 5 });
+    const response = axiosResponseSchema.parse(rawRes);
 
-  return new Promise((resolve, reject) => {
-    const request = get(url, (res) => {
-      const statusCode = res.statusCode || 0;
-      if (statusCode >= 300 && statusCode < 400 && res.headers.location) {
-        // Follow redirect
-        const redirectUrl = new URL(res.headers.location, url).href;
-        fetchHTML(redirectUrl)
-          .then((redirectData) => {
-            resolve({ data: redirectData.data, finalUrl: redirectData.finalUrl });
-          })
-          .catch(reject);
-      } else if (statusCode >= 200 && statusCode < 300) {
-        let data = '';
-
-        res.on('data', (chunk) => {
-          data += chunk;
-        });
-
-        res.on('end', () => {
-          resolve({ data, finalUrl: url });
-        });
-      } else {
-        reject(new Error(`Request failed with status code ${res.statusCode ?? 'undefined'}`));
+    if (response.status >= 200 && response.status < 300) {
+      if (typeof response.data !== 'string') {
+        throw new Error('Response data is not a string');
       }
-    });
-
-    request.on('error', (err) => {
-      reject(err);
-    });
-
-    request.end();
-  });
+      return {
+        data: response.data,
+        finalUrl: response.request.res.responseUrl,
+      };
+    }
+    throw new Error(`HTTP error: ${response.status}`);
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    throw new Error(`Failed to fetch URL: ${url}: ${message}`);
+  }
 }

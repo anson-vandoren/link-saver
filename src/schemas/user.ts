@@ -4,31 +4,30 @@ export const userCredReqSchema = z.object({
   username: z.string(),
   password: z.string(),
 });
+export type UserCredReq = z.infer<typeof userCredReqSchema>;
 
 export const changePasswordReqSchema = userCredReqSchema.extend({
   newPassword: z.string(),
 });
+export type ChangePasswordReq = z.infer<typeof changePasswordReqSchema>;
 
 export const UserSchema = z.object({
   id: z.number(),
   username: z.string(),
   password: z.string(),
-  createdAt: z.instanceof(Date),
-  updatedAt: z.instanceof(Date),
+  createdAt: z.number(),
+  updatedAt: z.number(),
 });
+export type User = z.infer<typeof UserSchema>;
 
-const CreateUserInputSchema = UserSchema.omit(
-  {
-    id: true, createdAt: true, updatedAt: true,
-  },
-);
+const CreateUserInputSchema = UserSchema.omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type CreateUserInput = z.infer<typeof CreateUserInputSchema>;
 
 const TokenSchema = z.object({
   token: z.string(),
 });
-
-export type User = z.infer<typeof UserSchema>;
-export type CreateUserInput = z.infer<typeof CreateUserInputSchema>;
-export type UserCredReq = z.infer<typeof userCredReqSchema>;
-export type ChangePasswordReq = z.infer<typeof changePasswordReqSchema>;
 export type Token = z.infer<typeof TokenSchema>;

@@ -3,17 +3,15 @@ import { UserSchema } from '../schemas/user';
 import type { CreateUserInput, User } from '../schemas/user';
 
 export function createUser(username: string, hashedPassword: string): User {
-  const createdAt = new Date();
+  const createdAt = Date.now();
   const updatedAt = createdAt;
-  const caISO = createdAt.toISOString();
-  const uaISO = updatedAt.toISOString();
 
   const insert = db.prepare(`
     INSERT INTO Users (username, password, createdAt, updatedAt)
     VALUES (@username, @password, @createdAt, @updatedAt)
   `);
   const id: number | bigint = insert.run(
-    { username, password: hashedPassword, createdAt: caISO, updatedAt: uaISO },
+    { username, password: hashedPassword, createdAt, updatedAt },
   ).lastInsertRowid;
 
   if (typeof id === 'bigint') {
@@ -47,7 +45,7 @@ export function updateUser(id: number, update: Partial<CreateUserInput>): User {
   const updatedUser: User = {
     ...existingUser,
     ...update,
-    updatedAt: new Date(),
+    updatedAt: Date.now(),
   };
 
   const updatedUserStmt = db.prepare(`
