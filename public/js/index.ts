@@ -85,6 +85,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     handleLogin();
     loadLinks();
+    updateSearch(true);
   } else if (window.location.pathname === '/signup.html') {
     if (hasToken()) {
       removeToken();
