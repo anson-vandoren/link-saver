@@ -28,7 +28,7 @@ const trpc = createTRPCProxyClient<AppRouter>({
   ],
 });
 
-async function updateLink(data: ApiLink) {
+export async function updateLink(data: ApiLink) {
   const result = await trpc.link.update.mutate(data);
   if (!result) {
     // TODO: proper typed error handling
@@ -37,7 +37,7 @@ async function updateLink(data: ApiLink) {
   return result;
 }
 
-async function deleteLink(id: number): Promise<void> {
+export async function deleteLink(id: number): Promise<void> {
   const success = await trpc.link.delete.mutate(id);
   if (!success) {
     // TODO: proper typed error handling
@@ -45,14 +45,14 @@ async function deleteLink(id: number): Promise<void> {
   }
 }
 
-async function createLink(linkData: ApiLink): Promise<void> {
+export async function createLink(linkData: ApiLink): Promise<void> {
   const link = await trpc.link.create.mutate(linkData);
   if (!link) {
     throw new Error('Failed to create link');
   }
 }
 
-async function getLink(id: number): Promise<ApiLink> {
+export async function getLink(id: number): Promise<ApiLink> {
   const link = await trpc.link.getOne.query(id);
 
   if (!link) {
@@ -61,7 +61,7 @@ async function getLink(id: number): Promise<ApiLink> {
   return link;
 }
 
-async function getLinks(query = '', page = 1, limit = DEFAULT_PER_PAGE): Promise<ApiLinks> {
+export async function getLinks(query = '', page = 1, limit = DEFAULT_PER_PAGE): Promise<ApiLinks> {
   const links = await trpc.link.getMany.query({
     query,
     page,
@@ -79,7 +79,7 @@ async function getLinks(query = '', page = 1, limit = DEFAULT_PER_PAGE): Promise
   };
 }
 
-async function getTags(sortBy: 'name' | 'links' = 'name', query = ''): Promise<string[]> {
+export async function getTags(sortBy: 'name' | 'links' = 'name', query = ''): Promise<string[]> {
   const result = await trpc.tag.get.query({
     query,
     sortBy,
@@ -90,6 +90,12 @@ async function getTags(sortBy: 'name' | 'links' = 'name', query = ''): Promise<s
   }
 
   return result.tags;
+}
+
+export async function purgeUnusedTags(): Promise<number> {
+  const result = await trpc.tag.purgeUnused.mutate();
+
+  return result;
 }
 
 export async function doLogin(username: string, password: string): Promise<string> {
@@ -119,4 +125,9 @@ export async function populateFromFQDN(url: string, title?: string, description?
   return result;
 }
 
-export { createLink, deleteLink, getLink, getLinks, getTags, updateLink };
+export async function importBookmarks(file: string): Promise<void> {
+  const result = await trpc.link.import.mutate(file);
+  if (!result) {
+    throw new Error('Failed to import bookmarks');
+  }
+}

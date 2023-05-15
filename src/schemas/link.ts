@@ -17,13 +17,22 @@ export const DbLinkSchema = z.object({
 export type DbLink = z.infer<typeof DbLinkSchema>;
 
 export const DbLinkRowWithTagSchema = DbLinkSchema.extend({
-  tag: z.string(),
+  tags: z.string().optional().transform((val) => val?.split(',') || []),
 });
 export type DbLinkRowWithTag = z.infer<typeof DbLinkRowWithTagSchema>;
 
 export const DbLinkWithTagsSchema = DbLinkSchema.merge(tagsSchema);
 export type DbLinkWithTags = z.infer<typeof DbLinkWithTagsSchema>;
-export type NewDbLink = Omit<DbLinkWithTags, 'id'>;
+
+export const DbNewLinkSchema = DbLinkSchema.omit({
+  id: true,
+}).extend({
+  savedAt: z.number().optional(),
+  isPublic: z.number().optional(),
+  title: z.string().optional(),
+  description: z.string().optional(),
+}).merge(tagsSchema);
+export type DbNewLink = z.infer<typeof DbNewLinkSchema>;
 
 export const ApiLinkSchema = z.object({
   id: z.number().optional(),
@@ -83,6 +92,12 @@ export const LinkApiToDbSchema = ApiLinkSchema.extend({
   }),
   tags: z.array(z.string()).transform((val) => val || []),
 });
+
+export const NewLinkApiToDbSchema = LinkApiToDbSchema.omit({
+  id: true,
+  savedAt: true,
+});
+
 export const ScrapedURLResSchema = z.object({
   title: z.string(),
   description: z.string(),

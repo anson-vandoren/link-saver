@@ -84,8 +84,7 @@ export const linkRouter = router({
     const { input, ctx } = opts;
     const { user } = ctx;
     const { id: userId } = user;
-    const attachment = Buffer.from(input, 'base64').toString('utf-8');
-    const result = importLinks(attachment, userId);
+    const result = importLinks(input, userId);
     if (!result.success) {
       throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: result.reason });
     }

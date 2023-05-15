@@ -18,7 +18,7 @@ import type {
   ApiLink,
   ApiLinks,
   DbLinkWithTags,
-  NewDbLink,
+  DbNewLink,
   ScrapedURLRes,
   WrappedApiLink,
   WrappedApiLinks,
@@ -26,6 +26,7 @@ import type {
 import {
   LinkApiToDbSchema,
   LinkDbToApiWithTagsSchema,
+  NewLinkApiToDbSchema,
 } from '../schemas/link';
 import { OpMeta, OpMetaSchema } from '../schemas/util';
 import wsHandler from '../websocket';
@@ -43,8 +44,8 @@ export function deleteLink(linkId: number, userId: number): boolean {
     return false;
   }
 
-  dbDeleteLink(linkId);
   deleteLinkTagByLinkId(linkId);
+  dbDeleteLink(linkId);
 
   logger.debug('Deleted link', { linkId, userId });
   return true;
@@ -52,6 +53,8 @@ export function deleteLink(linkId: number, userId: number): boolean {
 
 export function updateLink(userId: number, data: ApiLink): WrappedApiLink {
   const { id: linkId } = data;
+  const linkUpdates = data;
+  linkUpdates.userId = userId;
   if (!linkId) {
     logger.warn('Cannot update link - no id', { linkId, userId });
     return {
@@ -75,7 +78,7 @@ export function updateLink(userId: number, data: ApiLink): WrappedApiLink {
     };
   }
 
-  const asDbLink = LinkApiToDbSchema.parse(data);
+  const asDbLink = NewLinkApiToDbSchema.parse(linkUpdates);
   const dbLinkRes = dbUpdateLink(linkId, asDbLink); // ignores tags
   const newLink = LinkDbToApiWithTagsSchema.parse({
     ...dbLinkRes,
@@ -114,12 +117,13 @@ export function updateLink(userId: number, data: ApiLink): WrappedApiLink {
 }
 
 export function createLink(userId: number, data: ApiLink): WrappedApiLink {
-  const { tags, ...linkData } = data;
+  const linkData = data;
   if (!linkData.isPublic) {
     linkData.isPublic = false;
   }
-  const dbLinkData = LinkApiToDbSchema.parse(linkData);
-  const link = dbCreateLink(userId, dbLinkData);
+  linkData.userId = userId;
+  const dbLinkData = NewLinkApiToDbSchema.parse(linkData);
+  const link = dbCreateLink(dbLinkData);
 
   if (!link) {
     logger.warn('Failed to create link', { userId, data });
@@ -129,14 +133,15 @@ export function createLink(userId: number, data: ApiLink): WrappedApiLink {
     };
   }
 
-  if (tags) {
+  const tags = linkData.tags ?? [];
+  if (tags.length) {
     const tagIdsForLink = getOrCreateTagsByName(tags).map((tag) => tag.id);
     createLinkTags(link.id, tagIdsForLink);
   }
 
   const parsed = LinkDbToApiWithTagsSchema.parse({
     ...link,
-    tags: tags ?? [],
+    tags,
   });
 
   logger.debug('Created link', { userId, data });
@@ -159,7 +164,7 @@ export function getLink(linkId: number, userId?: number): WrappedApiLink {
   }
 
   const tagIds = getLinkTagsByLinkId(linkId).map((linkTag) => linkTag.tagId);
-  const tags = getTagsById(tagIds);
+  const tags = tagIds.length ? getTagsById(tagIds).map((tag) => tag.name) : [];
 
   const parsed = LinkDbToApiWithTagsSchema.parse({
     ...link,
@@ -279,8 +284,8 @@ export function exportLinks(userId: number): string {
   return bookmarks;
 }
 
-function parseNetscapeHTML(htmlContent: string, userId: number):NewDbLink[] {
-  const bookmarks: NewDbLink[] = [];
+function parseNetscapeHTML(htmlContent: string, userId: number): DbNewLink[] {
+  const bookmarks: DbNewLink[] = [];
   const dom = new JSDOM(htmlContent);
   const dtElements = dom.window.document.querySelectorAll('DT');
 
@@ -316,7 +321,7 @@ function parseNetscapeHTML(htmlContent: string, userId: number):NewDbLink[] {
   return bookmarks;
 }
 
-function addBookmarksToDatabase(bookmarks: NewDbLink[]): void {
+function addBookmarksToDatabase(bookmarks: DbNewLink[]): void {
   // TODO: perf++: use bulkCreate or queued promises w/ concurrency control
   const { userId } = bookmarks[0]; // all bookmarks should have the same userId
   const sock = wsHandler.connectionFor(userId);
@@ -345,14 +350,14 @@ function addBookmarksToDatabase(bookmarks: NewDbLink[]): void {
       sock?.send(
         JSON.stringify({
           type: 'import-progress',
-          data: { progress: (i / totalBookmarks) * 100 },
+          payload: { progress: (i / totalBookmarks) * 100 },
         }),
       );
     }
   }
 
   // Send final progress update
-  sock?.send(JSON.stringify({ type: 'import-progress', data: { progress: 100 } }));
+  sock?.send(JSON.stringify({ type: 'import-progress', payload: { progress: 100 } }));
 }
 
 export function importLinks(htmlContent: string, userId: number): OpMeta {

@@ -1,6 +1,7 @@
 import { showNotification } from './notification';
-import { getElementById, getToken, querySelector } from './utils';
+import { getElementById, querySelector } from './utils';
 import { wsHandler } from './ws';
+import { importBookmarks } from './apiClient';
 
 interface ImportProgressData {
   progress: number;
@@ -15,10 +16,7 @@ function isImportProgressData(obj: unknown): obj is ImportProgressData {
   );
 }
 
-async function importBookmarks(file: string | Blob) {
-  const formData = new FormData();
-  formData.append('file', file);
-
+async function doImportBookmarks(file: string) {
   const progress = getElementById('import-progress', HTMLProgressElement);
   progress.classList.remove('is-hidden');
 
@@ -29,23 +27,14 @@ async function importBookmarks(file: string | Blob) {
     progress.setAttribute('value', `${data.progress}`);
   });
 
-  const response = await fetch('/api/links/import', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${getToken()}`,
-    },
-    body: formData,
-  });
-
-  wsHandler.off('import-progress');
-  progress.classList.add('is-hidden');
-
-  if (!response.ok) {
-    throw new Error('Failed to import bookmarks');
+  try {
+    // base64 encode the file contents
+    await importBookmarks(file);
+    showNotification('Bookmarks imported successfully.');
+  } finally {
+    wsHandler.off('import-progress');
+    progress.classList.add('is-hidden');
   }
-
-  // Show the success notification
-  showNotification('Bookmarks imported successfully.');
 }
 
 async function importBtnListener(e: Event) {
@@ -63,7 +52,24 @@ async function importBtnListener(e: Event) {
     return;
   }
 
-  await importBookmarks(file);
+  // Read the file contents as a string
+  const fileContent = await new Promise<string>((resolve, reject) => {
+    const fileReader = new FileReader();
+    fileReader.onload = () => {
+      const result = fileReader.result;
+      if (typeof result === 'string') {
+        resolve(result);
+      } else {
+        reject(new Error('Error reading the selected file.'));
+      }
+    };
+    fileReader.onerror = () => {
+      reject(new Error('Error reading the selected file.'));
+    };
+    fileReader.readAsText(file);
+  });
+
+  await doImportBookmarks(fileContent);
 
   fileInput.value = '';
   importButton.disabled = true;

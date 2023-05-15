@@ -39,13 +39,13 @@ async function handleEditFormSubmit(event: Event) {
   if (!linkId) {
     throw new Error('Could not find link id');
   }
-  const [title, url, description, rawTags, visibility] = getValuesOrThrow([
+  const [title, url, rawTags, visibility] = getValuesOrThrow([
     'edit-link-title',
     'edit-link-url',
-    'edit-link-description',
     'edit-link-tags',
     'edit-link-visibility',
   ]);
+  const description = getElementById('edit-link-description', HTMLTextAreaElement).value;
   const tags = rawTags.split(',').map((tag) => tag.trim());
 
   const isPublic = visibility === 'public';
@@ -83,7 +83,7 @@ async function handleAddLinkFormSubmit(event: Event) {
   ]);
   const description = getElementById('add-link-description', HTMLTextAreaElement).value;
 
-  const tags = rawTags.split(',').map((tag) => tag.trim());
+  const tags = rawTags.length ? rawTags.split(',').map((tag) => tag.trim()) : [];
   const isPublic = visibility === 'public';
 
   await createLink({

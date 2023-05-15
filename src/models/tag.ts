@@ -20,6 +20,9 @@ function _createTag(name: string): Tag {
 }
 
 function createTags(names: string[]): Tag[] {
+  if (!names || !names.length) {
+    return [];
+  }
   const placeholders = names.map(() => '(?)').join(', ');
   const insert = db.prepare(`INSERT INTO Tags (name) VALUES ${placeholders}`);
 
@@ -44,7 +47,11 @@ function getTagById(id: number): Tag | undefined {
 }
 
 export function getTagsById(tagIds: number[]): Tag[] {
-  const findTags = db.prepare('SELECT * FROM Tags WHERE id IN (?)');
+  if (!tagIds || !tagIds.length) {
+    return [];
+  }
+  const placeholders = tagIds.map(() => '(?)').join(', ');
+  const findTags = db.prepare(`SELECT * FROM Tags WHERE id IN (${placeholders})`);
   const rows = findTags.all(...tagIds);
 
   logger.debug('Found tags', { tagIds });
@@ -61,7 +68,11 @@ function _deleteTag(id: number): boolean {
 }
 
 export function deleteTags(tagIds: number[]): number {
-  const deleteStmt = db.prepare('DELETE FROM Tags WHERE id IN (?)');
+  if (!tagIds || !tagIds.length) {
+    return 0;
+  }
+  const placeholders = tagIds.map(() => '(?)').join(', ');
+  const deleteStmt = db.prepare(`DELETE FROM Tags WHERE id IN (${placeholders})`);
 
   const result = deleteStmt.run(tagIds);
 
@@ -71,8 +82,12 @@ export function deleteTags(tagIds: number[]): number {
 
 // TODO: maybe wrap this in a transaction?
 export function getOrCreateTagsByName(tagNames: string[]): Tag[] {
+  if (!tagNames || !tagNames.length) {
+    return [];
+  }
+  const placeholders = tagNames.map(() => '(?)').join(', ');
   // First, retrieve all the existing tags by their names
-  const rows = db.prepare('SELECT * FROM Tags WHERE name IN (?)').all(...tagNames);
+  const rows = db.prepare(`SELECT * FROM Tags WHERE name IN (${placeholders})`).all(tagNames);
   // Parse the rows into Tag objects
   const results: Tag[] = rows.map((row) => TagSchema.parse(row));
 

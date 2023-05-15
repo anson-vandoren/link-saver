@@ -1,9 +1,13 @@
 import db from '../db';
-import type { DbLink, DbLinkWithTags, NewDbLink } from '../schemas/link';
+import type { DbLink, DbLinkWithTags, DbNewLink } from '../schemas/link';
 import { DbLinkRowWithTagSchema, DbLinkSchema, DbLinkWithTagsSchema } from '../schemas/link';
 
-export function dbCreateLink(userId: number, input: NewDbLink): DbLink {
-  const { url, title, description, isPublic } = input;
+export function dbCreateLink(input: DbNewLink): DbLink {
+  const { url, userId } = input;
+  let { title, description, isPublic } = input;
+  title ||= '';
+  description ||= '';
+  isPublic ||= 0;
   const savedAt = Date.now();
 
   const insert = db.prepare(`
@@ -36,8 +40,12 @@ export function dbCreateLink(userId: number, input: NewDbLink): DbLink {
   };
 }
 
-export function dbImportLinks(links: NewDbLink[]): number[] {
-  const numProperties = Object.getOwnPropertyNames(links[0]).length;
+export function dbImportLinks(links: DbNewLink[]): number[] {
+  let numProperties = Object.getOwnPropertyNames(links[0]).length;
+  if (links[0].tags) {
+    // tags are added separately
+    numProperties--;
+  }
   // SQLite has a default limit of 999 parameters per query
   const batchSize = Math.floor(999 / numProperties);
   const numBatches = Math.ceil(links.length / batchSize);
@@ -63,12 +71,13 @@ export function dbImportLinks(links: NewDbLink[]): number[] {
 
     const result = bulkInsert.run(params);
 
-    const firstId = result.lastInsertRowid;
+    const lastId = result.lastInsertRowid;
     const numRows = result.changes;
 
-    if (typeof firstId === 'bigint') {
-      throw new Error(`Exceeded maximum id value: ${firstId}`);
+    if (typeof lastId === 'bigint') {
+      throw new Error(`Exceeded maximum id value: ${lastId}`);
     }
+    const firstId = lastId - numRows + 1; // TODO: not all that safe, but fast
 
     // Add the created ids in order for the current batch
     const batchCreatedIds: number[] = Array.from({ length: numRows }, (_, j) => Number(firstId) + j);
@@ -80,7 +89,7 @@ export function dbImportLinks(links: NewDbLink[]): number[] {
 
 export function dbGetLink(id: number, includeUserId = true): DbLink | undefined {
   const select = `L.id, L.url, L.title, L.description, L.savedAt, L.isPublic, ${includeUserId ? 'L.userId' : ''}`;
-  const row = db.prepare(`SELECT ${select} FROM Links WHERE id = ?`).get(id);
+  const row = db.prepare(`SELECT ${select} FROM Links L WHERE id = ?`).get(id);
 
   return row ? DbLinkSchema.parse(row) : undefined;
 }
@@ -120,21 +129,30 @@ export function dbFindLinks(
   if (termsLikeQuery) {
     whereClauses.push(`(${termsLikeQuery})`);
   }
-  if (tagTermsInQuery) {
-    whereClauses.push(`T.name IN (${tagTermsInQuery})`);
-  }
+
+  const havingClause = tagTermsInQuery
+    ? `HAVING SUM(CASE WHEN T.name IN (${tagTermsInQuery}) THEN 1 ELSE 0 END) = ${tagTerms.length}`
+    : '';
+
   const whereClause = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' OR ')}` : '';
 
-  // TODO: probably not ordered correctly
   const query = `
     SELECT
       L.id, L.url, L.title, L.description, L.savedAt, L.isPublic, L.userId,
-      T.name AS tag
+      (
+        SELECT GROUP_CONCAT(T2.name)
+        FROM LinkTags LT2
+        LEFT JOIN Tags T2 ON LT2.tagId = T2.id
+        WHERE LT2.linkId = L.id
+      ) AS tags
     FROM
       Links L
       LEFT JOIN LinkTags LT ON L.id = LT.linkId
       LEFT JOIN Tags T ON LT.tagId = T.id
     ${whereClause}
+    GROUP BY L.id
+    ${havingClause}
+    ORDER BY L.savedAt DESC
     LIMIT ? OFFSET ?
   `;
 
@@ -144,32 +162,7 @@ export function dbFindLinks(
   const rows = db.prepare(query).all(allParams);
   const validatedRows = rows.map((row) => DbLinkRowWithTagSchema.parse(row));
 
-  const linksMap: Map<number, DbLinkWithTags> = new Map();
-
-  for (const row of validatedRows) {
-    const linkId = row.id;
-    let link = linksMap.get(linkId);
-
-    if (!link) {
-      link = {
-        id: linkId,
-        url: row.url,
-        title: row.title,
-        description: row.description,
-        savedAt: row.savedAt,
-        isPublic: row.isPublic,
-        userId: row.userId,
-        tags: [],
-      };
-      linksMap.set(linkId, link);
-    }
-
-    if (row.tag && !link.tags.includes(row.tag)) {
-      link.tags.push(row.tag);
-    }
-  }
-
-  return Array.from(linksMap.values());
+  return validatedRows;
 }
 
 export function dbFindLinksCount(terms: string[], tagTerms: string[]): number {

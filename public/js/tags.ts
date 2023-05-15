@@ -1,25 +1,11 @@
 import { showNotification } from './notification';
 import { getToken } from './utils';
+import { purgeUnusedTags } from './apiClient';
 
 export async function handlePurgeUnusedTags() {
-  const errMsg = 'Failed to purge unused tags. Please try again later.';
-  try {
-    const response = await fetch('/api/tags/purge-unused', {
-      method: 'DELETE',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${getToken()}`,
-      },
-    });
-
-    if (response.ok) {
-      showNotification('Unused tags have been purged.', 'success');
-    } else {
-      showNotification(errMsg, 'warning');
-    }
-  } catch (error) {
-    showNotification(errMsg, 'warning');
-  }
+  const numPurged = await purgeUnusedTags();
+  const level = numPurged > 0 ? 'success' : 'info';
+  showNotification(`Purged ${numPurged} unused tags.`, level);
 }
 
 const defaultCreateTagOpts = {
