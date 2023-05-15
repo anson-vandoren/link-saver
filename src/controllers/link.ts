@@ -322,7 +322,6 @@ function parseNetscapeHTML(htmlContent: string, userId: number): DbNewLink[] {
 }
 
 function addBookmarksToDatabase(bookmarks: DbNewLink[]): void {
-  // TODO: perf++: use bulkCreate or queued promises w/ concurrency control
   const { userId } = bookmarks[0]; // all bookmarks should have the same userId
   const sock = wsHandler.connectionFor(userId);
   if (!sock) {

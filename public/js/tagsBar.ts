@@ -1,26 +1,31 @@
 import { createTagLink } from './tags';
 import { getTags } from './apiClient';
 import { getElementById } from './utils';
+import { removeFromSearch } from './search';
+import { loadLinks } from './links';
 
 function generateTagsHtml(tags: string[], onClick: () => void, group = true) {
   if (!group) {
     const tagsFragment = document.createDocumentFragment();
-    tags.forEach((tag: string, index: number) => {
+    const tagsBlock = document.createElement('div');
+    tagsBlock.classList.add('tags');
+    tags.forEach((tag: string) => {
       const tagLink = createTagLink(tag.toLowerCase(), {
         shouldShowHash: false,
-        isFirst: false,
         onClick,
       });
-      tagLink.classList.add('tag-link'); // Add the class for styling
-      if (index > 0) {
-        tagLink.style.marginRight = '8px'; // Add space between tags
-      }
-      tagsFragment.appendChild(tagLink); // Add the tag link to the block
+      tagLink.classList.add('tag-link', 'tag'); // Add the class for styling
+      tagsBlock.appendChild(tagLink); // Add the tag link to the block
     });
+    tagsFragment.appendChild(tagsBlock);
     return tagsFragment;
   }
   const groupedTags = tags.reduce((acc, tag) => {
-    const firstChar: string = tag.charAt(0).toUpperCase();
+    let firstChar: string = tag.charAt(0).toUpperCase();
+    // group all numbers together under '0'
+    if (Number.isInteger(parseInt(firstChar, 10))) {
+      firstChar = '0';
+    }
     if (!acc[firstChar]) {
       acc[firstChar] = [];
     }
@@ -32,18 +37,16 @@ function generateTagsHtml(tags: string[], onClick: () => void, group = true) {
 
   for (const char of Object.keys(groupedTags)) {
     const block = document.createElement('div');
-    block.classList.add('block');
-    // TODO: use Bulma's tag class
+    block.classList.add('tags');
     groupedTags[char].forEach((tag: string, index: number) => {
       const isFirst = index === 0;
       const tagLink = createTagLink(tag.toLowerCase(), {
         shouldShowHash: false,
-        isFirst,
         onClick,
       });
-      tagLink.classList.add('tag-link'); // Add the class for styling
-      if (index > 0) {
-        tagLink.style.marginRight = '8px'; // Add space between tags
+      tagLink.classList.add('tag-link', 'tag'); // Add the class for styling
+      if (isFirst) {
+        tagLink.classList.add('is-dark');
       }
       block.appendChild(tagLink); // Add the tag link to the block
     });
@@ -57,36 +60,36 @@ function generateTagsHtml(tags: string[], onClick: () => void, group = true) {
 function addActiveTagsHtml(activeTags: string[]) {
   const activeTagsDiv = getElementById('active-tags-list', HTMLDivElement);
   if (!activeTags.length) {
-    activeTagsDiv.innerHTML = '<hr />';
     activeTagsDiv.classList.add('is-hidden');
+    document.getElementById('active-tags-hr')?.classList.add('is-hidden');
     return;
   }
-  // add a <p> child and then add the tags to it as static text
   const activeTagsParagraph = document.createElement('p');
   activeTagsParagraph.classList.add('tags', 'are-small');
-  activeTags.forEach((tag, index) => {
-    // TODO: clicking a tag should remove it from the active tags
-    const tagSpan = document.createElement('span');
-    tagSpan.classList.add('tag', 'is-info');
-    tagSpan.textContent = tag;
-    if (index > 0) {
-      tagSpan.style.marginLeft = '8px';
-    }
-    activeTagsParagraph.appendChild(tagSpan);
+  activeTags.forEach((tag) => {
+    const tagLink = document.createElement('a');
+    tagLink.classList.add('tag', 'is-info', 'is-light');
+    tagLink.textContent = tag;
+    tagLink.addEventListener('click', (e) => {
+      e.preventDefault();
+      removeFromSearch([tag]);
+      loadLinks();
+    });
+    activeTagsParagraph.appendChild(tagLink);
   });
   // activeTagsDiv should have the tags followed by <hr />
   activeTagsDiv.innerHTML = '';
   activeTagsDiv.appendChild(activeTagsParagraph);
-  activeTagsDiv.appendChild(document.createElement('hr'));
   activeTagsDiv.classList.remove('is-hidden');
+  document.getElementById('active-tags-hr')?.classList.remove('is-hidden');
 }
 
 async function fetchAndRenderTags(onClick: () => void, order: 'name' | 'links') {
-  const tagsList = document.getElementById('tagsList');
-  if (!tagsList) return;
-  const searchInput = document.getElementById('search-input');
-  const searchTerm = searchInput instanceof HTMLInputElement ? searchInput.value : '';
-  const tags = await getTags(order, searchTerm);
+  const tagsList = getElementById('tagsList');
+  const searchTerm = getElementById('search-input', HTMLInputElement).value
+  const tags = (await getTags(order, searchTerm))
+    .map((tag) => tag.toLowerCase())
+    .filter((tag) => tag !== '');
 
   const tagsToSkip = searchTerm.split(' ')
     .filter((term) => term.startsWith('#'))

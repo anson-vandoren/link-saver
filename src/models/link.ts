@@ -131,7 +131,7 @@ export function dbFindLinks(
   }
 
   const havingClause = tagTermsInQuery
-    ? `HAVING SUM(CASE WHEN T.name IN (${tagTermsInQuery}) THEN 1 ELSE 0 END) = ${tagTerms.length}`
+    ? `HAVING SUM(CASE WHEN LOWER(T.name) IN (${tagTerms.map(() => 'LOWER(?)').join(', ')}) THEN 1 ELSE 0 END) = ${tagTerms.length}`
     : '';
 
   const whereClause = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' OR ')}` : '';
@@ -157,7 +157,12 @@ export function dbFindLinks(
   `;
 
   const termsParams = terms.flatMap((term) => [`%${term}%`, `%${term}%`, `%${term}%`]);
-  const allParams = [...termsParams, ...tagTerms, limit, offset];
+  const allParams = [
+    ...termsParams,
+    ...tagTerms.map((tagTerm) => tagTerm.toLowerCase()),
+    limit,
+    offset,
+  ];
 
   const rows = db.prepare(query).all(allParams);
   const validatedRows = rows.map((row) => DbLinkRowWithTagSchema.parse(row));
@@ -177,7 +182,7 @@ export function dbFindLinksCount(terms: string[], tagTerms: string[]): number {
   const whereClause = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' OR ')}` : '';
 
   const havingClause = tagTermsInQuery
-    ? `HAVING SUM(CASE WHEN T.name IN (${tagTermsInQuery}) THEN 1 ELSE 0 END) = ${tagTerms.length}`
+    ? `HAVING SUM(CASE WHEN LOWER(T.name) IN (${tagTerms.map(() => 'LOWER(?)').join(', ')}) THEN 1 ELSE 0 END) = ${tagTerms.length}`
     : '';
 
   const query = `
@@ -193,7 +198,7 @@ export function dbFindLinksCount(terms: string[], tagTerms: string[]): number {
   `;
 
   const termsParams = terms.flatMap((term) => [`%${term}%`, `%${term}%`, `%${term}%`]);
-  const allParams = [...termsParams, ...tagTerms];
+  const allParams = [...termsParams, ...tagTerms.map((tagTerm) => tagTerm.toLowerCase())];
 
   const rows = db.prepare(query).all(allParams);
 
