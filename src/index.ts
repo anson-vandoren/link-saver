@@ -31,34 +31,50 @@ const staticHandler = serveStatic(staticRootPath, {
 
 const corsMiddleware = cors(); // TODO: configure CORS
 
-const server = http.createServer((req, res) => {
-  // if an API call, send to tRPC
-  if (req.url?.startsWith('/api/v2')) {
-    const url = new URL(req.url, 'http://localhost');
+function logTrpcRequest(req: http.IncomingMessage) {
+  if (!req.url) return;
+  const url = new URL(req.url, 'http://localhost');
+  const basePath = '/api/v2/';
+  const restOfPath = url.pathname.slice(basePath.length);
+  const endpoints = restOfPath.split(',');
+  const method = req.method?.toUpperCase() ?? '';
+  if (method === 'GET') {
     const queryParams = Object.fromEntries(url.searchParams.entries());
-
-    let input: Record<string, string> | string = queryParams ?? '';
+    try {
+      const input = JSON.parse(queryParams.input) as Record<string, string>;
+      logger.debug('tRPC request', {
+        method: req.method,
+        endpoints,
+        input,
+      });
+    } catch (error) {
+      logger.debug('tRPC request', { method, path: url.pathname, queryParams });
+    }
+  } else if (method === 'POST') {
     let body = '';
     req.on('data', (chunk) => {
       body += chunk;
     });
     req.on('end', () => {
       if (body.length) {
-        // TODO: moar betta
-        logger.info('Incoming tRPC request body', { body });
+        let asJson: Record<string, string> = {};
+        try {
+          asJson = JSON.parse(body) as Record<string, string>;
+          logger.debug('tRPC request', { method, body: asJson, endpoints });
+        } catch (error) {
+          logger.debug('tRPC request', { method, body });
+        }
       }
     });
-    try {
-      input = JSON.parse(queryParams.input) as Record<string, string>;
-    } catch (error) {
-      logger.error('Failed to parse tRPC input:', { error, input: queryParams.input, queryParams });
-    }
+  } else {
+    logger.debug('tRPC request', { method, path: req.url });
+  }
+}
 
-    logger.info('Incoming tRPC request', {
-      method: req.method,
-      path: url.pathname,
-      input,
-    });
+const server = http.createServer((req, res) => {
+  // if an API call, send to tRPC
+  if (req.url?.startsWith('/api/v2')) {
+    logTrpcRequest(req);
     req.url = req.url.replace('/api/v2', '');
     tRpcHandler(req, res).catch((err: Error) => {
       logger.error('Failed to handle tRPC request:', { error: err });
