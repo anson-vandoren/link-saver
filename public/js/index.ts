@@ -4,13 +4,12 @@ import { handleChangePasswordSubmit } from './auth/passwordChange';
 import { handleSignupForm } from './auth/signup';
 import { exportBookmarks } from './exportBookmarks';
 import { handleImportButton } from './importBookmarks';
-import { handleAddLinkFormSubmit, loadLinks, tagOnClick } from './links';
+import { handleAddLinkFormSubmit, loadLinks } from './links';
 import initModals from './modals';
 import { clearSearch, updateSearch } from './search';
 import { handlePurgeUnusedTags } from './tags';
-import { loadTags } from './tagsBar';
 import { populateThemeDropdown, saveThemeHandler } from './theme';
-import { hasToken, removeToken } from './utils';
+import { getElementById, hasToken, removeToken } from './utils';
 
 function initBookmarks(): void {
   if (!hasToken()) {
@@ -39,6 +38,14 @@ function initBookmarks(): void {
   document.getElementById('add-link-save-btn')?.addEventListener('click', () => {
     // TODO: this loses form validation...
     document.getElementById('add-link-form')?.dispatchEvent(new Event('submit'));
+  });
+  document.getElementById('add-link-form')?.addEventListener('keyup', (e) => {
+    if (e.key === 'Enter') {
+      handleAddLinkFormSubmit(e).then(() => {
+        getElementById('add-link-form', HTMLFormElement)?.reset();
+        getElementById('add-link-modal', HTMLDivElement).classList.remove('is-active');
+      });
+    }
   });
   initModals();
   loadLinks();

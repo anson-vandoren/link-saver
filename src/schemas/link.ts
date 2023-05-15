@@ -17,7 +17,7 @@ export const DbLinkSchema = z.object({
 export type DbLink = z.infer<typeof DbLinkSchema>;
 
 export const DbLinkRowWithTagSchema = DbLinkSchema.extend({
-  tags: z.string().optional().transform((val) => val?.split(',') || []),
+  tags: z.string().nullable().transform((val) => val?.split(',') || []),
 });
 export type DbLinkRowWithTag = z.infer<typeof DbLinkRowWithTagSchema>;
 
