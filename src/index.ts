@@ -34,7 +34,31 @@ const corsMiddleware = cors(); // TODO: configure CORS
 const server = http.createServer((req, res) => {
   // if an API call, send to tRPC
   if (req.url?.startsWith('/api/v2')) {
-    logger.info('Incoming tRPC request', { path: req.url, method: req.method });
+    const url = new URL(req.url, 'http://localhost');
+    const queryParams = Object.fromEntries(url.searchParams.entries());
+
+    let input: Record<string, string> | string = queryParams ?? '';
+    let body = '';
+    req.on('data', (chunk) => {
+      body += chunk;
+    });
+    req.on('end', () => {
+      if (body.length) {
+        // TODO: moar betta
+        logger.info('Incoming tRPC request body', { body });
+      }
+    });
+    try {
+      input = JSON.parse(queryParams.input) as Record<string, string>;
+    } catch (error) {
+      logger.error('Failed to parse tRPC input:', { error, input: queryParams.input, queryParams });
+    }
+
+    logger.info('Incoming tRPC request', {
+      method: req.method,
+      path: url.pathname,
+      input,
+    });
     req.url = req.url.replace('/api/v2', '');
     tRpcHandler(req, res).catch((err: Error) => {
       logger.error('Failed to handle tRPC request:', { error: err });

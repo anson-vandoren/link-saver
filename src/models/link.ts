@@ -174,10 +174,11 @@ export function dbFindLinksCount(terms: string[], tagTerms: string[]): number {
   if (termsLikeQuery) {
     whereClauses.push(`(${termsLikeQuery})`);
   }
-  if (tagTermsInQuery) {
-    whereClauses.push(`T.name IN (${tagTermsInQuery})`);
-  }
   const whereClause = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' OR ')}` : '';
+
+  const havingClause = tagTermsInQuery
+    ? `HAVING SUM(CASE WHEN T.name IN (${tagTermsInQuery}) THEN 1 ELSE 0 END) = ${tagTerms.length}`
+    : '';
 
   const query = `
     SELECT
@@ -187,13 +188,16 @@ export function dbFindLinksCount(terms: string[], tagTerms: string[]): number {
       LEFT JOIN LinkTags LT ON L.id = LT.linkId
       LEFT JOIN Tags T ON LT.tagId = T.id
     ${whereClause}
+    GROUP BY L.id
+    ${havingClause}
   `;
 
   const termsParams = terms.flatMap((term) => [`%${term}%`, `%${term}%`, `%${term}%`]);
   const allParams = [...termsParams, ...tagTerms];
 
-  const result = db.prepare(query).get(allParams) as { totalCount: number } | undefined;
-  return result?.totalCount ?? 0;
+  const rows = db.prepare(query).all(allParams);
+
+  return rows.length;
 }
 
 export function dbUpdateLink(id: number, updates: Partial<DbLinkWithTags>): DbLinkWithTags | undefined {
