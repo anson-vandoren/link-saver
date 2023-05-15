@@ -1,5 +1,6 @@
 import { createTagLink } from './tags';
 import { getTags } from './apiClient';
+import { getElementById } from './utils';
 
 function generateTagsHtml(tags: string[], onClick: () => void, group = true) {
   if (!group) {
@@ -67,18 +68,18 @@ async function fetchAndRenderTags(onClick: () => void, order: 'name' | 'links') 
 }
 
 export async function loadTags(onClick: () => void) {
-  const toggleSort = document.getElementById('toggleSort');
+  const changeHandler = (e: Event) => {
+    const target = e.target as HTMLInputElement;
+    sortBy = target.checked ? 'links' : 'name';
+    fetchAndRenderTags(onClick, sortBy);
+    target.blur();
+  }
+
+  const toggleSort = getElementById('toggleSort', HTMLInputElement);
   let sortBy: 'name' | 'links' = 'name';
-  if (toggleSort instanceof HTMLInputElement) {
-    sortBy = toggleSort.checked ? 'links' : 'name';
-  }
-  if (toggleSort instanceof HTMLInputElement) {
-    toggleSort.addEventListener('change', () => {
-      sortBy = toggleSort.checked ? 'links' : 'name';
-      fetchAndRenderTags(onClick, sortBy);
-      // defocus the toggle button
-      toggleSort.blur();
-    })
-  }
+
+  sortBy = toggleSort.checked ? 'links' : 'name';
+  toggleSort.addEventListener('change', changeHandler);
+
   await fetchAndRenderTags(onClick, sortBy);
 }

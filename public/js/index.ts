@@ -43,7 +43,6 @@ function initBookmarks(): void {
   initModals();
   loadLinks();
   updateSearch(true);
-  loadTags(tagOnClick);
 }
 
 function initSettings() {
@@ -86,7 +85,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     handleLogin();
     loadLinks();
-    loadTags(tagOnClick);
   } else if (window.location.pathname === '/signup.html') {
     if (hasToken()) {
       removeToken();
