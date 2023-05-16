@@ -1,7 +1,6 @@
 import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
-import { publicProcedure, router } from '../trpc';
-import { loggedInProcedure } from '../middleware/authenticate';
+import { loggedInProcedure, publicProcedure, router } from '../trpc';
 import {
   createLink,
   deleteLink,

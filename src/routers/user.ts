@@ -1,8 +1,7 @@
 import { TRPCError } from '@trpc/server';
 import { changePassword, loginUser, registerUser } from '../controllers/user';
-import { loggedInProcedure } from '../middleware/authenticate';
-import { publicProcedure, router } from '../trpc';
 import { changePasswordReqSchema, userCredReqSchema } from '../schemas/user';
+import { loggedInProcedure, publicProcedure, router } from '../trpc';
 
 export const userRouter = router({
   register: publicProcedure.input(userCredReqSchema).mutation(async (opts) => {

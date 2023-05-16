@@ -1,7 +1,6 @@
-import { loggedInProcedure } from '../middleware/authenticate';
-import { publicProcedure, router } from '../trpc';
 import { getTags, purgeUnusedTags } from '../controllers/tag';
 import { TagOpResSchema, tagReqSchema } from '../schemas/tag';
+import { loggedInProcedure, publicProcedure, router } from '../trpc';
 
 export const tagRouter = router({
   get: publicProcedure.input(tagReqSchema).query((opts) => {
