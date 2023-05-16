@@ -29,7 +29,10 @@ async function doImportBookmarks(file: string) {
 
   try {
     // base64 encode the file contents
-    await importBookmarks(file);
+    const utf8Encoder = new TextEncoder();
+    const utf8EncodedFile = utf8Encoder.encode(file);
+    const base64EncodedFile = btoa(String.fromCharCode(...utf8EncodedFile));
+    await importBookmarks(base64EncodedFile);
     showNotification('Bookmarks imported successfully.');
   } finally {
     wsHandler.off('import-progress');
