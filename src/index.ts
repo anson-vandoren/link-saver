@@ -15,9 +15,17 @@ import { decodeAndVerifyJwtToken } from './jwt';
 
 const PORT = process.env.PORT || 3001;
 
+const corsOptions = {
+  origin: process.env.ALLOWED_ORIGIN || 'http://localhost:3001', // Default to a development environment
+  methods: ['GET', 'POST'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true,
+};
+const corsMiddleware = cors(corsOptions);
+
 // tRPC
 const tRpcHandler = createHTTPHandler({
-  middleware: cors(), // TODO: configure CORS
+  middleware: corsMiddleware,
   router: appRouter,
   createContext,
 });
@@ -28,8 +36,6 @@ const staticRootPath = isProd ? join(__dirname, '..', 'public', 'dist') : join(_
 const staticHandler = serveStatic(staticRootPath, {
   extensions: ['html'],
 });
-
-const corsMiddleware = cors(); // TODO: configure CORS
 
 function logTrpcRequest(req: http.IncomingMessage) {
   if (!req.url) return;

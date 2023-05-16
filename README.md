@@ -56,15 +56,17 @@ touch .env
 ```
 JWT_SECRET=someFuckingSecret
 DB_PATH=./your_db_path.sqlite3
+ALLOWED_ORIGIN=links.mysite.com
 ```
 
 5. Start the backend server:
 
 ```
-npm run dev # or npm run start if you don't need debugging
+npm run build:ui:dev
+npm run start:dev
 ```
 
-You can now access the service
+You can now access the service at `http://localhost:3001`
 
 
 ## License
