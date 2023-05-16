@@ -120,6 +120,7 @@ export function dbFindLinks(
   tagTerms: string[],
   offset: number,
   limit: number,
+  userId?: number,
 ): DbLinkWithTags[] | undefined {
   const termsLikeQuery = terms.map(() => '(url LIKE ? OR title LIKE ? OR description LIKE ?)').join(' OR ');
 
@@ -129,12 +130,17 @@ export function dbFindLinks(
   if (termsLikeQuery) {
     whereClauses.push(`(${termsLikeQuery})`);
   }
+  if (userId !== undefined) {
+    whereClauses.push('userId = ?');
+  } else {
+    whereClauses.push('isPublic = 1');
+  }
 
   const havingClause = tagTermsInQuery
     ? `HAVING SUM(CASE WHEN LOWER(T.name) IN (${tagTerms.map(() => 'LOWER(?)').join(', ')}) THEN 1 ELSE 0 END) = ${tagTerms.length}`
     : '';
 
-  const whereClause = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' OR ')}` : '';
+  const whereClause = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
 
   const query = `
     SELECT
@@ -159,6 +165,7 @@ export function dbFindLinks(
   const termsParams = terms.flatMap((term) => [`%${term}%`, `%${term}%`, `%${term}%`]);
   const allParams = [
     ...termsParams,
+    ...(userId !== undefined ? [userId] : []),
     ...tagTerms.map((tagTerm) => tagTerm.toLowerCase()),
     limit,
     offset,
@@ -170,7 +177,7 @@ export function dbFindLinks(
   return validatedRows;
 }
 
-export function dbFindLinksCount(terms: string[], tagTerms: string[]): number {
+export function dbFindLinksCount(terms: string[], tagTerms: string[], userId?: number): number {
   const termsLikeQuery = terms.map(() => '(url LIKE ? OR title LIKE ? OR description LIKE ?)').join(' OR ');
 
   const tagTermsInQuery = tagTerms.map(() => '?').join(', ');
@@ -178,6 +185,11 @@ export function dbFindLinksCount(terms: string[], tagTerms: string[]): number {
   const whereClauses: string[] = [];
   if (termsLikeQuery) {
     whereClauses.push(`(${termsLikeQuery})`);
+  }
+  if (userId !== undefined) {
+    whereClauses.push('userId = ?');
+  } else {
+    whereClauses.push('isPublic = 1');
   }
   const whereClause = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' OR ')}` : '';
 
@@ -198,7 +210,11 @@ export function dbFindLinksCount(terms: string[], tagTerms: string[]): number {
   `;
 
   const termsParams = terms.flatMap((term) => [`%${term}%`, `%${term}%`, `%${term}%`]);
-  const allParams = [...termsParams, ...tagTerms.map((tagTerm) => tagTerm.toLowerCase())];
+  const allParams = [
+    ...termsParams,
+    ...(userId !== undefined ? [userId] : []),
+    ...tagTerms.map((tagTerm) => tagTerm.toLowerCase()),
+  ];
 
   const rows = db.prepare(query).all(allParams);
 

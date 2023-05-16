@@ -194,9 +194,9 @@ export function getLinks(query = '', page = 1, limit = DEFAULT_PER_PAGE, userId?
     .filter((term) => !term.startsWith('#'))
     .filter((term) => term.length > 0);
 
-  const dbResults = dbFindLinks(titleDescriptionUrlFilter, tagsFilter, offset, limit) ?? [];
+  const dbResults = dbFindLinks(titleDescriptionUrlFilter, tagsFilter, offset, limit, userId) ?? [];
   const results = dbResults.map((link) => LinkDbToApiWithTagsSchema.parse(link));
-  const totalLinks = dbFindLinksCount(titleDescriptionUrlFilter, tagsFilter);
+  const totalLinks = dbFindLinksCount(titleDescriptionUrlFilter, tagsFilter, userId);
   const totalPages = Math.ceil(totalLinks / limit);
 
   let sanitizedResults: ApiLink[] = [];
