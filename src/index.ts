@@ -28,6 +28,23 @@ const tRpcHandler = createHTTPHandler({
   middleware: corsMiddleware,
   router: appRouter,
   createContext,
+  onError(opts) {
+    const { error, input, type, path, ctx } = opts;
+    let userId: number | undefined;
+    if (ctx?.user) {
+      const { user } = ctx;
+      userId = user?.id;
+    }
+    logger.error('tRPC error', {
+      error,
+      input,
+      type,
+      path,
+      userId,
+      errMsg: error.message,
+      errStack: error.stack,
+    });
+  },
 });
 
 // serve static content
