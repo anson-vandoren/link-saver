@@ -98,13 +98,7 @@ async function handleAddLinkFormSubmit(event: Event) {
 }
 
 // Add event listener to the URL input field
-let addLinkForm: HTMLFormElement | null = null;
-try {
-  addLinkForm = getElementById('add-link-form', HTMLFormElement);
-} catch (error) {
-  // Ignore
-}
-addLinkForm?.addEventListener('focusout', (event) => {
+document.getElementById('add-link-url')?.addEventListener('focusout', (event) => {
   if (!isInputElem(event.target)) {
     return;
   }
