@@ -6,7 +6,7 @@ export const OpMetaSchema = z.object({
 });
 export type OpMeta = z.infer<typeof OpMetaSchema>;
 
-export const WebSocketMessageSchema = z.object({
+const WebSocketMessageSchema = z.object({
   type: z.string(),
   payload: z.any(),
 });
@@ -18,16 +18,3 @@ export interface Wrapper<T> {
   data?: T;
   error?: string;
 }
-
-const SuccessSchema = <T extends z.ZodType<any, any>>(schema: T) =>
-  z.object({
-    success: z.literal(true),
-    data: schema,
-  });
-
-const ErrorSchema = z.object({
-  success: z.literal(false),
-  error: z.string(),
-});
-
-export const WrapperSchema = <T extends z.ZodType<any, any>>(schema: T) => z.union([SuccessSchema(schema), ErrorSchema]);

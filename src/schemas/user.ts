@@ -4,12 +4,10 @@ export const userCredReqSchema = z.object({
   username: z.string(),
   password: z.string(),
 });
-export type UserCredReq = z.infer<typeof userCredReqSchema>;
 
 export const changePasswordReqSchema = userCredReqSchema.extend({
   newPassword: z.string(),
 });
-export type ChangePasswordReq = z.infer<typeof changePasswordReqSchema>;
 
 export const UserSchema = z.object({
   id: z.number(),

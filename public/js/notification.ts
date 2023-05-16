@@ -1,4 +1,4 @@
-export type NotificationType = 'success' | 'danger' | 'warning' | 'info' | 'primary' | 'link';
+type NotificationType = 'success' | 'danger' | 'warning' | 'info' | 'primary' | 'link';
 export function showNotification(message: string, type: NotificationType = 'success') {
   const notification = document.createElement('div');
   notification.className = `notification is-${type} top-centered-notification`;

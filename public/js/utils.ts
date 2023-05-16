@@ -56,10 +56,6 @@ export function removeToken(): void {
   localStorage.removeItem('token');
 }
 
-export function isDefined<T>(x: T | null): x is T {
-  return x != null;
-}
-
 export function isInputElem(element: unknown): element is HTMLInputElement {
   return element instanceof HTMLInputElement;
 }
@@ -135,10 +131,4 @@ export function setValuesOrThrow(args: SetValueOrThrowArgs, root?: Selectable): 
     if (!isInputElem(elem)) throw new Error(`Element with query selector ${querySel} is not an input element`);
     elem.value = `${value}`;
   });
-}
-
-export function getPropOrThrow<T, K extends keyof T>(obj: T, key: K): T[K] {
-  const value = obj[key];
-  if (value === undefined) throw new Error(`Expected object to have key "${String(key)}"`);
-  return value;
 }

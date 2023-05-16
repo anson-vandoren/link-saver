@@ -17,4 +17,3 @@ export const TagOpResSchema = z.object({
 }).and(OpMetaSchema);
 
 export type Tag = z.infer<typeof TagSchema>;
-export type TagReq = z.infer<typeof tagReqSchema>;

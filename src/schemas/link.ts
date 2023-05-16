@@ -19,12 +19,11 @@ export type DbLink = z.infer<typeof DbLinkSchema>;
 export const DbLinkRowWithTagSchema = DbLinkSchema.extend({
   tags: z.string().nullable().transform((val) => val?.split(',') || []),
 });
-export type DbLinkRowWithTag = z.infer<typeof DbLinkRowWithTagSchema>;
 
 export const DbLinkWithTagsSchema = DbLinkSchema.merge(tagsSchema);
 export type DbLinkWithTags = z.infer<typeof DbLinkWithTagsSchema>;
 
-export const DbNewLinkSchema = DbLinkSchema.omit({
+const DbNewLinkSchema = DbLinkSchema.omit({
   id: true,
 }).extend({
   savedAt: z.number().optional(),
@@ -51,7 +50,7 @@ export const ApiLinkSchema = z.object({
 export type ApiLink = z.infer<typeof ApiLinkSchema>;
 export type WrappedApiLink = Wrapper<ApiLink>;
 
-export const ApiLinksSchema = z.object({
+const ApiLinksSchema = z.object({
   links: z.array(ApiLinkSchema),
   totalPages: z.number(),
   currentPage: z.number(),
@@ -59,7 +58,7 @@ export const ApiLinksSchema = z.object({
 export type ApiLinks = z.infer<typeof ApiLinksSchema>;
 export type WrappedApiLinks = Wrapper<ApiLinks>;
 
-export const LinkDbToApiSchema = DbLinkSchema.extend({
+const LinkDbToApiSchema = DbLinkSchema.extend({
   isPublic: z.number().transform((val) => val === 1),
   savedAt: z.number().transform((val) => new Date(val)),
 });
@@ -98,7 +97,7 @@ export const NewLinkApiToDbSchema = LinkApiToDbSchema.omit({
   savedAt: true,
 });
 
-export const ScrapedURLResSchema = z.object({
+const ScrapedURLResSchema = z.object({
   title: z.string(),
   description: z.string(),
   url: z.string(),

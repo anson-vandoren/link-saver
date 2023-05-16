@@ -71,11 +71,6 @@ if (token) {
   console.debug('No token found, not connecting to websocket');
 }
 
-function getGlobalWSHandler() {
-  return wsHandler;
-}
-
 export {
   wsHandler,
-  getGlobalWSHandler,
 };

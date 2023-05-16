@@ -10,7 +10,7 @@ const WebSocketMessageSchema = z.object({
   data: z.unknown(),
 });
 
-export type WebSocketMessage = z.infer<typeof WebSocketMessageSchema>;
+type WebSocketMessage = z.infer<typeof WebSocketMessageSchema>;
 
 function parseRawData(message: RawData): WebSocketMessage | undefined {
   const asString = message.toString();
@@ -177,5 +177,3 @@ class WSHandler {
 const wsHandler = new WSHandler();
 
 export default wsHandler;
-
-export type { WSHandler };
