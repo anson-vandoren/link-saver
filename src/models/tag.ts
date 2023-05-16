@@ -80,7 +80,6 @@ export function deleteTags(tagIds: number[]): number {
   return result.changes;
 }
 
-// TODO: maybe wrap this in a transaction?
 export function getOrCreateTagsByName(tagNames: string[]): Tag[] {
   if (!tagNames || !tagNames.length) {
     return [];

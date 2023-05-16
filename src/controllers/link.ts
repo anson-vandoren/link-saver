@@ -178,10 +178,15 @@ export function getLink(linkId: number, userId?: number): WrappedApiLink {
   };
 }
 
-// TODO: disallow more than 100 per request if not signed in
 export function getLinks(query = '', page = 1, limit = DEFAULT_PER_PAGE, userId?: number): WrappedApiLinks {
-  // TODO: check pagination logic
-  const offset = (page - 1) * limit;
+  let validatedLimit = limit;
+  if (!userId) {
+    validatedLimit = Math.min(limit, 100);
+  }
+  if (limit < 1) {
+    validatedLimit = DEFAULT_PER_PAGE;
+  }
+  const offset = (page - 1) * validatedLimit;
 
   const searchTerms = query.split(' ').filter((term) => term.length > 0);
 
@@ -194,10 +199,10 @@ export function getLinks(query = '', page = 1, limit = DEFAULT_PER_PAGE, userId?
     .filter((term) => !term.startsWith('#'))
     .filter((term) => term.length > 0);
 
-  const dbResults = dbFindLinks(titleDescriptionUrlFilter, tagsFilter, offset, limit, userId) ?? [];
+  const dbResults = dbFindLinks(titleDescriptionUrlFilter, tagsFilter, offset, validatedLimit, userId) ?? [];
   const results = dbResults.map((link) => LinkDbToApiWithTagsSchema.parse(link));
   const totalLinks = dbFindLinksCount(titleDescriptionUrlFilter, tagsFilter, userId);
-  const totalPages = Math.ceil(totalLinks / limit);
+  const totalPages = Math.ceil(totalLinks / validatedLimit);
 
   let sanitizedResults: ApiLink[] = [];
   const includeUserId = userId !== undefined;
@@ -219,7 +224,7 @@ export function getLinks(query = '', page = 1, limit = DEFAULT_PER_PAGE, userId?
   logger.debug('getLinks', {
     query,
     page,
-    limit,
+    limit: validatedLimit,
     offset,
     totalLinks,
     totalPages,

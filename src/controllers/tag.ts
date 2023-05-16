@@ -16,7 +16,6 @@ export function getTags(query = '', sortBy = 'name'): string[] {
   return tags;
 }
 
-// TODO: if we go to multi-user, this will need some checks
 export function purgeUnusedTags(): number {
   const unusedTags = dbGetUnusedTags();
   const unusedTagIds = unusedTags.map((tag) => tag.id);

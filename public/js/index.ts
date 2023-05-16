@@ -36,7 +36,6 @@ function initBookmarks(): void {
     loadLinks();
   });
   document.getElementById('add-link-save-btn')?.addEventListener('click', () => {
-    // TODO: this loses form validation...
     document.getElementById('add-link-form')?.dispatchEvent(new Event('submit'));
   });
   document.getElementById('add-link-form')?.addEventListener('keyup', (e) => {

@@ -77,7 +77,7 @@ export function dbImportLinks(links: DbNewLink[]): number[] {
     if (typeof lastId === 'bigint') {
       throw new Error(`Exceeded maximum id value: ${lastId}`);
     }
-    const firstId = lastId - numRows + 1; // TODO: not all that safe, but fast
+    const firstId = lastId - numRows + 1;
 
     // Add the created ids in order for the current batch
     const batchCreatedIds: number[] = Array.from({ length: numRows }, (_, j) => Number(firstId) + j);
