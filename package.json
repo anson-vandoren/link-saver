@@ -10,7 +10,8 @@
     "start:dev": "nodemon --watch src --ext ts --exec 'npm run build:server && node --inspect=9229 ./dist/bundle.cjs'",
     "build:ui:dev": "webpack --env env=dev --config webpack.ui.config.js",
     "build:ui:prod": "rm -rf public/dist && webpack --env env=prod --config webpack.ui.config.js",
-    "build:server": "webpack --config webpack.server.config.js"
+    "build:server": "webpack --config webpack.server.config.js",
+    "test": "ava"
   },
   "keywords": [],
   "author": "",
@@ -36,6 +37,7 @@
     "zod": "^3.21.4"
   },
   "devDependencies": {
+    "@ava/typescript": "^4.0.0",
     "@babel/core": "^7.21.8",
     "@babel/preset-env": "^7.21.5",
     "@types/axios": "^0.14.0",
@@ -50,12 +52,15 @@
     "@types/webpack-node-externals": "^3.0.0",
     "@typescript-eslint/eslint-plugin": "^5.59.2",
     "@typescript-eslint/parser": "^5.59.2",
+    "ava": "^5.2.0",
     "babel-loader": "^9.1.2",
     "eslint": "^8.39.0",
     "eslint-config-airbnb-base": "^15.0.0",
     "eslint-config-airbnb-typescript": "^17.0.0",
+    "eslint-plugin-ava": "^14.0.0",
     "eslint-plugin-import": "^2.27.5",
     "ts-loader": "^9.4.2",
+    "ts-node": "^10.9.1",
     "typescript": "^5.0.4",
     "webpack": "^5.82.0",
     "webpack-cli": "^5.1.0",

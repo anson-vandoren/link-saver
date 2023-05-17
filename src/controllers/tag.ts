@@ -1,7 +1,7 @@
-import { dbGetUnusedTags, dbSearchTags, deleteTags } from '../models/tag';
+import type { DbContext } from '../db';
 
 // TODO: rate limit
-export function getTags(query = '', sortBy = 'name'): string[] {
+export function getTags(db: DbContext, query = '', sortBy = 'name'): string[] {
   const searchTerms = query.split(' ');
 
   const tagTerms = searchTerms
@@ -11,14 +11,18 @@ export function getTags(query = '', sortBy = 'name'): string[] {
   const linkTerms = searchTerms
     .filter((term) => !term.startsWith('#') && term !== '');
 
-  const tags = dbSearchTags(tagTerms, linkTerms, sortBy);
+  const filter = {
+    tagTerms,
+    linkTerms,
+  };
+  const tags = db.Tag.search(filter, sortBy);
 
   return tags;
 }
 
-export function purgeUnusedTags(): number {
-  const unusedTags = dbGetUnusedTags();
+export function purgeUnusedTags(db: DbContext): number {
+  const unusedTags = db.Tag.unused();
   const unusedTagIds = unusedTags.map((tag) => tag.id);
-  deleteTags(unusedTagIds);
+  db.Tag.delete(unusedTagIds);
   return unusedTagIds.length;
 }

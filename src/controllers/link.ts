@@ -2,18 +2,6 @@ import { z } from 'zod';
 import axios from 'axios';
 import { JSDOM } from 'jsdom';
 import logger from '../logger';
-import {
-  dbCreateLink,
-  dbDeleteLink,
-  dbFindLinks,
-  dbFindLinksCount,
-  dbGetAllLinks,
-  dbGetLink,
-  dbImportLinks,
-  dbUpdateLink,
-} from '../models/link';
-import { createLinkTags, deleteLinkTagByLinkId, getLinkTagsByLinkId } from '../models/linkTag';
-import { getOrCreateTagsByName, getTagsById } from '../models/tag';
 import type {
   ApiLink,
   ApiLinks,
@@ -24,17 +12,16 @@ import type {
   WrappedApiLinks,
 } from '../schemas/link';
 import {
-  LinkApiToDbSchema,
   LinkDbToApiWithTagsSchema,
   NewLinkApiToDbSchema,
 } from '../schemas/link';
 import { OpMeta, OpMetaSchema } from '../schemas/util';
 import wsHandler from '../websocket';
 import { DEFAULT_PER_PAGE } from '../../public/js/constants';
-import { getUserById } from '../models/user';
+import type { DbContext } from '../db';
 
-export function deleteLink(linkId: number, userId: number): boolean {
-  const link = dbGetLink(linkId);
+export function deleteLink(db: DbContext, linkId: number, userId: number): boolean {
+  const link = db.Link.getOne(linkId);
   if (!link) {
     logger.warn('Cannot delete link - not found', { linkId, userId });
     return false;
@@ -44,14 +31,14 @@ export function deleteLink(linkId: number, userId: number): boolean {
     return false;
   }
 
-  deleteLinkTagByLinkId(linkId);
-  dbDeleteLink(linkId);
+  db.LinkTag.deleteByLinkId(linkId);
+  db.Link.delete(linkId);
 
   logger.debug('Deleted link', { linkId, userId });
   return true;
 }
 
-export function updateLink(userId: number, data: ApiLink): WrappedApiLink {
+export function updateLink(db: DbContext, userId: number, data: ApiLink): WrappedApiLink {
   const { id: linkId } = data;
   const linkUpdates = data;
   linkUpdates.userId = userId;
@@ -62,7 +49,7 @@ export function updateLink(userId: number, data: ApiLink): WrappedApiLink {
       error: 'No link id',
     };
   }
-  const link = dbGetLink(linkId);
+  const link = db.Link.getOne(linkId);
   if (!link) {
     logger.warn('Cannot update link - not found', { linkId, userId });
     return {
@@ -79,7 +66,7 @@ export function updateLink(userId: number, data: ApiLink): WrappedApiLink {
   }
 
   const asDbLink = NewLinkApiToDbSchema.parse(linkUpdates);
-  const dbLinkRes = dbUpdateLink(linkId, asDbLink); // ignores tags
+  const dbLinkRes = db.Link.update(linkId, asDbLink); // ignores tags
   const newLink = LinkDbToApiWithTagsSchema.parse({
     ...dbLinkRes,
     tags: data.tags ?? [],
@@ -102,11 +89,11 @@ export function updateLink(userId: number, data: ApiLink): WrappedApiLink {
   }
 
   // delete old LinkTag associations
-  deleteLinkTagByLinkId(linkId);
+  db.LinkTag.deleteByLinkId(linkId);
 
   // get or create new tags
-  const tagIdsForLink = getOrCreateTagsByName(data.tags).map((tag) => tag.id);
-  createLinkTags(linkId, tagIdsForLink);
+  const tagIdsForLink = db.Tag.getOrCreate(data.tags).map((tag) => tag.id);
+  db.LinkTag.create(linkId, tagIdsForLink);
 
   logger.debug('Updated link - tag changes', { linkId, userId });
 
@@ -116,14 +103,14 @@ export function updateLink(userId: number, data: ApiLink): WrappedApiLink {
   };
 }
 
-export function createLink(userId: number, data: ApiLink): WrappedApiLink {
+export function createLink(db: DbContext, userId: number, data: ApiLink): WrappedApiLink {
   const linkData = data;
   if (!linkData.isPublic) {
     linkData.isPublic = false;
   }
   linkData.userId = userId;
   const dbLinkData = NewLinkApiToDbSchema.parse(linkData);
-  const link = dbCreateLink(dbLinkData);
+  const link = db.Link.create(dbLinkData);
 
   if (!link) {
     logger.warn('Failed to create link', { userId, data });
@@ -135,8 +122,8 @@ export function createLink(userId: number, data: ApiLink): WrappedApiLink {
 
   const tags = linkData.tags ?? [];
   if (tags.length) {
-    const tagIdsForLink = getOrCreateTagsByName(tags).map((tag) => tag.id);
-    createLinkTags(link.id, tagIdsForLink);
+    const tagIdsForLink = db.Tag.getOrCreate(tags).map((tag) => tag.id);
+    db.LinkTag.create(link.id, tagIdsForLink);
   }
 
   const parsed = LinkDbToApiWithTagsSchema.parse({
@@ -151,9 +138,9 @@ export function createLink(userId: number, data: ApiLink): WrappedApiLink {
   };
 }
 
-export function getLink(linkId: number, userId?: number): WrappedApiLink {
+export function getLink(db: DbContext, linkId: number, userId?: number): WrappedApiLink {
   const includeUserId = userId !== undefined;
-  const link = dbGetLink(linkId, includeUserId);
+  const link = db.Link.getOne(linkId, includeUserId);
 
   if (!link) {
     logger.warn('Failed to get link', { linkId, userId });
@@ -163,8 +150,8 @@ export function getLink(linkId: number, userId?: number): WrappedApiLink {
     };
   }
 
-  const tagIds = getLinkTagsByLinkId(linkId).map((linkTag) => linkTag.tagId);
-  const tags = tagIds.length ? getTagsById(tagIds).map((tag) => tag.name) : [];
+  const tagIds = db.LinkTag.getByLinkId(linkId).map((linkTag) => linkTag.tagId);
+  const tags = tagIds.length ? db.Tag.get(tagIds).map((tag) => tag.name) : [];
 
   const parsed = LinkDbToApiWithTagsSchema.parse({
     ...link,
@@ -178,7 +165,7 @@ export function getLink(linkId: number, userId?: number): WrappedApiLink {
   };
 }
 
-export function getLinks(query = '', page = 1, limit = DEFAULT_PER_PAGE, userId?: number): WrappedApiLinks {
+export function getLinks(db: DbContext, query = '', page = 1, limit = DEFAULT_PER_PAGE, userId?: number): WrappedApiLinks {
   let validatedLimit = limit;
   if (!userId) {
     validatedLimit = Math.min(limit, 100);
@@ -199,9 +186,17 @@ export function getLinks(query = '', page = 1, limit = DEFAULT_PER_PAGE, userId?
     .filter((term) => !term.startsWith('#'))
     .filter((term) => term.length > 0);
 
-  const dbResults = dbFindLinks(titleDescriptionUrlFilter, tagsFilter, offset, validatedLimit, userId) ?? [];
+  const filter = {
+    tagTerms: tagsFilter,
+    linkTerms: titleDescriptionUrlFilter,
+  };
+  const pagination = {
+    offset,
+    limit: validatedLimit,
+  };
+  const dbResults = db.Link.getMany(filter, pagination, userId) ?? [];
   const results = dbResults.map((link) => LinkDbToApiWithTagsSchema.parse(link));
-  const totalLinks = dbFindLinksCount(titleDescriptionUrlFilter, tagsFilter, userId);
+  const totalLinks = db.Link.count(filter, userId);
   const totalPages = Math.ceil(totalLinks / validatedLimit);
 
   let sanitizedResults: ApiLink[] = [];
@@ -209,7 +204,7 @@ export function getLinks(query = '', page = 1, limit = DEFAULT_PER_PAGE, userId?
   if (!includeUserId) {
     // add username instead
     const foundUserId = results[0]?.userId;
-    const username = getUserById(foundUserId)?.username;
+    const username = db.User.getById(foundUserId)?.username;
     results.forEach((link) => {
       sanitizedResults.push({
         ...link,
@@ -282,8 +277,8 @@ function exportBookmarks(links: DbLinkWithTags[]): string {
   return replaceUnusualWhitespace(bookmarkHTML);
 }
 
-export function exportLinks(userId: number): string {
-  const links = dbGetAllLinks(userId);
+export function exportLinks(db: DbContext, userId: number): string {
+  const links = db.Link.getMany(userId);
   logger.debug('exporting links', { userId, count: links.length });
   const bookmarks = exportBookmarks(links);
   return bookmarks;
@@ -329,7 +324,7 @@ function parseNetscapeHTML(htmlContent: string, userId: number): DbNewLink[] {
   return bookmarks;
 }
 
-function addBookmarksToDatabase(bookmarks: DbNewLink[]): void {
+function addBookmarksToDatabase(db: DbContext, bookmarks: DbNewLink[]): void {
   const { userId } = bookmarks[0]; // all bookmarks should have the same userId
   const sock = wsHandler.connectionFor(userId);
   if (!sock) {
@@ -338,7 +333,7 @@ function addBookmarksToDatabase(bookmarks: DbNewLink[]): void {
 
   const totalBookmarks = bookmarks.length;
 
-  const insertedIds = dbImportLinks(bookmarks);
+  const insertedIds = db.Link.import(bookmarks);
 
   // add tags to each link
   for (let i = 0; i < bookmarks.length; i++) {
@@ -346,9 +341,9 @@ function addBookmarksToDatabase(bookmarks: DbNewLink[]): void {
 
     if (tags && tags.length) {
       const linkId = insertedIds[i];
-      const tagItems = getOrCreateTagsByName(tags);
+      const tagItems = db.Tag.getOrCreate(tags);
       const tagIds = tagItems.map((tag) => tag.id);
-      createLinkTags(linkId, tagIds);
+      db.LinkTag.create(linkId, tagIds);
     }
 
     // Send progress update after each link creation
@@ -367,9 +362,9 @@ function addBookmarksToDatabase(bookmarks: DbNewLink[]): void {
   sock?.send(JSON.stringify({ type: 'import-progress', payload: { progress: 100 } }));
 }
 
-export function importLinks(htmlContent: string, userId: number): OpMeta {
+export function importLinks(db: DbContext, htmlContent: string, userId: number): OpMeta {
   const bookmarks = parseNetscapeHTML(htmlContent, userId);
-  addBookmarksToDatabase(bookmarks);
+  addBookmarksToDatabase(db, bookmarks);
   return OpMetaSchema.parse({ success: true });
 }
 

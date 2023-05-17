@@ -1,9 +1,9 @@
 import jwt from 'jsonwebtoken';
-import { getUserById } from './models/user';
 import type { User } from './schemas/user';
 import logger from './logger';
+import type { DbContext } from './db';
 
-export function decodeAndVerifyJwtToken(token: string): User {
+export function decodeAndVerifyJwtToken(db: DbContext, token: string): User {
   const { JWT_SECRET } = process.env;
   if (!JWT_SECRET) {
     throw new Error('Missing JWT_SECRET env var. Set it and restart the server');
@@ -12,7 +12,7 @@ export function decodeAndVerifyJwtToken(token: string): User {
   // Verify the token, decode it and return the user
   // TODO: correctly type the JWT payload and look at security best practices here.
   const decodedPayload = jwt.verify(token, JWT_SECRET) as { id: number };
-  const user = getUserById(decodedPayload.id);
+  const user = db.User.getById(decodedPayload.id);
 
   if (!user) {
     throw new Error('User not found');

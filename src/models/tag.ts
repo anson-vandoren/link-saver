@@ -1,25 +1,14 @@
-import db from '../db';
+import type { Database } from 'better-sqlite3';
 import logger from '../logger';
-import { TagSchema } from '../schemas/tag';
 import type { Tag } from '../schemas/tag';
+import { TagSchema } from '../schemas/tag';
 
-function _createTag(name: string): Tag {
-  const insert = db.prepare(`
-    INSERT INTO Tags (name)
-    VALUES (@name)
-  `);
+type SearchTerms = {
+  tagTerms: string[];
+  linkTerms: string[];
+};
 
-  const id: number | bigint = insert.run({ name }).lastInsertRowid;
-
-  if (typeof id === 'bigint') {
-    throw new Error(`Exceeded maximum id value: ${id}`);
-  }
-
-  logger.debug('Created tag', { id, name });
-  return { id, name };
-}
-
-function createTags(names: string[]): Tag[] {
+function createTags(db: Database, names: string[]): Tag[] {
   if (!names || !names.length) {
     return [];
   }
@@ -35,18 +24,7 @@ function createTags(names: string[]): Tag[] {
   return tags;
 }
 
-function getTagById(id: number): Tag | undefined {
-  const row = db.prepare('SELECT * FROM Tags WHERE id = ?').get(id);
-
-  if (!row) {
-    logger.debug('Tag not found', { id });
-    return undefined;
-  }
-  logger.debug('Found tag', { id });
-  return TagSchema.parse(row);
-}
-
-export function getTagsById(tagIds: number[]): Tag[] {
+function getTagsById(db: Database, tagIds: number[]): Tag[] {
   if (!tagIds || !tagIds.length) {
     return [];
   }
@@ -58,16 +36,7 @@ export function getTagsById(tagIds: number[]): Tag[] {
   return rows.map((row) => TagSchema.parse(row));
 }
 
-function _deleteTag(id: number): boolean {
-  const deleteStmt = db.prepare('DELETE FROM Tags WHERE id = ?');
-
-  const result = deleteStmt.run(id);
-
-  logger.debug('Deleted tag', { id });
-  return result.changes > 0;
-}
-
-export function deleteTags(tagIds: number[]): number {
+function deleteTags(db: Database, tagIds: number[]): number {
   if (!tagIds || !tagIds.length) {
     return 0;
   }
@@ -80,7 +49,7 @@ export function deleteTags(tagIds: number[]): number {
   return result.changes;
 }
 
-export function getOrCreateTagsByName(tagNames: string[]): Tag[] {
+function getOrCreateTagsByName(db: Database, tagNames: string[]): Tag[] {
   if (!tagNames || !tagNames.length) {
     return [];
   }
@@ -92,32 +61,14 @@ export function getOrCreateTagsByName(tagNames: string[]): Tag[] {
 
   const tagsToCreate = tagNames.filter((tagName) => !results.find((tag) => tag.name === tagName));
 
-  const newTags = createTags(tagsToCreate);
+  const newTags = createTags(db, tagsToCreate);
 
   return [...results, ...newTags];
 }
 
-function _updateTag(id: number, input: Partial<Omit<Tag, 'id'>>): Tag | undefined {
-  if (input.name === undefined) {
-    return undefined;
-  }
-
-  const update = db.prepare(`
-    UPDATE Tags
-    SET name = ?
-    WHERE id = ?
-  `);
-  const { changes } = update.run(input.name, id);
-
-  if (changes === 0) {
-    return undefined;
-  }
-
-  logger.debug('Updated tag', { id, ...input });
-  return getTagById(id);
-}
-
-export function dbSearchTags(tagTerms: string[], linkTerms: string[], sortBy: string): string[] {
+function dbSearchTags(db: Database, terms: SearchTerms, sortBy: string): string[] {
+  const { tagTerms, linkTerms } = terms;
+  // TODO: this logic is mostly duped for Links - should be consolidated
   const nonTagFilter = linkTerms.map(() => '(l.title LIKE ? OR l.description LIKE ? OR l.url LIKE ?)').join(' AND ');
 
   const tagsFilter = tagTerms
@@ -137,8 +88,7 @@ export function dbSearchTags(tagTerms: string[], linkTerms: string[], sortBy: st
       ${tagsFilter.length > 0 ? `AND (${tagsFilter})` : ''}
     `;
 
-  const titleUrlParams = linkTerms
-    .flatMap((term) => [`%${term}%`, `%${term}%`, `%${term}%`]);
+  const titleUrlParams = linkTerms.flatMap((term) => [`%${term}%`, `%${term}%`, `%${term}%`]);
   const tagSearchParams = tagTerms.map((term) => `%${term}%`);
   const allParams = [...titleUrlParams, ...tagSearchParams];
 
@@ -162,13 +112,44 @@ export function dbSearchTags(tagTerms: string[], linkTerms: string[], sortBy: st
   return rows.map((row) => row.name);
 }
 
-export function dbGetUnusedTags(): Tag[] {
-  const rows = db.prepare(`
+function dbGetUnusedTags(db: Database): Tag[] {
+  const rows = db
+    .prepare(
+      `
     SELECT t.*
     FROM Tags t
     LEFT JOIN LinkTags lt ON t.id = lt.tagId
     WHERE lt.linkId IS NULL
-  `).all();
+  `,
+    )
+    .all();
 
   return rows.map((row) => TagSchema.parse(row));
+}
+
+export class TagModel {
+  constructor(private db: Database) { }
+
+  get(tagId: number | number[]): Tag[] {
+    const tagIds = Array.isArray(tagId) ? tagId : [tagId];
+    return getTagsById(this.db, tagIds);
+  }
+
+  getOrCreate(tagNames: string | string[]): Tag[] {
+    const tagNamesArray = Array.isArray(tagNames) ? tagNames : [tagNames];
+    return getOrCreateTagsByName(this.db, tagNamesArray);
+  }
+
+  search(terms: SearchTerms, sortBy: string): string[] {
+    return dbSearchTags(this.db, terms, sortBy);
+  }
+
+  unused(): Tag[] {
+    return dbGetUnusedTags(this.db);
+  }
+
+  delete(tagId: number | number[]): number {
+    const tagIds = Array.isArray(tagId) ? tagId : [tagId];
+    return deleteTags(this.db, tagIds);
+  }
 }

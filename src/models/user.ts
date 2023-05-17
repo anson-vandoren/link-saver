@@ -1,8 +1,8 @@
-import db from '../db';
+import type { Database } from 'better-sqlite3';
 import { UserSchema } from '../schemas/user';
 import type { CreateUserInput, User } from '../schemas/user';
 
-export function createUser(username: string, hashedPassword: string): User {
+function createUser(db: Database, username: string, hashedPassword: string): User {
   const createdAt = Date.now();
   const updatedAt = createdAt;
 
@@ -21,23 +21,23 @@ export function createUser(username: string, hashedPassword: string): User {
   return { id, username, password: hashedPassword, createdAt, updatedAt };
 }
 
-export function getUserById(id: number): User | undefined {
+function getUserById(db: Database, id: number): User | undefined {
   const row = db.prepare('SELECT * FROM Users WHERE id = ?').get(id);
   return row ? UserSchema.parse(row) : undefined;
 }
 
-export function getUserByUsername(username: string): User | undefined {
+function getUserByUsername(db: Database, username: string): User | undefined {
   const row = db.prepare('SELECT * FROM Users WHERE username = ?').get(username);
   return row ? UserSchema.parse(row) : undefined;
 }
 
-export function hasRegisteredUsers(): boolean {
+function hasRegisteredUsers(db: Database): boolean {
   const row = db.prepare('SELECT COUNT(*) AS count FROM Users').get() as { count: number };
   return row.count === 1;
 }
 
-export function updateUser(id: number, update: Partial<CreateUserInput>): User {
-  const existingUser = getUserById(id);
+function updateUser(db: Database, id: number, update: Partial<CreateUserInput>): User {
+  const existingUser = getUserById(db, id);
   if (!existingUser) {
     throw new Error(`No user with id ${id}`);
   }
@@ -58,8 +58,36 @@ export function updateUser(id: number, update: Partial<CreateUserInput>): User {
   return updatedUser;
 }
 
-function _deleteUser(id: number): boolean {
+function deleteUser(db: Database, id: number): boolean {
   const deleteStmt = db.prepare('DELETE FROM Users WHERE id = ?');
   const { changes } = deleteStmt.run(id);
   return changes > 0;
+}
+
+export class UserModel {
+  constructor(private db: Database) { }
+
+  create(username: string, hashedPassword: string): User {
+    return createUser(this.db, username, hashedPassword);
+  }
+
+  getById(id: number): User | undefined {
+    return getUserById(this.db, id);
+  }
+
+  getByUsername(username: string): User | undefined {
+    return getUserByUsername(this.db, username);
+  }
+
+  hasRegisteredUsers(): boolean {
+    return hasRegisteredUsers(this.db);
+  }
+
+  update(id: number, update: Partial<CreateUserInput>): User {
+    return updateUser(this.db, id, update);
+  }
+
+  delete(id: number): boolean {
+    return deleteUser(this.db, id);
+  }
 }

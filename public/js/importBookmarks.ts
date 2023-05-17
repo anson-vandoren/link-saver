@@ -16,7 +16,7 @@ function isImportProgressData(obj: unknown): obj is ImportProgressData {
   );
 }
 
-async function doImportBookmarks(file: string) {
+async function doImportBookmarks(file: File) {
   const progress = getElementById('import-progress', HTMLProgressElement);
   progress.classList.remove('is-hidden');
 
@@ -28,16 +28,34 @@ async function doImportBookmarks(file: string) {
   });
 
   try {
-    // base64 encode the file contents
-    const utf8Encoder = new TextEncoder();
-    const utf8EncodedFile = utf8Encoder.encode(file);
-    const base64EncodedFile = btoa(String.fromCharCode(...utf8EncodedFile));
+    const base64EncodedFile = await readFileAsDataURL(file);
     await importBookmarks(base64EncodedFile);
     showNotification('Bookmarks imported successfully.');
+  } catch (err) {
+    console.debug(err);
   } finally {
     wsHandler.off('import-progress');
     progress.classList.add('is-hidden');
   }
+}
+
+function readFileAsDataURL(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.onload = () => {
+      const result = reader.result as string;
+      const base64Data = result.split(',')[1]; // Remove the MIME type prefix
+      resolve(base64Data);
+    };
+
+    reader.onerror = () => {
+      reader.abort();
+      reject(new Error('Error reading file'));
+    };
+
+    reader.readAsDataURL(file);
+  });
 }
 
 async function importBtnListener(e: Event) {
@@ -55,24 +73,7 @@ async function importBtnListener(e: Event) {
     return;
   }
 
-  // Read the file contents as a string
-  const fileContent = await new Promise<string>((resolve, reject) => {
-    const fileReader = new FileReader();
-    fileReader.onload = () => {
-      const result = fileReader.result;
-      if (typeof result === 'string') {
-        resolve(result);
-      } else {
-        reject(new Error('Error reading the selected file.'));
-      }
-    };
-    fileReader.onerror = () => {
-      reject(new Error('Error reading the selected file.'));
-    };
-    fileReader.readAsText(file);
-  });
-
-  await doImportBookmarks(fileContent);
+  await doImportBookmarks(file);
 
   fileInput.value = '';
   importButton.disabled = true;

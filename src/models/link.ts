@@ -1,8 +1,18 @@
-import db from '../db';
+import { Database } from 'better-sqlite3';
 import type { DbLink, DbLinkWithTags, DbNewLink } from '../schemas/link';
 import { DbLinkRowWithTagSchema, DbLinkSchema, DbLinkWithTagsSchema } from '../schemas/link';
+import { DEFAULT_PER_PAGE } from '../../public/js/constants';
 
-export function dbCreateLink(input: DbNewLink): DbLink {
+type SearchTerms = {
+  tagTerms: string[];
+  linkTerms: string[];
+};
+type Pagination = {
+  offset?: number;
+  limit?: number;
+};
+
+function dbCreateLink(db: Database, input: DbNewLink): DbLink {
   const { url, userId } = input;
   let { title, description, isPublic } = input;
   title ||= '';
@@ -40,7 +50,7 @@ export function dbCreateLink(input: DbNewLink): DbLink {
   };
 }
 
-export function dbImportLinks(links: DbNewLink[]): number[] {
+function dbImportLinks(db: Database, links: DbNewLink[]): number[] {
   let numProperties = Object.getOwnPropertyNames(links[0]).length;
   if (links[0].tags) {
     // tags are added separately
@@ -87,14 +97,14 @@ export function dbImportLinks(links: DbNewLink[]): number[] {
   return createdIds;
 }
 
-export function dbGetLink(id: number, includeUserId = true): DbLink | undefined {
+function dbGetLink(db: Database, id: number, includeUserId = true): DbLink | undefined {
   const select = `L.id, L.url, L.title, L.description, L.savedAt, L.isPublic, ${includeUserId ? 'L.userId' : ''}`;
   const row = db.prepare(`SELECT ${select} FROM Links L WHERE id = ?`).get(id);
 
   return row ? DbLinkSchema.parse(row) : undefined;
 }
 
-export function dbGetAllLinks(userId?: number): DbLinkWithTags[] {
+function dbGetAllLinks(db: Database, userId?: number): DbLinkWithTags[] {
   // if userId is undefined, return all links where isPublic: true
   // otherwise, return all links where userId = userId
 
@@ -115,14 +125,16 @@ export function dbGetAllLinks(userId?: number): DbLinkWithTags[] {
   return rows.map((row) => DbLinkWithTagsSchema.parse(row));
 }
 
-export function dbFindLinks(
-  terms: string[],
-  tagTerms: string[],
-  offset: number,
-  limit: number,
+function dbFindLinks(
+  db: Database,
+  termsObj: SearchTerms,
+  pagination?: Pagination,
   userId?: number,
-): DbLinkWithTags[] | undefined {
-  const termsLikeQuery = terms.map(() => '(url LIKE ? OR title LIKE ? OR description LIKE ?)').join(' OR ');
+): DbLinkWithTags[] {
+  const { tagTerms, linkTerms } = termsObj;
+  const limit = pagination?.limit ?? DEFAULT_PER_PAGE;
+  const offset = pagination?.offset ?? 0;
+  const termsLikeQuery = linkTerms.map(() => '(url LIKE ? OR title LIKE ? OR description LIKE ?)').join(' OR ');
 
   const tagTermsInQuery = tagTerms.map(() => '?').join(', ');
 
@@ -162,7 +174,7 @@ export function dbFindLinks(
     LIMIT ? OFFSET ?
   `;
 
-  const termsParams = terms.flatMap((term) => [`%${term}%`, `%${term}%`, `%${term}%`]);
+  const termsParams = linkTerms.flatMap((term) => [`%${term}%`, `%${term}%`, `%${term}%`]);
   const allParams = [
     ...termsParams,
     ...(userId !== undefined ? [userId] : []),
@@ -177,8 +189,9 @@ export function dbFindLinks(
   return validatedRows;
 }
 
-export function dbFindLinksCount(terms: string[], tagTerms: string[], userId?: number): number {
-  const termsLikeQuery = terms.map(() => '(url LIKE ? OR title LIKE ? OR description LIKE ?)').join(' OR ');
+function dbFindLinksCount(db: Database, termsObj: SearchTerms, userId?: number): number {
+  const { tagTerms, linkTerms } = termsObj;
+  const termsLikeQuery = linkTerms.map(() => '(url LIKE ? OR title LIKE ? OR description LIKE ?)').join(' OR ');
 
   const tagTermsInQuery = tagTerms.map(() => '?').join(', ');
 
@@ -209,7 +222,7 @@ export function dbFindLinksCount(terms: string[], tagTerms: string[], userId?: n
     ${havingClause}
   `;
 
-  const termsParams = terms.flatMap((term) => [`%${term}%`, `%${term}%`, `%${term}%`]);
+  const termsParams = linkTerms.flatMap((term) => [`%${term}%`, `%${term}%`, `%${term}%`]);
   const allParams = [
     ...termsParams,
     ...(userId !== undefined ? [userId] : []),
@@ -221,8 +234,8 @@ export function dbFindLinksCount(terms: string[], tagTerms: string[], userId?: n
   return rows.length;
 }
 
-export function dbUpdateLink(id: number, updates: Partial<DbLinkWithTags>): DbLinkWithTags | undefined {
-  const currentLink = dbGetLink(id);
+function dbUpdateLink(db: Database, id: number, updates: Partial<DbLinkWithTags>): DbLinkWithTags | undefined {
+  const currentLink = dbGetLink(db, id);
 
   if (!currentLink) {
     return undefined;
@@ -259,10 +272,53 @@ export function dbUpdateLink(id: number, updates: Partial<DbLinkWithTags>): DbLi
   };
 }
 
-export function dbDeleteLink(id: number): boolean {
+function dbDeleteLink(db: Database, id: number): boolean {
   const deleteStmt = db.prepare('DELETE FROM Links WHERE id = ?');
 
   const result = deleteStmt.run(id);
 
   return result.changes > 0;
+}
+
+export class LinkModel {
+  constructor(private db: Database) { }
+
+  create(input: DbNewLink): DbLink {
+    return dbCreateLink(this.db, input);
+  }
+
+  import(links: DbNewLink[]): number[] {
+    return dbImportLinks(this.db, links);
+  }
+
+  getOne(id: number, includeUserId?: boolean): DbLink | undefined {
+    return dbGetLink(this.db, id, includeUserId);
+  }
+
+  getMany(userId?: number): DbLinkWithTags[];
+  getMany(terms: SearchTerms, pagination?: Pagination, userId?: number): DbLinkWithTags[];
+
+  getMany(
+    termsOrUserId?: SearchTerms | number,
+    pagination?: Pagination,
+    userId?: number,
+  ): DbLinkWithTags[] {
+    if (!termsOrUserId || typeof termsOrUserId === 'number') {
+      const asUserId = termsOrUserId;
+      return dbGetAllLinks(this.db, asUserId);
+    }
+    return dbFindLinks(this.db, termsOrUserId, pagination, userId);
+  }
+
+  count(terms: SearchTerms, userId?: number): number {
+    return dbFindLinksCount(this.db, terms, userId);
+  }
+
+  update(id: number, updates: Partial<DbLinkWithTags>): DbLinkWithTags | undefined {
+    return dbUpdateLink(this.db, id, updates);
+  }
+
+  delete(id: number): boolean {
+    return dbDeleteLink(this.db, id);
+  }
 }

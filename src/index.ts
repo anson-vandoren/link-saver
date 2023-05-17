@@ -5,13 +5,12 @@ import cors from 'cors';
 import * as http from 'http';
 import serveStatic from 'serve-static';
 import { join } from 'path';
-import { createTables } from './db';
 import { appRouter } from './routers/index';
 import { createContext } from './context';
 import logger from './logger';
 import wsHandler from './websocket';
-import { hasRegisteredUsers } from './models/user';
 import { decodeAndVerifyJwtToken } from './jwt';
+import { DbContext } from './db';
 
 const PORT = process.env.PORT || 3001;
 
@@ -53,6 +52,8 @@ const staticRootPath = isProd ? join(__dirname, '..', 'public', 'dist') : join(_
 const staticHandler = serveStatic(staticRootPath, {
   extensions: ['html'],
 });
+
+const dbContext = DbContext.create();
 
 function logTrpcRequest(req: http.IncomingMessage) {
   if (!req.url) return;
@@ -108,7 +109,8 @@ const server = http.createServer((req, res) => {
   }
   const isHtmlRequest = req.headers.accept?.includes('text/html');
   // if no users, send to signup.html
-  if (isHtmlRequest && !hasRegisteredUsers() && req.url !== '/signup.html') {
+  const hasRegisteredUsers = dbContext.User.hasRegisteredUsers();
+  if (isHtmlRequest && !hasRegisteredUsers && req.url !== '/signup.html') {
     logger.info('No registered users, redirecting to signup.html');
     res.writeHead(302, { Location: '/signup.html' });
     res.end();
@@ -118,7 +120,7 @@ const server = http.createServer((req, res) => {
   const token = req.headers.authorization?.split(' ')[1] ?? '';
   if (isHtmlRequest && token && req.url !== '/index.html' && req.url !== '/signup.html') {
     try {
-      decodeAndVerifyJwtToken(token ?? '');
+      decodeAndVerifyJwtToken(dbContext, token ?? '');
     } catch (error) {
       logger.error('Failed to decode and verify JWT token:', { error, token: token ?? 'undefined' });
       res.writeHead(302, { Location: '/index.html' });
@@ -141,9 +143,6 @@ const server = http.createServer((req, res) => {
     });
   });
 });
-
-// set up the database
-createTables();
 
 // Start the server
 server.listen({ port: PORT, host: '0.0.0.0' }, () => {

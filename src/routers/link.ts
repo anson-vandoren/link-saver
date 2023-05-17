@@ -16,9 +16,9 @@ import { ApiLinkSchema } from '../schemas/link';
 export const linkRouter = router({
   create: loggedInProcedure.input(ApiLinkSchema).mutation((opts) => {
     const { input, ctx } = opts;
-    const { user } = ctx;
+    const { user, db } = ctx;
     const { id: userId } = user;
-    const result = createLink(userId, input);
+    const result = createLink(db, userId, input);
     if (!result.success) {
       throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: result.error });
     }
@@ -26,10 +26,10 @@ export const linkRouter = router({
   }),
   delete: loggedInProcedure.input(z.number()).mutation((opts) => {
     const { input, ctx } = opts;
-    const { user } = ctx;
+    const { user, db } = ctx;
     const { id: userId } = user;
     const linkId = input;
-    const success = deleteLink(linkId, userId);
+    const success = deleteLink(db, linkId, userId);
     if (!success) {
       throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to delete link' });
     }
@@ -37,9 +37,9 @@ export const linkRouter = router({
   }),
   update: loggedInProcedure.input(ApiLinkSchema).mutation((opts) => {
     const { input, ctx } = opts;
-    const { user } = ctx;
+    const { user, db } = ctx;
     const { id: userId } = user;
-    const result = updateLink(userId, input);
+    const result = updateLink(db, userId, input);
     if (!result.success) {
       throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: result.error });
     }
@@ -47,9 +47,9 @@ export const linkRouter = router({
   }),
   getOne: publicProcedure.input(z.number()).query((opts) => {
     const { input, ctx } = opts;
-    const { user } = ctx;
+    const { user, db } = ctx;
     const userId = user?.id;
-    const result = getLink(input, userId);
+    const result = getLink(db, input, userId);
     if (!result.success) {
       throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: result.error });
     }
@@ -58,9 +58,9 @@ export const linkRouter = router({
   getMany: publicProcedure.input(ApiLinkSchema).query((opts) => {
     const { input, ctx } = opts;
     const { query, page, limit } = input;
-    const { user } = ctx;
+    const { user, db } = ctx;
     const userId = user?.id;
-    const result = getLinks(query, page, limit, userId);
+    const result = getLinks(db, query, page, limit, userId);
     if (!result.success) {
       throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: result.error });
     }
@@ -68,9 +68,9 @@ export const linkRouter = router({
   }),
   export: loggedInProcedure.query((opts) => {
     const { ctx } = opts;
-    const { user } = ctx;
+    const { user, db } = ctx;
     const { id: userId } = user;
-    const result = exportLinks(userId);
+    const result = exportLinks(db, userId);
     if (!result) {
       throw new TRPCError({
         code: 'INTERNAL_SERVER_ERROR',
@@ -81,10 +81,10 @@ export const linkRouter = router({
   }),
   import: loggedInProcedure.input(z.string()).mutation((opts) => {
     const { input, ctx } = opts;
-    const { user } = ctx;
+    const { user, db } = ctx;
     const { id: userId } = user;
     const decodedInput = Buffer.from(input, 'base64').toString('utf-8');
-    const result = importLinks(decodedInput, userId);
+    const result = importLinks(db, decodedInput, userId);
     if (!result.success) {
       throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: result.reason });
     }
