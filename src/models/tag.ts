@@ -69,7 +69,7 @@ function getOrCreateTagsByName(db: Database, tagNames: string[]): Tag[] {
 function dbSearchTags(db: Database, terms: SearchTerms, sortBy: string): string[] {
   const { tagTerms, linkTerms } = terms;
   // TODO: this logic is mostly duped for Links - should be consolidated
-  const nonTagFilter = linkTerms.map(() => '(l.title LIKE ? OR l.description LIKE ? OR l.url LIKE ?)').join(' AND ');
+  const nonTagFilter = linkTerms.map(() => '(l.title LIKE ? OR l.description LIKE ? OR l.url LIKE ?)').join(' OR ');
 
   const tagsFilter = tagTerms
     .map(

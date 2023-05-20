@@ -1,10 +1,48 @@
 import superjson from 'superjson';
 import { DEFAULT_PER_PAGE } from './constants';
 import { getToken, hasToken } from './utils';
-import { createTRPCProxyClient, httpBatchLink, loggerLink } from '@trpc/client';
+import { createTRPCProxyClient, httpBatchLink, loggerLink, TRPCClientError, TRPCLink } from '@trpc/client';
 import type { AppRouter } from '../../src/routers/';
 import type { ApiLink, ApiLinks, UserCredRes } from '../../src/schemas';
 import type { ScrapedURLRes } from '../../src/schemas/link';
+import { observable } from '@trpc/server/observable';
+
+function isTRPCClientError(cause: unknown): cause is TRPCClientError<AppRouter> {
+  return cause instanceof TRPCClientError;
+}
+
+const globalErrorHandlerLink: TRPCLink<AppRouter> = () => {
+  return ({ next, op }) => {
+    return observable((observer) => {
+      console.debug('performing operation:', op);
+      const unsubscribe = next(op).subscribe({
+        next(value) {
+          observer.next(value);
+        },
+        error(err) {
+          console.log('error', err);
+          if (isTRPCClientError(err)) {
+            if (err.data?.code === 'UNAUTHORIZED') {
+              if (typeof window !== 'undefined') {
+                if (hasToken()) {
+                  window.localStorage.removeItem('token');
+                }
+                if (window.location.pathname !== '/') {
+                  window.location.href = '/';
+                }
+              }
+            }
+          }
+          observer.error(err);
+        },
+        complete() {
+          observer.complete();
+        },
+      });
+      return unsubscribe;
+    })
+  }
+}
 
 const trpc = createTRPCProxyClient<AppRouter>({
   transformer: superjson,
@@ -14,6 +52,7 @@ const trpc = createTRPCProxyClient<AppRouter>({
         (process.env.NODE_ENV === 'development' && typeof window !== 'undefined') ||
         (opts.direction === 'down' && opts.result instanceof Error),
     }),
+    globalErrorHandlerLink,
     httpBatchLink({
       url: 'http://localhost:3001/api/v2',
       headers() {
