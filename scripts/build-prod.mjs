@@ -23,6 +23,6 @@ for (const file of files) {
 await esbuild.build({
   entryPoints: ['ui/js/index.ts'],
   bundle: true,
-  outfile: 'www/bundle.js',
+  outfile: 'www/js/bundle.js',
   minify: true,
 });
