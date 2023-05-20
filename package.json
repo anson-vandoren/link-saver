@@ -1,5 +1,5 @@
 {
-  "name": "backend",
+  "name": "@anson-vandoren/page-pouch",
   "version": "1.0.0",
   "description": "",
   "main": "index.ts",
@@ -12,7 +12,8 @@
     "watch-server": "NODE_ENV=dev tsx watch --clear-screen=false ./src/index.ts",
     "tsc-ui": "tsc --noEmit --watch -p tsconfig.ui.json",
     "tsc-server": "tsc --noEmit --watch -p tsconfig.server.json",
-    "build:ui:prod": "esbuild ui/js/index.ts --bundle --minify --outfile=ui/dist/bundle.js"
+    "build:ui:prod": "esbuild ui/js/index.ts --bundle --minify --outfile=ui/dist/bundle.js",
+    "test": "echo \"Eventually I'll write tests...\" && exit 0"
   },
   "keywords": [],
   "author": "Anson VanDoren <anson@ansonvandoren.com>",
