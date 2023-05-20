@@ -51,19 +51,10 @@ npm install
 touch .env
 ```
 
-4. Add the following environment variables to the `.env` file:
+4. Start the backend server:
 
 ```
-JWT_SECRET=someFuckingSecret
-DB_PATH=./your_db_path.sqlite3
-ALLOWED_ORIGIN=links.mysite.com
-```
-
-5. Start the backend server:
-
-```
-npm run build:ui:dev
-npm run start:dev
+npm run dev
 ```
 
 You can now access the service at `http://localhost:3001`

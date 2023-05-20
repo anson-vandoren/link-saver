@@ -1,14 +1,18 @@
 import { z } from 'zod';
-import { JwtPayload, verify, VerifyErrors } from 'jsonwebtoken';
-import ws, { RawData } from 'ws';
+import WebSocket, { RawData, WebSocketServer } from 'ws';
 import http from 'http';
 import https from 'https';
 import logger from '../logger';
+import { decodeAndVerifyJwtToken } from '../jwt';
+import { User } from '../schemas/user';
+import { DbContext } from '../db';
 
 const WebSocketMessageSchema = z.object({
   type: z.string(),
   data: z.unknown(),
 });
+
+const db = DbContext.create();
 
 type WebSocketMessage = z.infer<typeof WebSocketMessageSchema>;
 
@@ -25,19 +29,19 @@ function parseRawData(message: RawData): WebSocketMessage | undefined {
   return { type, data };
 }
 
-type SocketEx = ws.WebSocket & { __remoteHost: { ip: string; port: number } };
-type WsMessageHandler = (socket: ws, data: unknown) => void;
+type SocketEx = WebSocket & { __remoteHost: { ip: string; port: number } };
+type WsMessageHandler = (socket: WebSocket, data: unknown) => void;
 class WSHandler {
   private handlers: Map<string, WsMessageHandler> = new Map();
-  private connections: Map<number, ws> = new Map();
-  private socket: ws.Server | undefined;
+  private connections: Map<number, WebSocket> = new Map();
+  private socket: WebSocket.Server | undefined;
 
   listen(server: http.Server | https.Server): Promise<void> {
     if (this.socket) {
       logger.debug('WebSocket already listening');
       return Promise.resolve();
     }
-    const wss = new ws.Server({ server });
+    const wss = new WebSocketServer({ server });
 
     wss.on('error', (err) => {
       logger.error('WebSocket server error', { err });
@@ -45,7 +49,7 @@ class WSHandler {
 
     return new Promise((resolve) => {
       wss.on('listening', () => {
-        const { address, port } = wss.address() as ws.AddressInfo;
+        const { address, port } = wss.address() as WebSocket.AddressInfo;
         logger.info('WebSocket server listening', { address, port });
         resolve();
       });
@@ -87,43 +91,21 @@ class WSHandler {
         }
         // eslint-disable-next-line no-param-reassign
         sock.__remoteHost = { ip, port };
-        const { JWT_SECRET } = process.env;
-        if (!JWT_SECRET) {
-          logger.error('JWT_SECRET not set');
+        try {
+          const decoded = decodeAndVerifyJwtToken(db, token);
+          this.onJwtVerified(decoded, sock);
+        } catch (err) {
+          logger.warn('Client provided an invalid token', { err });
           sock.close();
-          return;
         }
-        verify(token, JWT_SECRET, (err, decoded) => {
-          if (!decoded) {
-            logger.warn('Client provided an invalid token', { err });
-            sock.close();
-            return;
-          }
-          if (typeof decoded === 'string') {
-            logger.warn('Client provided a string token', { decoded });
-            sock.close();
-            return;
-          }
-          this.onJwtVerified(decoded, sock, err);
-        });
       });
     });
   }
 
-  onJwtVerified(decoded: JwtPayload, sock: SocketEx, err: VerifyErrors | null): void {
-    if (err) {
-      logger.warn('Client provided an invalid token', { err });
-      sock.close();
-      return;
-    }
+  onJwtVerified(decoded: User, sock: SocketEx): void {
     logger.debug('Client provided a valid token', { decoded });
     const { id } = decoded;
     const userId = Number(id);
-    if (Number.isNaN(userId)) {
-      logger.warn('Client provided an invalid user ID', { userId: String(userId) });
-      sock.close();
-      return;
-    }
     if (this.connections.has(userId)) {
       logger.warn('Client already connected', { userId });
       sock.close();
@@ -169,7 +151,7 @@ class WSHandler {
     this.handlers.delete(type);
   }
 
-  connectionFor(userId: number): ws | undefined {
+  connectionFor(userId: number): WebSocket | undefined {
     return this.connections.get(userId);
   }
 }

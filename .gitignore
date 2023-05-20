@@ -2,6 +2,9 @@
 node_modules/
 *.sqlite3
 *.log
-public/dist/
+ui/dist/
 dist/
 *.sqlite3*
+build/
+cache/
+www/

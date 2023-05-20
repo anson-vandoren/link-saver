@@ -1,10 +1,9 @@
-// config.js must be first to ensure .env variables are loaded before anything else
 import './config';
 import { createHTTPHandler } from '@trpc/server/adapters/standalone';
 import cors from 'cors';
 import * as http from 'http';
 import serveStatic from 'serve-static';
-import { join } from 'path';
+import { join, dirname } from 'path';
 import { appRouter } from './routers/index';
 import { createContext } from './context';
 import logger from './logger';
@@ -12,15 +11,17 @@ import wsHandler from './websocket';
 import { decodeAndVerifyJwtToken } from './jwt';
 import { DbContext } from './db';
 
-const PORT = process.env.PORT || 3001;
+process.on('SIGINT', () => {
+  logger.warn('Received SIGINT signal. Shutting down gracefully.');
+  // Add your cleanup code here
+  process.exit(0);
+});
 
-const corsOptions = {
-  origin: process.env.ALLOWED_ORIGIN || 'http://localhost:3001', // Default to a development environment
-  methods: ['GET', 'POST'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true,
-};
-const corsMiddleware = cors(corsOptions);
+const __dirname = dirname(new URL(import.meta.url).pathname);
+
+const PORT = 3001;
+
+const corsMiddleware = cors();
 
 // tRPC
 const tRpcHandler = createHTTPHandler({
@@ -47,8 +48,8 @@ const tRpcHandler = createHTTPHandler({
 });
 
 // serve static content
-const isProd = process.env.NODE_ENV === 'production';
-const staticRootPath = isProd ? join(__dirname, '..', 'public', 'dist') : join(__dirname, '..', 'public');
+const staticRootPath = join(__dirname, '..', 'www');
+logger.info('Serving static content from', { staticRootPath });
 const staticHandler = serveStatic(staticRootPath, {
   extensions: ['html'],
 });
@@ -148,4 +149,9 @@ const server = http.createServer((req, res) => {
 server.listen({ port: PORT, host: '0.0.0.0' }, () => {
   logger.info('Server started', { port: PORT });
 });
-await wsHandler.listen(server);
+wsHandler.listen(server).then(() => {
+  logger.info('Websocket server started');
+}).catch((error) => {
+  const message = error instanceof Error ? error.message : 'Unknown error';
+  logger.error('Failed to start websocket server:', { message });
+});

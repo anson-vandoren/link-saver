@@ -112,10 +112,6 @@
         "selector": "typeLike",
         "format": ["PascalCase"]
       }
-    ],
-    "ava/assertion-arguments": "error"
-  },
-  "plugins": [
-    "ava"
-  ]
+    ]
+  }
 }

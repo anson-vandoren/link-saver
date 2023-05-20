@@ -1,11 +1,10 @@
-import { compare, hash } from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import { createJwtToken } from '../jwt';
 import logger from '../logger';
 import type { Token } from '../schemas/user';
 import type { DbContext } from '../db';
 
-const jwtSecret = process.env.JWT_SECRET;
-if (!jwtSecret) throw new Error('JWT_SECRET not found');
+const { hash, compare } = bcrypt;
 
 export async function registerUser(db: DbContext, username: string, password: string): Promise<Token> {
   if (db.User.hasRegisteredUsers()) {
@@ -23,7 +22,7 @@ export async function registerUser(db: DbContext, username: string, password: st
   const hashedPassword = await hash(password, 10);
   const user = db.User.create(username, hashedPassword);
 
-  const token = createJwtToken(user);
+  const token = createJwtToken(db, user);
 
   return { token };
 }
@@ -41,7 +40,7 @@ export async function loginUser(db: DbContext, username: string, password: strin
     throw new Error('Invalid username or password');
   }
 
-  const token = createJwtToken(user);
+  const token = createJwtToken(db, user);
 
   return { token };
 }
@@ -64,7 +63,7 @@ export async function changePassword(db: DbContext, username: string, password: 
 
   db.User.update(user.id, user);
 
-  const token = createJwtToken(user);
+  const token = createJwtToken(db, user);
 
   return { token };
 }

@@ -1,7 +1,8 @@
 import { Database } from 'better-sqlite3';
 import type { DbLink, DbLinkWithTags, DbNewLink } from '../schemas/link';
 import { DbLinkRowWithTagSchema, DbLinkSchema, DbLinkWithTagsSchema } from '../schemas/link';
-import { DEFAULT_PER_PAGE } from '../../public/js/constants';
+
+const DEFAULT_PER_PAGE = 25;
 
 type SearchTerms = {
   tagTerms: string[];

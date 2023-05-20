@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import axios from 'axios';
-import { JSDOM } from 'jsdom';
+import cheerio from 'cheerio';
 import logger from '../logger';
 import type {
   ApiLink,
@@ -17,8 +17,9 @@ import {
 } from '../schemas/link';
 import { OpMeta, OpMetaSchema } from '../schemas/util';
 import wsHandler from '../websocket';
-import { DEFAULT_PER_PAGE } from '../../public/js/constants';
 import type { DbContext } from '../db';
+
+const DEFAULT_PER_PAGE = 25;
 
 export function deleteLink(db: DbContext, linkId: number, userId: number): boolean {
   const link = db.Link.getOne(linkId);
@@ -286,39 +287,37 @@ export function exportLinks(db: DbContext, userId: number): string {
 
 function parseNetscapeHTML(htmlContent: string, userId: number): DbNewLink[] {
   const bookmarks: DbNewLink[] = [];
-  const dom = new JSDOM(htmlContent);
-  const dtElements = dom.window.document.querySelectorAll('DT');
+  const $ = cheerio.load(htmlContent);
+  const dtElements = $('DT');
 
-  dtElements.forEach((dtElement) => {
-    const aElement = dtElement.querySelector('A');
-    if (aElement) {
-      const url = aElement.getAttribute('href');
-      if (!url) {
-        return;
-      }
-      const title = aElement.textContent?.trim() ?? '';
-      const tags = (aElement.getAttribute('tags') || '')
-        .split(',')
-        .map((tag) => tag.trim())
-        .filter((tag) => tag.length > 0);
-      const addTimestamp = aElement.getAttribute('add_date');
-      const savedAt = addTimestamp ? parseInt(addTimestamp, 10) * 1000 : Date.now();
-      const isPrivate = aElement.getAttribute('private') === '1';
-      const isPublic = isPrivate ? 0 : 1;
-
-      const ddElement = dtElement.nextElementSibling;
-      const description = (ddElement && ddElement.tagName === 'DD' ? ddElement.textContent?.trim() : '') ?? '';
-
-      bookmarks.push({
-        url,
-        title,
-        tags,
-        description,
-        savedAt,
-        isPublic,
-        userId,
-      });
+  dtElements.each((_, dtElement) => {
+    const aElement = $(dtElement).find('A');
+    const url = aElement.attr('href');
+    if (!url) {
+      return;
     }
+    const title = aElement.text().trim();
+    const tags = (aElement.attr('tags') || '')
+      .split(',')
+      .map((tag) => tag.trim())
+      .filter((tag) => tag.length > 0);
+    const addTimestamp = aElement.attr('add_date');
+    const savedAt = addTimestamp ? parseInt(addTimestamp, 10) * 1000 : Date.now();
+    const isPrivate = aElement.attr('private') === '1';
+    const isPublic = isPrivate ? 0 : 1;
+
+    const ddElement = $(dtElement).next();
+    const description = (ddElement && ddElement.get(0)?.tagName === 'DD' ? ddElement.text().trim() : '') ?? '';
+
+    bookmarks.push({
+      url,
+      title,
+      tags,
+      description,
+      savedAt,
+      isPublic,
+      userId,
+    });
   });
 
   return bookmarks;
@@ -378,9 +377,9 @@ export async function scrapeFQDN(url: string): Promise<ScrapedURLRes> {
     actualUrl = `http://${url}`;
   }
   const { data, finalUrl } = await fetchHTML(actualUrl);
-  const dom = new JSDOM(data);
-  const title = dom.window.document.querySelector('head > title')?.textContent?.trim() ?? '';
-  const description = dom.window.document.querySelector('head > meta[name="description"]')?.getAttribute('content') ?? '';
+  const $ = cheerio.load(data);
+  const title = $('head > title').text().trim();
+  const description = $('head > meta[name="description"]').attr('content') ?? '';
 
   return {
     url: finalUrl,

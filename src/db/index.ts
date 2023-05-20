@@ -1,4 +1,6 @@
 import Database from 'better-sqlite3';
+import fs from 'fs';
+import path from 'path';
 import type { Database as DbType } from 'better-sqlite3';
 import logger from '../logger';
 import { createUsersTableSQL, createLinkTagsTableSQL, createLinksTableSQL, createTagsTableSQL } from './tables';
@@ -14,26 +16,31 @@ function createTables(db: DbType) {
   db.exec(createTagsTableSQL);
 }
 
-function createDbConnection(path: string) {
-  logger.info('Opening database at', { path });
-  const db = new Database(path, { verbose: logger.silly });
+function createDbConnection(dbLoc: string) {
+  logger.info('Opening database at', { path: dbLoc });
+  const db = new Database(dbLoc, { verbose: logger.silly });
   db.pragma('journal_mode = WAL');
   createTables(db);
   return db;
 }
 
-const DB_PATH = process.env.DB_PATH || './dev.sqlite3';
-const db = createDbConnection(DB_PATH);
+const __dirname = path.dirname(new URL(import.meta.url).pathname);
+const dbName = 'pagepouch.sqlite3';
+const dbPath = path.join(__dirname, '..', '..', 'data', dbName);
+const dbDir = path.dirname(path.resolve(dbPath));
+if (!fs.existsSync(dbDir)) {
+  fs.mkdirSync(dbDir, { recursive: true });
+}
 
 function getDbInstance(): DbType {
   if (process.env.NODE_ENV === 'test') {
     const testDb = createDbConnection(':memory:');
     return testDb;
   }
-  if (process.env.NODE_ENV === 'development') {
-    return db;
+  if (process.env.NODE_ENV === 'dev') {
+    return createDbConnection('dev.sqlite3');
   }
-  throw new Error('Need to implement production database context');
+  return createDbConnection(dbPath);
 }
 
 export class DbContext {
@@ -41,6 +48,8 @@ export class DbContext {
   public LinkTag: LinkTagModel;
   public Tag: TagModel;
   public User: UserModel;
+  // eslint-disable-next-line no-use-before-define
+  private static _instance: DbContext | undefined;
 
   constructor(private _db: DbType) {
     this.Link = new LinkModel(this._db);
@@ -56,7 +65,10 @@ export class DbContext {
     throw new Error('Should not get underlying DB outside of test environment');
   }
 
-  static create() {
-    return new DbContext(getDbInstance());
+  static create(): DbContext {
+    if (!DbContext._instance) {
+      DbContext._instance = new DbContext(getDbInstance());
+    }
+    return DbContext._instance;
   }
 }

@@ -1,14 +1,12 @@
+import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 import type { User } from './schemas/user';
 import logger from './logger';
 import type { DbContext } from './db';
 
-export function decodeAndVerifyJwtToken(db: DbContext, token: string): User {
-  const { JWT_SECRET } = process.env;
-  if (!JWT_SECRET) {
-    throw new Error('Missing JWT_SECRET env var. Set it and restart the server');
-  }
+const JWT_SECRET = crypto.randomBytes(64).toString('hex');
 
+export function decodeAndVerifyJwtToken(db: DbContext, token: string): User {
   // Verify the token, decode it and return the user
   // TODO: correctly type the JWT payload and look at security best practices here.
   const decodedPayload = jwt.verify(token, JWT_SECRET) as { id: number };
@@ -21,10 +19,16 @@ export function decodeAndVerifyJwtToken(db: DbContext, token: string): User {
   return user;
 }
 
-export function createJwtToken(user: User): string {
-  const { JWT_SECRET } = process.env;
-  if (!JWT_SECRET) {
-    throw new Error('Missing JWT_SECRET env var. Set it and restart the server');
+export function createJwtToken(db: DbContext, user: User): string {
+  const lookupUser = db.User.getById(user.id);
+  if (!lookupUser) {
+    throw new Error('User not found');
+  }
+  if (lookupUser.username !== user.username) {
+    throw new Error('Username does not match');
+  }
+  if (lookupUser.password !== user.password) {
+    throw new Error('Password does not match');
   }
 
   const token = jwt.sign({ id: user.id }, JWT_SECRET, { expiresIn: '1d' });

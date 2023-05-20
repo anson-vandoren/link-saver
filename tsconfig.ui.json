@@ -1,12 +1,11 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "outDir": "./public/dist/",
-    "moduleResolution": "node",
+    "outDir": "./ui/dist/",
     "target": "ES2020",
     "sourceMap": true,
-    "rootDirs": ["public/js", "shared"],
+    "rootDirs": ["ui/js"],
   },
-  "include": ["public/js/**/*"],
-  "exclude": ["node_modules", "public/dist", "src", "dist", "./dist"]
+  "include": ["ui/js/**/*"],
+  "exclude": ["node_modules", "ui/dist", "src", "dist", "./dist"]
 }
