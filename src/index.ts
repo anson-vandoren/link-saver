@@ -3,7 +3,7 @@ import { createHTTPHandler } from '@trpc/server/adapters/standalone';
 import cors from 'cors';
 import * as http from 'http';
 import serveStatic from 'serve-static';
-import { join, dirname } from 'path';
+import * as path from 'path';
 import { appRouter } from './routers/index';
 import { createContext } from './context';
 import logger from './logger';
@@ -17,7 +17,12 @@ process.on('SIGINT', () => {
   process.exit(0);
 });
 
-const __dirname = dirname(new URL(import.meta.url).pathname);
+let dirname;
+if (typeof import.meta.url !== 'undefined') {
+  dirname = path.dirname(new URL(import.meta.url).pathname);
+} else {
+  dirname = __dirname;
+}
 
 const PORT = 3001;
 
@@ -29,7 +34,7 @@ const tRpcHandler = createHTTPHandler({
   router: appRouter,
   createContext,
   onError(opts) {
-    const { error, input, type, path, ctx } = opts;
+    const { error, input, type, path: reqPath, ctx } = opts;
     let userId: number | undefined;
     if (ctx?.user) {
       const { user } = ctx;
@@ -39,7 +44,7 @@ const tRpcHandler = createHTTPHandler({
       error,
       input,
       type,
-      path,
+      path: reqPath,
       userId,
       errMsg: error.message,
       errStack: error.stack,
@@ -48,7 +53,7 @@ const tRpcHandler = createHTTPHandler({
 });
 
 // serve static content
-const staticRootPath = join(__dirname, '..', 'www');
+const staticRootPath = path.join(dirname, '..', 'www');
 logger.info('Serving static content from', { staticRootPath });
 const staticHandler = serveStatic(staticRootPath, {
   extensions: ['html'],

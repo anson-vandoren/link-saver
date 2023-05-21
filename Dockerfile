@@ -8,6 +8,6 @@ COPY src/ ./src/
 COPY ui/ ./ui/
 COPY scripts/ ./scripts/
 
-RUN node scripts/build-prod.mjs
+RUN npm run build-prod
 
-CMD ["node_modules/.bin/tsx", "src/index.ts"]
+CMD ["node", "dist/index.cjs"]
