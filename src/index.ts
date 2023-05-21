@@ -19,7 +19,6 @@ process.on('SIGINT', () => {
 
 let dirname;
 if (typeof import.meta.url !== 'undefined') {
-  console.log(import.meta)
   dirname = path.dirname(new URL(import.meta.url).pathname);
 } else {
   dirname = __dirname;
