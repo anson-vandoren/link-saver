@@ -17,17 +17,7 @@ function initBookmarks(): void {
   }
 
   // Event listeners
-  document.getElementById('search-button')?.addEventListener('click', () => {
-    updateSearch();
-    loadLinks();
-  });
-  document.getElementById('search-input')?.addEventListener('keyup', (e) => {
-    if (e.key === 'Enter') {
-      updateSearch();
-      loadLinks();
-    }
-  });
-
+  initSearchBar();
   document.getElementById('logout-btn')?.addEventListener('click', handleLogoutButtonClick);
   document.getElementById('add-link-form')?.addEventListener('submit', handleAddLinkFormSubmit);
   document.getElementById('bookmarks-title')?.addEventListener('click', (e) => {
@@ -79,11 +69,25 @@ function initSettings() {
   document.getElementById('purge-tags-btn')?.addEventListener('click', handlePurgeUnusedTags);
 }
 
+function initSearchBar() { 
+  document.getElementById('search-button')?.addEventListener('click', () => {
+    updateSearch();
+    loadLinks();
+  });
+  document.getElementById('search-input')?.addEventListener('keyup', (e) => {
+    if (e.key === 'Enter') {
+      updateSearch();
+      loadLinks();
+    }
+  });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   if (window.location.pathname === '/' || window.location.pathname === '/index.html') {
     if (hasToken()) {
       window.location.href = '/bookmarks.html';
     }
+    initSearchBar();
     document.getElementById('bookmarks-title')?.addEventListener('click', (e) => {
       e.preventDefault();
       clearSearch();
