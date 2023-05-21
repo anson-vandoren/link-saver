@@ -44,6 +44,8 @@ const globalErrorHandlerLink: TRPCLink<AppRouter> = () => {
   }
 }
 
+const baseUrl = window.location.origin;
+const apiUrl = `${baseUrl}/api/v2`;
 const trpc = createTRPCProxyClient<AppRouter>({
   transformer: superjson,
   links: [
@@ -54,7 +56,7 @@ const trpc = createTRPCProxyClient<AppRouter>({
     }),
     globalErrorHandlerLink,
     httpBatchLink({
-      url: 'http://localhost:3001/api/v2',
+      url: apiUrl,
       headers() {
         if (!hasToken()) {
           return {};
