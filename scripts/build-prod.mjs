@@ -26,3 +26,36 @@ await esbuild.build({
   outfile: 'www/js/bundle.js',
   minify: true,
 });
+
+// build backend
+
+const SERVER_OUT_DIR = path.join(__dirname, '..', 'dist');
+console.log('Cleaning dist/ ...');
+if (fs.existsSync(SERVER_OUT_DIR)) {
+  fs.rmSync(SERVER_OUT_DIR, { recursive: true });
+}
+fs.mkdirSync(SERVER_OUT_DIR);
+
+await esbuild.build({
+  entryPoints: ['src/index.ts'],
+  bundle: true,
+  platform: 'node',
+  target: 'node18',
+  format: 'cjs',
+  minify: true,
+  outfile: 'dist/index.cjs',
+});
+
+const NATIVE_MODULE_DIR = path.join(__dirname, '..', 'build'); // _shrug_ that's where node will look
+if (!fs.existsSync(NATIVE_MODULE_DIR)) {
+  fs.mkdirSync(NATIVE_MODULE_DIR);
+}
+
+// copy native node modules
+console.log('Copying native node modules ...');
+// better-sqlite3
+fs.copyFileSync(
+  path.join(__dirname, '..', 'node_modules', 'better-sqlite3', 'build', 'Release', 'better_sqlite3.node'),
+  path.join(NATIVE_MODULE_DIR, 'better_sqlite3.node'),
+);
+

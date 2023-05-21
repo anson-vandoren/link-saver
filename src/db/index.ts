@@ -24,9 +24,15 @@ function createDbConnection(dbLoc: string) {
   return db;
 }
 
-const __dirname = path.dirname(new URL(import.meta.url).pathname);
+let dirname;
+if (typeof import.meta.url !== 'undefined') {
+  console.log(import.meta);
+  dirname = path.dirname(new URL(import.meta.url).pathname);
+} else {
+  dirname = __dirname;
+}
 const dbName = 'pagepouch.sqlite3';
-const dbPath = path.join(__dirname, '..', '..', 'data', dbName);
+const dbPath = path.join(dirname, '..', '..', 'data', dbName);
 const dbDir = path.dirname(path.resolve(dbPath));
 if (!fs.existsSync(dbDir)) {
   fs.mkdirSync(dbDir, { recursive: true });
