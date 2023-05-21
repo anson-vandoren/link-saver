@@ -5,9 +5,9 @@ function establishWebSocket(token: string) {
   if (!token) {
     return undefined;
   }
-  const { protocol, hostname } = window.location;
+  const { port, protocol, hostname } = window.location;
   const wsProtocol = protocol === 'https:' ? 'wss:' : 'ws:';
-  const WSS_URL = `${wsProtocol}//${hostname}:3001?token=${token}`;
+  const WSS_URL = `${wsProtocol}//${hostname}:${port}?token=${token}`;
   const socket = new WebSocket(WSS_URL);
 
   return socket;
