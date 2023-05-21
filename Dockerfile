@@ -1,12 +1,13 @@
-FROM node:18
+FROM node:18.12.1-alpine
 
 WORKDIR /app
 
-COPY package*.json start.sh ./
+COPY package*.json ./
+RUN npm install --omit=dev
 COPY src/ ./src/
 COPY ui/ ./ui/
 COPY scripts/ ./scripts/
 
-RUN chmod +x ./start.sh
+RUN node scripts/build-prod.mjs
 
-ENTRYPOINT [ "./start.sh" ]
+CMD ["node_modules/.bin/tsx", "src/index.ts"]

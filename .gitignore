@@ -1,10 +1,9 @@
 .env
 node_modules/
-*.sqlite3
+*.sqlite3*
 *.log
 ui/dist/
 dist/
-*.sqlite3*
 build/
 cache/
 www/
